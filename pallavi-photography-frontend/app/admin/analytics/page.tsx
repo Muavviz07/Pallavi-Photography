@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
-import { Loader2, TrendingUp, Sparkles, Database } from "lucide-react";
+import { Loader2, TrendingUp, Sparkles, Database, ShieldAlert } from "lucide-react";
 
 interface AnalyticsData {
   total_galleries: number;
@@ -39,6 +39,18 @@ export default function AdminAnalytics() {
       <div className="flex flex-col items-center justify-center py-24 space-y-4">
         <Loader2 className="w-8 h-8 text-[#C4A484] animate-spin" />
         <p className="text-xs text-[#6E635F] font-light">Loading database analytics...</p>
+      </div>
+    );
+  }
+
+  if (session && (session.user as any)?.role !== "admin") {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-4">
+        <ShieldAlert className="w-12 h-12 text-red-500" />
+        <h2 className="text-lg font-serif font-light text-brand-dark uppercase">Access Denied</h2>
+        <p className="text-xs text-brand-muted max-w-sm text-center leading-relaxed">
+          You do not have administrative privileges to view analytics. Please contact the administrator.
+        </p>
       </div>
     );
   }

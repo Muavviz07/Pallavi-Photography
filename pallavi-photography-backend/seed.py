@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal, Base, engine
 from app.models.user import User, UserRole, UserStatus
+from app.models.hero_slide import HeroSlide
+from app.models.about_section import AboutSection
 from app.core import security
 
 def seed_db():
@@ -46,6 +48,46 @@ def seed_db():
             print("Client user seeded successfully!")
         else:
             print(f"Client user '{client_email}' already exists.")
+            
+        # Seed Hero Slides
+        if db.query(HeroSlide).count() == 0:
+            print("Seeding default hero slides...")
+            slides = [
+                HeroSlide(
+                    title="New Beginnings",
+                    image_url="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&q=80&w=1920",
+                    order=1,
+                    is_active=True
+                ),
+                HeroSlide(
+                    title="Timeless Childhood",
+                    image_url="https://images.unsplash.com/photo-1476703719129-8eb99415f6e8?auto=format&fit=crop&q=80&w=1920",
+                    order=2,
+                    is_active=True
+                ),
+                HeroSlide(
+                    title="Maternity Grace",
+                    image_url="https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=1920",
+                    order=3,
+                    is_active=True
+                )
+            ]
+            db.bulk_save_objects(slides)
+            db.commit()
+            print("Hero slides seeded successfully!")
+            
+        # Seed About Section
+        if db.query(AboutSection).count() == 0:
+            print("Seeding default about section details...")
+            about = AboutSection(
+                title="About Me",
+                quote="Take in every little moment as they would not stay the same forever. Time flies....",
+                bio_text="I believe that photography is a gentle art. It is about documenting real, unscripted love, natural connections, and quiet moments. Based in Switzerland, I specialize in fine art newborn setups, maternity storytelling, and outdoor family collections using soft textures and natural illumination.",
+                awards_text="Recognitions & Awards details"
+            )
+            db.add(about)
+            db.commit()
+            print("About section seeded successfully!")
             
     except Exception as e:
         print(f"Seeding failed: {e}")

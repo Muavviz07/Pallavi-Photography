@@ -48,5 +48,15 @@ from app.schemas.testimonial import (
     TestimonialUpdate,
     TestimonialResponse,
 )
+from app.schemas.hero_slide import (
+    HeroSlideCreate,
+    HeroSlideUpdate,
+    HeroSlideResponse,
+)
+from app.schemas.about_section import (
+    AboutSectionCreate,
+    AboutSectionUpdate,
+    AboutSectionResponse,
+)
 
 

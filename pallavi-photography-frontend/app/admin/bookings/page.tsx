@@ -84,6 +84,18 @@ export default function AdminBookings() {
     );
   }
 
+  if (session && (session.user as any)?.role !== "admin") {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-4">
+        <ShieldAlert className="w-12 h-12 text-red-500" />
+        <h2 className="text-lg font-serif font-light text-brand-dark uppercase">Access Denied</h2>
+        <p className="text-xs text-brand-muted max-w-sm text-center leading-relaxed">
+          You do not have administrative privileges to manage booking requests. Please contact the administrator.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10">
       {/* Header */}

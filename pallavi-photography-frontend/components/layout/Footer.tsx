@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { Mail, ArrowRight, Heart } from "lucide-react";
+import { Mail, Phone, MessageSquare } from "lucide-react";
 import NewsletterSignup from "../forms/NewsletterSignup";
 
 const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
@@ -42,105 +42,90 @@ const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default function Footer() {
-  const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubscribed(true);
-      setEmail("");
-    }
-  };
-
   return (
-    <footer className="bg-[#2C2623] text-[#FAF8F5] pt-16 pb-12 border-t border-[#DCD0C0]/10">
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12">
+    <footer className="bg-brand-bg text-brand-dark pt-20 pb-12 border-t border-brand-border">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-3 gap-12 items-start text-left">
         
-        {/* Column 1: Studio Details */}
-        <div className="space-y-4">
-          <Link href="/" className="inline-block group">
-            <h3 className="text-xl font-light tracking-[0.25em] uppercase font-serif">
-              PALLAVI
-            </h3>
-            <span className="block text-[8px] tracking-[0.4em] uppercase font-sans text-stone-400 -mt-1">
-              Photography
-            </span>
-          </Link>
-          <p className="text-xs text-stone-400 leading-relaxed font-light max-w-sm">
-            Elegantly documenting newborns, maternity journeys, warm family stories, and raw nature portraits across Switzerland. Creating timeless memories with high-end digital precision.
-          </p>
-          <div className="flex items-center space-x-4 pt-2">
+        {/* Column 1: Follow Us */}
+        <div className="space-y-6">
+          <h4 className="text-[10px] uppercase tracking-[0.25em] text-brand-sage font-semibold">
+            FOLLOW US
+          </h4>
+          
+          {/* Social Icons */}
+          <div className="flex items-center space-x-4 text-brand-muted">
             <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noreferrer"
-              className="text-stone-400 hover:text-[#C4A484] transition-colors"
-              aria-label="Instagram"
-            >
-              <Instagram className="w-4 h-4" />
-            </a>
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noreferrer"
-              className="text-stone-400 hover:text-[#C4A484] transition-colors"
+              href="#"
+              className="hover:text-brand-sage transition-colors duration-200"
               aria-label="Facebook"
             >
               <Facebook className="w-4 h-4" />
             </a>
             <a
-              href="mailto:hello@pallaviphotography.com"
-              className="text-stone-400 hover:text-[#C4A484] transition-colors"
-              aria-label="Email"
+              href="https://instagram.com/Pallavivishk"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-brand-sage transition-colors duration-200"
+              aria-label="Instagram"
             >
-              <Mail className="w-4 h-4" />
+              <Instagram className="w-4 h-4" />
+            </a>
+          </div>
+
+          {/* Contact Details */}
+          <div className="space-y-3 pt-2 text-xs font-light text-brand-muted">
+            <a
+              href="mailto:pallavi.vishk@gmail.com"
+              className="flex items-center space-x-3 hover:text-brand-sage transition-colors duration-200"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              <span>pallavi.vishk@gmail.com</span>
+            </a>
+            <a
+              href="https://wa.me/41789077644"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center space-x-3 hover:text-brand-sage transition-colors duration-200"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-green-500 fill-green-500" />
+              <span>+41 789077644</span>
             </a>
           </div>
         </div>
 
-        {/* Column 2: Navigation Links */}
-        <div className="space-y-4 md:pl-12">
-          <h4 className="text-xs uppercase tracking-widest font-semibold text-[#C4A484]">
-            Explore
-          </h4>
-          <div className="grid grid-cols-2 gap-2 text-xs font-light tracking-wide text-stone-300">
-            <div className="space-y-2">
-              <Link href="/" className="block hover:text-[#C4A484] transition-colors">Home</Link>
-              <Link href="/#about" className="block hover:text-[#C4A484] transition-colors">About Me</Link>
-              <Link href="/#contact" className="block hover:text-[#C4A484] transition-colors">Contact</Link>
-              <Link href="/client-portal" className="block hover:text-[#C4A484] transition-colors">Client Portal</Link>
-            </div>
-            <div className="space-y-2">
-              <Link href="/our-gallery/newborn" className="block hover:text-[#C4A484] transition-colors">Newborns</Link>
-              <Link href="/our-gallery/maternity" className="block hover:text-[#C4A484] transition-colors">Maternity</Link>
-              <Link href="/our-gallery/family" className="block hover:text-[#C4A484] transition-colors">Family</Link>
-              <Link href="/our-gallery/fine-art" className="block hover:text-[#C4A484] transition-colors">Fine Art</Link>
-            </div>
-          </div>
+        {/* Column 2: Logo Column */}
+        <div className="flex flex-col items-center justify-center text-center space-y-4">
+          <Link href="/" className="group">
+            <img
+              src="/Pallavi-Logo-V1.webp"
+              alt="Pallavi Photography Logo"
+              className="h-16 w-auto object-contain brightness-0"
+            />
+          </Link>
+          <p className="text-[10px] tracking-[0.3em] text-brand-muted uppercase font-light">
+            Timeless Portraits, Natural Light
+          </p>
         </div>
 
         {/* Column 3: Newsletter */}
         <div className="space-y-4">
-          <h4 className="text-xs uppercase tracking-widest font-semibold text-[#C4A484]">
-            Newsletter
+          <h4 className="text-[10px] uppercase tracking-[0.25em] text-brand-sage font-semibold">
+            NEWSLETTER
           </h4>
-          <p className="text-xs text-stone-400 leading-relaxed font-light">
-            Subscribe to receive seasonal session availability, mini-shoot slots, and photography insights.
+          <p className="text-xs text-brand-muted leading-relaxed font-light">
+            Follow our latest stories.
           </p>
-          <NewsletterSignup />
+          <div className="pt-2">
+            <NewsletterSignup />
+          </div>
         </div>
 
       </div>
 
       {/* Copyright Bar */}
-      <div className="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t border-stone-800 text-[10px] text-stone-500 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 uppercase tracking-widest font-light">
-        <p>© {new Date().getFullYear()} Pallavi Photography. All rights reserved.</p>
-        <p className="flex items-center space-x-1">
-          <span>Crafted with</span>
-          <Heart className="w-2.5 h-2.5 text-[#C4A484] fill-[#C4A484]" />
-          <span>in Switzerland</span>
-        </p>
+      <div className="max-w-[1200px] mx-auto px-6 md:px-12 mt-16 pt-8 border-t border-brand-border text-[9px] text-brand-muted flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 uppercase tracking-[0.2em] font-light">
+        <p>© Copyright 2026 – Powered by DELQ Solutions</p>
+        <p>Switzerland Fine Art Photography Studio</p>
       </div>
     </footer>
   );

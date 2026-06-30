@@ -2,19 +2,20 @@
 
 import React, { useState } from "react";
 import { Send, CheckCircle, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    category: "newborn",
+    tentative_date: "",
     message: "",
   });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -28,27 +29,15 @@ export default function ContactForm() {
     setErrorMessage("");
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      // Merge category details into the message body or handle specifically in API
       const payload = {
         name: formData.name,
         email: formData.email,
-        message: `[Session Type: ${formData.category.toUpperCase()}]\n\n${formData.message}`,
+        message: `[Tentative Date: ${formData.tentative_date || "Not Specified"}]\n\n${formData.message}`,
       };
 
-      const res = await fetch(`${apiUrl}/api/enquiries`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to send message");
-      }
-
+      await api.post("/enquiries", payload);
       setStatus("success");
-      setFormData({ name: "", email: "", category: "newborn", message: "" });
+      setFormData({ name: "", email: "", tentative_date: "", message: "" });
     } catch (err: any) {
       setStatus("error");
       setErrorMessage(err.message || "An unexpected error occurred. Please try again.");
@@ -56,23 +45,24 @@ export default function ContactForm() {
   };
 
   return (
-    <div className="w-full bg-[#FAF8F5] border border-[#DCD0C0]/30 rounded-md p-8 shadow-xs">
+    <div className="w-full max-w-[600px] mx-auto py-6">
       {status === "success" ? (
         <div className="text-center py-12 space-y-4 animate-fade-in">
-          <CheckCircle className="w-12 h-12 text-[#C4A484] mx-auto" />
-          <h4 className="text-lg font-light font-serif text-[#2C2623]">Message Sent!</h4>
-          <p className="text-xs text-[#6E635F] font-light max-w-sm mx-auto leading-relaxed">
+          <CheckCircle className="w-12 h-12 text-brand-sage mx-auto" />
+          <h4 className="text-lg font-light font-serif text-brand-dark uppercase">Message Sent!</h4>
+          <p className="text-xs text-brand-muted font-light max-w-sm mx-auto leading-relaxed">
             Thank you for reaching out. We have received your inquiry and will respond within 24–48 hours to discuss your photography details.
           </p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* NAME */}
+          <div className="flex flex-col space-y-2">
             <label
               htmlFor="form-name"
-              className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium"
+              className="text-[10px] uppercase tracking-widest text-brand-dark font-medium"
             >
-              Name
+              NAME
             </label>
             <input
               type="text"
@@ -80,17 +70,20 @@ export default function ContactForm() {
               name="name"
               value={formData.name}
               onChange={handleChange}
+              placeholder="YOUR FULL NAME"
               required
               disabled={status === "loading"}
-              className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2.5 text-xs outline-hidden focus:border-[#C4A484] transition-colors disabled:opacity-60"
+              className="w-full bg-transparent border-b border-brand-border py-2.5 text-xs text-brand-dark placeholder-stone-400 outline-hidden focus:border-brand-dark transition-colors duration-200 disabled:opacity-60"
             />
           </div>
-          <div>
+
+          {/* E-MAIL */}
+          <div className="flex flex-col space-y-2">
             <label
               htmlFor="form-email"
-              className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium"
+              className="text-[10px] uppercase tracking-widest text-brand-dark font-medium"
             >
-              Email
+              E-MAIL
             </label>
             <input
               type="email"
@@ -98,40 +91,39 @@ export default function ContactForm() {
               name="email"
               value={formData.email}
               onChange={handleChange}
+              placeholder="YOUR EMAIL ADDRESS"
               required
               disabled={status === "loading"}
-              className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2.5 text-xs outline-hidden focus:border-[#C4A484] transition-colors disabled:opacity-60"
+              className="w-full bg-transparent border-b border-brand-border py-2.5 text-xs text-brand-dark placeholder-stone-400 outline-hidden focus:border-brand-dark transition-colors duration-200 disabled:opacity-60"
             />
           </div>
-          <div>
+
+          {/* TENTATIVE DATE */}
+          <div className="flex flex-col space-y-2">
             <label
-              htmlFor="form-category"
-              className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium"
+              htmlFor="form-date"
+              className="text-[10px] uppercase tracking-widest text-brand-dark font-medium"
             >
-              Session Type
+              TENTATIVE DATE
             </label>
-            <select
-              id="form-category"
-              name="category"
-              value={formData.category}
+            <input
+              type="date"
+              id="form-date"
+              name="tentative_date"
+              value={formData.tentative_date}
               onChange={handleChange}
               disabled={status === "loading"}
-              className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2.5 text-xs outline-hidden focus:border-[#C4A484] transition-colors disabled:opacity-60"
-            >
-              <option value="newborn">Newborn Session</option>
-              <option value="maternity">Maternity Portrait</option>
-              <option value="family">Family Gathering</option>
-              <option value="fine-art">Fine Art Session</option>
-              <option value="nature">Outdoor Nature</option>
-              <option value="other">Other / Inquiry</option>
-            </select>
+              className="w-full bg-transparent border-b border-brand-border py-2.5 text-xs text-brand-dark outline-hidden focus:border-brand-dark transition-colors duration-200 disabled:opacity-60"
+            />
           </div>
-          <div>
+
+          {/* TELL US MORE */}
+          <div className="flex flex-col space-y-2">
             <label
               htmlFor="form-message"
-              className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium"
+              className="text-[10px] uppercase tracking-widest text-brand-dark font-medium"
             >
-              Message
+              TELL US MORE
             </label>
             <textarea
               id="form-message"
@@ -139,9 +131,10 @@ export default function ContactForm() {
               rows={4}
               value={formData.message}
               onChange={handleChange}
+              placeholder="YOUR MESSAGE..."
               required
               disabled={status === "loading"}
-              className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2.5 text-xs outline-hidden focus:border-[#C4A484] transition-colors resize-none disabled:opacity-60"
+              className="w-full bg-transparent border-b border-brand-border py-2.5 text-xs text-brand-dark placeholder-stone-400 outline-hidden focus:border-brand-dark transition-colors duration-200 resize-none disabled:opacity-60"
             />
           </div>
           
@@ -149,10 +142,11 @@ export default function ContactForm() {
             <p className="text-xs text-red-600 font-light">{errorMessage}</p>
           )}
 
+          {/* SEND BUTTON */}
           <button
             type="submit"
             disabled={status === "loading"}
-            className="w-full inline-flex items-center justify-center space-x-2 text-xs uppercase tracking-widest text-[#FCFAF7] bg-[#2C2623] hover:bg-[#352F2C] py-3.5 rounded-sm font-medium transition-all cursor-pointer shadow-xs disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center space-x-2 text-xs font-serif uppercase tracking-widest text-white bg-brand-sage hover:bg-transparent hover:text-brand-sage border-2 border-brand-sage py-3.5 rounded-sm font-medium transition-all duration-300 cursor-pointer shadow-xs disabled:opacity-60"
           >
             {status === "loading" ? (
               <Loader2 className="w-4 h-4 animate-spin" />

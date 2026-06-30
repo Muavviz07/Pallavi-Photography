@@ -2,7 +2,7 @@ import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from app.api.dependencies import get_db, get_current_admin_user
+from app.api.dependencies import get_db, get_current_admin_user, get_current_admin_or_client_user
 from app.models.gallery import Gallery, GalleryStatus
 from app.models.image import Image
 from app.schemas.gallery import GalleryCreate, GalleryUpdate, GalleryResponse
@@ -44,7 +44,7 @@ def list_galleries(
 def create_gallery(
     gallery_in: GalleryCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_user)
+    current_user = Depends(get_current_admin_or_client_user)
 ):
     """
     Create a new gallery. (Admin only)
@@ -88,7 +88,7 @@ def update_gallery(
     id: uuid.UUID,
     gallery_in: GalleryUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_user)
+    current_user = Depends(get_current_admin_or_client_user)
 ):
     """
     Update a gallery's metadata. (Admin only)
@@ -116,7 +116,7 @@ def update_gallery(
 def delete_gallery(
     id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_user)
+    current_user = Depends(get_current_admin_or_client_user)
 ):
     """
     Delete a gallery. (Admin only)
@@ -164,7 +164,7 @@ async def upload_gallery_image(
     alt_text: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_user)
+    current_user = Depends(get_current_admin_or_client_user)
 ):
     """
     Upload and process an image to be associated with a gallery. (Admin only)
@@ -198,7 +198,7 @@ async def upload_gallery_image(
 def delete_image(
     image_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_user)
+    current_user = Depends(get_current_admin_or_client_user)
 ):
     """
     Delete an image record and remove it from storage. (Admin only)
@@ -219,7 +219,7 @@ def update_image_metadata(
     description: Optional[str] = Form(None),
     sort_order: Optional[int] = Form(None),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_user)
+    current_user = Depends(get_current_admin_or_client_user)
 ):
     """
     Update image metadata. (Admin only)

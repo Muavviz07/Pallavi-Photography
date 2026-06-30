@@ -9,10 +9,13 @@ export default async function AdminLayout({
   children: ReactNode;
 }) {
   const session = await auth();
+  const userRole = (session?.user as any)?.role;
   
-  if (!session?.user || (session.user as any).role !== "admin") {
+  if (!session?.user || (userRole !== "admin" && userRole !== "client")) {
     redirect("/");
   }
+
+  const isAdmin = userRole === "admin";
 
   return (
     <div className="min-h-screen flex bg-[#FCFAF7]">
@@ -25,7 +28,7 @@ export default async function AdminLayout({
                 PALLAVI
               </h1>
               <span className="block text-[8px] tracking-[0.4em] text-stone-400 uppercase font-sans -mt-0.5">
-                Admin Console
+                {isAdmin ? "Admin Console" : "Photographer Hub"}
               </span>
             </Link>
           </div>
@@ -37,42 +40,48 @@ export default async function AdminLayout({
             >
               Overview
             </Link>
+            
             <Link
               href="/admin/galleries"
               className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
             >
-              Client Galleries
+              Galleries & Clients
             </Link>
-            <Link
-              href="/admin/bookings"
-              className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
-            >
-              Booking Requests
-            </Link>
-            <Link
-              href="/admin/blogs"
-              className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
-            >
-              Blog Journal
-            </Link>
-            <Link
-              href="/admin/enquiries"
-              className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
-            >
-              Enquiries Log
-            </Link>
-            <Link
-              href="/admin/users"
-              className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
-            >
-              Users & Roles
-            </Link>
-            <Link
-              href="/admin/analytics"
-              className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
-            >
-              Analytics
-            </Link>
+
+            {isAdmin && (
+              <>
+                <Link
+                  href="/admin/bookings"
+                  className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                >
+                  Booking Requests
+                </Link>
+                <Link
+                  href="/admin/blogs"
+                  className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                >
+                  Blog Journal
+                </Link>
+                <Link
+                  href="/admin/enquiries"
+                  className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                >
+                  Enquiries Log
+                </Link>
+                <Link
+                  href="/admin/users"
+                  className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                >
+                  Users & Roles
+                </Link>
+                <Link
+                  href="/admin/analytics"
+                  className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                >
+                  Analytics
+                </Link>
+              </>
+            )}
           </nav>
         </div>
 

@@ -8,4 +8,6 @@ from app.models.booking import Booking, BookingStatus
 from app.models.enquiry import Enquiry, EnquiryStatus
 from app.models.newsletter import NewsletterSubscriber, SubscriberStatus
 from app.models.testimonial import Testimonial
+from app.models.hero_slide import HeroSlide
+from app.models.about_section import AboutSection
 

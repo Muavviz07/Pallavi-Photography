@@ -67,21 +67,21 @@ export default function TestimonialsCarousel({ category }: { category?: string }
 
   return (
     <div className="max-w-4xl mx-auto px-6 text-center relative">
-      <span className="text-[10px] uppercase tracking-[0.3em] text-[#C4A484] font-semibold block mb-8">
+      <span className="text-[10px] uppercase tracking-[0.3em] text-brand-sage font-semibold block mb-8">
         Kind Words
       </span>
 
       <div className="min-h-[160px] flex items-center justify-center">
         <div className="space-y-4 animate-fade-in transition-opacity duration-300">
-          <p className="text-lg md:text-xl font-light font-serif italic leading-relaxed text-[#2C2623]">
+          <p className="text-lg md:text-xl font-light font-serif italic leading-relaxed text-brand-dark">
             "{current.text}"
           </p>
           <div className="pt-4">
-            <span className="block text-xs uppercase tracking-widest font-semibold text-[#2C2623]">
+            <span className="block text-xs uppercase tracking-widest font-semibold text-brand-dark">
               {current.author}
             </span>
             {current.role && (
-              <span className="block text-[10px] text-[#6E635F] tracking-wider uppercase font-light">
+              <span className="block text-[10px] text-brand-muted tracking-wider uppercase font-light">
                 {current.role}
               </span>
             )}
@@ -96,7 +96,7 @@ export default function TestimonialsCarousel({ category }: { category?: string }
               key={idx}
               onClick={() => setCurrentIndex(idx)}
               className={`w-1.5 h-1.5 rounded-full cursor-pointer transition-all duration-300 ${
-                idx === currentIndex ? "bg-[#C4A484] w-4" : "bg-[#DCD0C0]"
+                idx === currentIndex ? "bg-brand-sage w-4" : "bg-brand-cream"
               }`}
               aria-label={`Go to testimonial ${idx + 1}`}
             />

@@ -1,26 +1,79 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import { Menu, X, ChevronDown, User, Globe } from "lucide-react";
+import { Menu, X, ChevronDown, User, Globe, MessageSquare, Search } from "lucide-react";
 import { translations, Language } from "@/lib/translations";
 
-const CATEGORIES = [
-  { name: "Newborn", slug: "newborn" },
-  { name: "Maternity", slug: "maternity" },
-  { name: "Family", slug: "family" },
-  { name: "Fine Art", slug: "fine-art" },
-  { name: "Nature", slug: "nature" },
+const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
+const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
+const ABOUT_ITEMS = [
+  { name: "About Me", href: "/about" },
+  { name: "Recognitions & Awards", href: "/about?section=awards" }
+];
+
+const PRICING_ITEMS = [
+  { name: "NewBorn", href: "/pricing/newborn" },
+  { name: "Children", href: "/pricing/children" },
+  { name: "Family", href: "/pricing/family" },
+  { name: "Maternity", href: "/pricing/maternity" },
+  { name: "Fine Art", href: "/pricing/fine-art" },
+  { name: "Nature Photostock", href: "/pricing/nature" },
+  { name: "FAQs", href: "/pricing/faqs" }
+];
+
+const GALLERY_ITEMS = [
+  { name: "NewBorn", href: "/our-gallery/newborn" },
+  { name: "Children", href: "/our-gallery/children" },
+  { name: "Family", href: "/our-gallery/family" },
+  { name: "Maternity", href: "/our-gallery/maternity" },
+  { name: "Fine Art", href: "/our-gallery/fine-art" },
+  { name: "Nature", href: "/our-gallery/nature" }
 ];
 
 export default function Header() {
   const pathname = usePathname();
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [language, setLanguage] = useState("EN"); // EN | FR
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [language, setLanguage] = useState("EN");
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const storedLang = localStorage.getItem("lang") || "EN";
@@ -31,233 +84,335 @@ export default function Header() {
     const nextLang = language === "EN" ? "FR" : "EN";
     setLanguage(nextLang);
     localStorage.setItem("lang", nextLang);
-    // Reload or dispatch custom event to alert other components
     window.dispatchEvent(new Event("languagechange"));
   };
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
     setIsMobileMenuOpen(false);
-    setIsDropdownOpen(false);
+    setActiveDropdown(null);
   }, [pathname]);
 
-  const isHome = pathname === "/";
+  // Close sidebar on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setIsSidebarOpen(false);
+      }
+    }
+    if (isSidebarOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isSidebarOpen]);
+
+  const { data: session } = useSession();
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? "glassmorphism shadow-xs py-3"
-          : isHome
-          ? "bg-transparent py-5 text-white"
-          : "bg-[#FCFAF7] border-b border-[#DCD0C0]/20 py-4"
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-        <nav className="hidden md:flex items-center space-x-8 text-sm font-light uppercase tracking-widest">
-          <Link
-            href="/"
-            className={`hover:text-[#C4A484] transition-colors duration-200 ${
-              pathname === "/" ? "text-[#C4A484] font-medium" : ""
-            }`}
-          >
-            {translations[language as Language]?.home || "Home"}
-          </Link>
+    <>
+      <header className="sticky top-0 left-0 right-0 z-40 bg-white border-b border-brand-border pt-2 pb-0.5 shadow-xs select-none">
+        <div className="max-w-[1450px] mx-auto px-6 md:px-10 grid grid-cols-2 lg:grid-cols-3 items-center">
           
-          {/* Portfolio Dropdown */}
-          <div className="relative">
+          {/* Left Column: Logo */}
+          <div className="flex justify-start">
+            <Link href="/" className="flex items-center animate-fade-in">
+              <img
+                src="/Pallavi-Logo-V1.webp"
+                alt="Pallavi Photography Logo"
+                className="h-28 w-auto object-contain brightness-0"
+              />
+            </Link>
+          </div>
+
+          {/* Center Column: Navigation Menu */}
+          <div className="hidden lg:flex justify-center">
+            <nav className="flex items-center space-x-9 xl:space-x-13 text-[10px] font-medium tracking-[0.25em] text-brand-dark whitespace-nowrap">
+              <Link
+                href="/"
+                className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 ${
+                  pathname === "/" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
+                }`}
+              >
+                HOME
+              </Link>
+
+              {/* ABOUT Dropdown */}
+              <div
+                className="relative py-2 group"
+                onMouseEnter={() => setActiveDropdown("about")}
+                onMouseLeave={() => setActiveDropdown(null)}
+              >
+                <button className="flex items-center space-x-1 hover:text-brand-dark cursor-pointer transition-colors duration-200 uppercase text-brand-muted pb-2 border-b-2 border-transparent">
+                  <span>ABOUT</span>
+                  <ChevronDown className="w-3 h-3 opacity-60" />
+                </button>
+                {activeDropdown === "about" && (
+                  <div className="absolute left-0 top-full pt-3 min-w-[200px] z-50">
+                    <div className="w-max bg-white border border-brand-border shadow-md py-4 px-2 text-left animate-fade-in rounded-xs">
+                      {ABOUT_ITEMS.map((item) => (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className="block px-4 py-2 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* PRICING Dropdown */}
+              <div
+                className="relative py-2 group"
+                onMouseEnter={() => setActiveDropdown("pricing")}
+                onMouseLeave={() => setActiveDropdown(null)}
+              >
+                <button className="flex items-center space-x-1 hover:text-brand-dark cursor-pointer transition-colors duration-200 uppercase text-brand-muted pb-2 border-b-2 border-transparent">
+                  <span>PRICING</span>
+                  <ChevronDown className="w-3 h-3 opacity-60" />
+                </button>
+                {activeDropdown === "pricing" && (
+                  <div className="absolute left-0 top-full pt-3 min-w-[200px] z-50">
+                    <div className="w-max bg-white border border-brand-border shadow-md py-4 px-2 text-left animate-fade-in rounded-xs">
+                      {PRICING_ITEMS.map((item) => (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className="block px-4 py-2.5 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* OUR GALLERY Dropdown */}
+              <div
+                className="relative py-2 group"
+                onMouseEnter={() => setActiveDropdown("gallery")}
+                onMouseLeave={() => setActiveDropdown(null)}
+              >
+                <button className="flex items-center space-x-1 hover:text-brand-dark cursor-pointer transition-colors duration-200 uppercase text-brand-muted pb-2 border-b-2 border-transparent">
+                  <span>OUR GALLERY</span>
+                  <ChevronDown className="w-3 h-3 opacity-60" />
+                </button>
+                {activeDropdown === "gallery" && (
+                  <div className="absolute left-0 top-full pt-3 min-w-[200px] z-50">
+                    <div className="w-max bg-white border border-brand-border shadow-md py-4 px-2 text-left animate-fade-in rounded-xs">
+                      {GALLERY_ITEMS.map((item) => (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className="block px-4 py-2.5 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Link
+                href="/client-portal"
+                className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 ${
+                  pathname === "/client-portal" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
+                }`}
+              >
+                CLIENT GALLERY
+              </Link>
+
+              <Link
+                href="/our-blogs"
+                className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 ${
+                  pathname === "/our-blogs" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
+                }`}
+              >
+                BLOGS
+              </Link>
+
+              <Link
+                href="/#contact"
+                className="hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 border-transparent text-brand-muted"
+              >
+                CONTACT
+              </Link>
+            </nav>
+          </div>
+
+          {/* Right Column: INFO Trigger Menu */}
+          <div className="flex justify-end">
             <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              onMouseEnter={() => setIsDropdownOpen(true)}
-              className="flex items-center space-x-1 hover:text-[#C4A484] cursor-pointer transition-colors duration-200 uppercase tracking-widest text-sm font-light"
+              onClick={() => setIsSidebarOpen(true)}
+              className="hidden lg:flex items-center space-x-3 text-brand-muted hover:text-brand-dark transition-colors duration-250 cursor-pointer pb-2 border-b-2 border-transparent text-[10px] uppercase tracking-[0.25em]"
             >
-              <span>{translations[language as Language]?.portfolio || "Portfolio"}</span>
-              <ChevronDown className="w-3 h-3" />
+              <span className="font-semibold">INFO</span>
+              <div className="flex flex-col space-y-[4.5px]">
+                <div className="w-7 h-[1.5px] bg-current"></div>
+                <div className="w-7 h-[1.5px] bg-current"></div>
+              </div>
+            </button>
+
+            {/* Mobile Menu & Sidebar Buttons */}
+            <div className="flex items-center space-x-3 lg:hidden z-50">
+              <button
+                onClick={toggleLanguage}
+                className="text-xs text-brand-dark hover:text-brand-sage px-2 py-1"
+              >
+                {language}
+              </button>
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-brand-dark hover:text-brand-sage p-2"
+                aria-label="Toggle Mobile Menu"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Full-Screen Overlay */}
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-40 bg-[#1A1A1A]/95 text-white flex flex-col justify-center px-8 py-16 space-y-6 animate-fade-in lg:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute top-6 right-6 text-white hover:text-brand-sage"
+            >
+              <X className="w-7 h-7" />
             </button>
             
-            {isDropdownOpen && (
-              <div
-                onMouseLeave={() => setIsDropdownOpen(false)}
-                className="absolute left-0 mt-2 w-48 bg-[#FCFAF7] border border-[#DCD0C0]/30 shadow-md rounded-md py-2 text-left z-50 animate-fade-in"
-              >
-                {CATEGORIES.map((cat) => (
-                  <Link
-                    key={cat.slug}
-                    href={`/our-gallery/${cat.slug}`}
-                    className="block px-4 py-2 text-xs uppercase tracking-wider text-[#2C2623] hover:bg-[#F5EFEB] hover:text-[#C4A484] transition-colors duration-155"
-                  >
-                    {cat.name}
-                  </Link>
-                ))}
+            <div className="flex flex-col space-y-4 text-center font-serif text-xl tracking-wider">
+              <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors">
+                HOME
+              </Link>
+              
+              <div className="space-y-1">
+                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">ABOUT</span>
+                <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
+                  {ABOUT_ITEMS.map((item) => (
+                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral">
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
               </div>
-            )}
+
+              <div className="space-y-1">
+                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">PRICING</span>
+                <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
+                  {PRICING_ITEMS.map((item) => (
+                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral">
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">OUR PORTFOLIO</span>
+                <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
+                  {GALLERY_ITEMS.map((item) => (
+                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral">
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <Link href="/client-portal" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors">
+                CLIENT GALLERY
+              </Link>
+
+              <Link href="/our-blogs" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors">
+                BLOGS
+              </Link>
+
+              <Link href="/#contact" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors">
+                CONTACT
+              </Link>
+            </div>
           </div>
-          
-          <Link
-            href="/#about"
-            className="hover:text-[#C4A484] transition-colors duration-200"
-          >
-            {translations[language as Language]?.about || "About"}
-          </Link>
-          <Link
-            href="/our-blogs"
-            className="hover:text-[#C4A484] transition-colors duration-200"
-          >
-            {translations[language as Language]?.journal || "Journal"}
-          </Link>
-          <Link
-            href="/book-a-session"
-            className="hover:text-[#C4A484] transition-colors duration-200"
-          >
-            {translations[language as Language]?.bookSession || "Book Session"}
-          </Link>
-        </nav>
+        )}
+      </header>
 
-        {/* Center Logo */}
-        <Link href="/" className="text-center group">
-          <h1 className="text-xl md:text-2xl font-light tracking-[0.25em] uppercase font-serif transition-colors duration-300 group-hover:text-[#C4A484]">
-            PALLAVI
-          </h1>
-          <span className={`block text-[8px] tracking-[0.4em] uppercase font-sans font-light -mt-1 ${
-            isScrolled ? "text-[#6E635F]" : isHome ? "text-stone-300" : "text-[#6E635F]"
-          }`}>
-            Photography
-          </span>
-        </Link>
-
-        {/* Right Links (Desktop) */}
-        <div className="hidden md:flex items-center space-x-6">
-          <Link
-            href="/#contact"
-            className="text-xs uppercase tracking-wider border border-[#C4A484]/40 hover:border-[#C4A484] px-4 py-2 transition-all duration-300 text-sm font-light rounded-sm"
+      {/* Info Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex justify-end transition-opacity duration-300">
+          <div
+            ref={sidebarRef}
+            className="w-full max-w-[450px] h-full bg-[#3A3A3A] text-white p-8 md:p-12 relative flex flex-col justify-between overflow-y-auto z-50 animate-slide-in shadow-2xl"
           >
-            {translations[language as Language]?.getInTouch || "Get In Touch"}
-          </Link>
+            {/* Top Close text & icon */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="flex items-center space-x-2 text-[10px] uppercase tracking-[0.25em] text-white/70 hover:text-white transition-colors cursor-pointer"
+              >
+                <span>CLOSE</span>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-          <Link
-            href="/client-portal"
-            className="hover:text-[#C4A484] transition-colors duration-200 flex items-center space-x-1"
-            title="Client Portal"
-          >
-            <User className="w-4 h-4" />
-            <span className="text-xs uppercase tracking-wider font-light">{translations[language as Language]?.portal || "Portal"}</span>
-          </Link>
-          {/* Admin Dashboard Link */}
-          {(() => {
-            const { data: session } = useSession();
-            if (session?.user?.role === "admin") {
-              return (
-                <Link
-                  href="/admin"
-                  className="hover:text-[#C4A484] transition-colors duration-200 flex items-center space-x-1"
+            {/* Mid logo & content */}
+            <div className="my-auto py-12 flex flex-col items-center text-center space-y-8">
+              <img
+                src="/Pallavi-Logo-V1.webp"
+                alt="Pallavi Photography Logo"
+                className="h-20 w-auto object-contain brightness-0 invert"
+              />
+              <p className="text-xs md:text-sm font-light leading-relaxed text-white/80 max-w-sm">
+                I believe that photography is a gentle art. It is about documenting real, unscripted love, natural connections, and quiet moments. Based in Switzerland, I specialize in fine art newborn setups, maternity storytelling, and outdoor family collections using soft textures and natural illumination.
+              </p>
+              
+              <div className="w-8 h-[1px] bg-white/20"></div>
+
+              <div className="space-y-4">
+                <span className="text-[10px] uppercase tracking-[0.25em] text-brand-sage block font-semibold">INSTAGRAM</span>
+                <a
+                  href="https://instagram.com/Pallavivishk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-serif italic text-white/90 hover:text-brand-sage transition-colors"
                 >
-                  <span className="text-xs uppercase tracking-wider font-light">{translations[language as Language]?.admin || "Admin"}</span>
-                </Link>
-              );
-            }
-            return null;
-          })()}
-
-          <button
-            onClick={toggleLanguage}
-            className="flex items-center space-x-1 text-xs hover:text-[#C4A484] transition-colors cursor-pointer"
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span className="font-medium">{language}</span>
-          </button>
-        </div>
-
-        {/* Mobile Menu Icon */}
-        <div className="flex items-center space-x-4 md:hidden">
-          <button
-            onClick={toggleLanguage}
-            className="flex items-center space-x-1 text-xs hover:text-[#C4A484] transition-colors cursor-pointer"
-          >
-            <span className="font-medium">{language}</span>
-          </button>
-          
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="hover:text-[#C4A484] transition-colors focus:outline-hidden"
-            aria-label="Toggle Menu"
-          >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Slide-down Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-[#FCFAF7] border-b border-[#DCD0C0]/35 text-[#2C2623] py-6 px-6 space-y-4 animate-fade-in absolute top-[100%] left-0 right-0 shadow-lg">
-          <div className="flex flex-col space-y-3 font-light uppercase tracking-wider text-sm">
-            <Link
-              href="/"
-              className="py-1 border-b border-stone-100 hover:text-[#C4A484]"
-            >
-              Home
-            </Link>
-            
-            <div className="py-1">
-              <span className="text-stone-400 text-xs block mb-1">Portfolio</span>
-              <div className="grid grid-cols-2 gap-2 pl-2">
-                {CATEGORIES.map((cat) => (
-                  <Link
-                    key={cat.slug}
-                    href={`/our-gallery/${cat.slug}`}
-                    className="py-1 text-xs hover:text-[#C4A484]"
-                  >
-                    {cat.name}
-                  </Link>
-                ))}
+                  @Pallavivishk
+                </a>
               </div>
             </div>
-            
-            <Link
-              href="/#about"
-              className="py-1 border-b border-stone-100 hover:text-[#C4A484]"
-            >
-              {translations[language as Language]?.about || "About"}
-            </Link>
-            <Link
-              href="/our-blogs"
-              className="py-1 border-b border-stone-100 hover:text-[#C4A484]"
-            >
-              {translations[language as Language]?.journal || "Journal"}
-            </Link>
-            <Link
-              href="/book-a-session"
-              className="py-1 border-b border-stone-100 hover:text-[#C4A484]"
-            >
-              {translations[language as Language]?.bookSession || "Book Session"}
-            </Link>
-            <Link
-              href="/#contact"
-              className="py-1 border-b border-stone-100 hover:text-[#C4A484]"
-            >
-              {translations[language as Language]?.getInTouch || "Contact"}
-            </Link>
-            <Link
-              href="/client-portal"
-              className="py-1 flex items-center space-x-2 text-[#C4A484]"
-            >
-              <User className="w-4 h-4" />
-              <span>{translations[language as Language]?.portal || "Client Portal"}</span>
-            </Link>
+
+            {/* Bottom follow us & WhatsApp */}
+            <div className="flex items-center justify-between pt-6 border-t border-white/10">
+              <div className="space-y-1.5 text-left">
+                <span className="text-[9px] uppercase tracking-widest text-white/50 block font-light">FOLLOW US</span>
+                <div className="flex space-x-3 text-white/80">
+                  <a href="#" className="hover:text-brand-sage transition-colors">
+                    <Facebook className="w-4 h-4" />
+                  </a>
+                  <a href="https://instagram.com/Pallavivishk" target="_blank" rel="noopener noreferrer" className="hover:text-brand-sage transition-colors">
+                    <Instagram className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Sidebar bottom WhatsApp */}
+              <a
+                href="https://wa.me/41789077644"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white hover:scale-105 hover:bg-green-600 transition-all duration-300"
+                title="Chat on WhatsApp"
+              >
+                <MessageSquare className="w-5 h-5 fill-white text-green-500" />
+              </a>
+            </div>
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }

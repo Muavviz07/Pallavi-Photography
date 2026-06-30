@@ -37,7 +37,8 @@ export async function fetchAPI(endpoint: string, options: FetchOptions = {}) {
     },
   };
   
-  const response = await fetch(`${API_URL}${endpoint}`, config);
+  const cleanEndpoint = endpoint.startsWith("/api") ? endpoint : `/api${endpoint}`;
+  const response = await fetch(`${API_URL}${cleanEndpoint}`, config);
   
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -50,3 +51,26 @@ export async function fetchAPI(endpoint: string, options: FetchOptions = {}) {
   
   return response.json();
 }
+
+export const api = {
+  get: <T>(endpoint: string, options: FetchOptions = {}): Promise<T> => {
+    return fetchAPI(endpoint, { ...options, method: "GET" });
+  },
+  post: <T>(endpoint: string, body?: any, options: FetchOptions = {}): Promise<T> => {
+    return fetchAPI(endpoint, {
+      ...options,
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  },
+  patch: <T>(endpoint: string, body?: any, options: FetchOptions = {}): Promise<T> => {
+    return fetchAPI(endpoint, {
+      ...options,
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  },
+  delete: <T>(endpoint: string, options: FetchOptions = {}): Promise<T> => {
+    return fetchAPI(endpoint, { ...options, method: "DELETE" });
+  },
+};

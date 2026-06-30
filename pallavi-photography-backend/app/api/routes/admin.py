@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.api.dependencies import get_db, get_current_admin_user
+from app.api.dependencies import get_db, get_current_admin_user, get_current_admin_or_client_user
 from app.models.client_gallery import ClientGallery
 from app.models.client_gallery_image import ClientGalleryImage
 from app.models.user import User
@@ -14,11 +14,11 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 # Galleries CRUD
 @router.get("/galleries", response_model=List[ClientGalleryResponse])
-def list_galleries(db: Session = Depends(get_db), admin: User = Depends(get_current_admin_user)):
+def list_galleries(db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_or_client_user)):
     return db.query(ClientGallery).all()
 
 @router.post("/galleries", response_model=ClientGalleryResponse, status_code=status.HTTP_201_CREATED)
-def create_gallery(gallery_in: ClientGalleryCreate, db: Session = Depends(get_db), admin: User = Depends(get_current_admin_user)):
+def create_gallery(gallery_in: ClientGalleryCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_or_client_user)):
     db_gallery = ClientGallery(**gallery_in.dict())
     db.add(db_gallery)
     db.commit()
@@ -26,7 +26,7 @@ def create_gallery(gallery_in: ClientGalleryCreate, db: Session = Depends(get_db
     return db_gallery
 
 @router.put("/galleries/{gallery_id}", response_model=ClientGalleryResponse)
-def update_gallery(gallery_id: int, gallery_in: ClientGalleryUpdate, db: Session = Depends(get_db), admin: User = Depends(get_current_admin_user)):
+def update_gallery(gallery_id: uuid.UUID, gallery_in: ClientGalleryUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_or_client_user)):
     gallery = db.query(ClientGallery).filter(ClientGallery.id == gallery_id).first()
     if not gallery:
         raise HTTPException(status_code=404, detail="Gallery not found")
@@ -37,7 +37,7 @@ def update_gallery(gallery_id: int, gallery_in: ClientGalleryUpdate, db: Session
     return gallery
 
 @router.delete("/galleries/{gallery_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_gallery(gallery_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin_user)):
+def delete_gallery(gallery_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_or_client_user)):
     gallery = db.query(ClientGallery).filter(ClientGallery.id == gallery_id).first()
     if not gallery:
         raise HTTPException(status_code=404, detail="Gallery not found")
@@ -47,7 +47,7 @@ def delete_gallery(gallery_id: int, db: Session = Depends(get_db), admin: User =
 
 # Users CRUD (partial)
 @router.get("/users", response_model=List[UserResponse])
-def list_users(db: Session = Depends(get_db), admin: User = Depends(get_current_admin_user)):
+def list_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_or_client_user)):
     return db.query(User).all()
 
 @router.patch("/users/{user_id}", response_model=UserResponse)
@@ -65,7 +65,7 @@ def update_user(user_id: uuid.UUID, user_in: UserUpdate, db: Session = Depends(g
 
 # Simple analytics
 @router.get("/analytics")
-def get_analytics(db: Session = Depends(get_db), admin: User = Depends(get_current_admin_user)):
+def get_analytics(db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_or_client_user)):
     total_galleries = db.query(ClientGallery).count()
     total_images = db.query(ClientGalleryImage).count()
     total_users = db.query(User).count()
