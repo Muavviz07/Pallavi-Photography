@@ -182,5 +182,240 @@ class EmailService:
         """
         return self._send(to_email, f"Gallery Updated: '{gallery_title}'", html_body)
 
+    def send_booking_requested_email(
+        self, admin_email: str, client_name: str, client_email: str, booking_date: str, booking_time: str, message: Optional[str] = None
+    ) -> bool:
+        """
+        Notifies the admin that a new session booking has been requested.
+        """
+        message_section = f"<p><strong>Message:</strong> {message}</p>" if message else ""
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+          {EMAIL_STYLES}
+        </head>
+        <body>
+          <div class="card">
+            <div class="logo">
+              <h1>PALLAVI</h1>
+              <span>Photography</span>
+            </div>
+            <div class="content">
+              <p>Dear Pallavi,</p>
+              <p>A new photoshoot session has been requested by <strong>{client_name}</strong> (<strong>{client_email}</strong>).</p>
+              <div class="accent-box">
+                <strong>Booking Request Details:</strong>
+                <ul>
+                  <li>Client: {client_name} ({client_email})</li>
+                  <li>Date: {booking_date}</li>
+                  <li>Time: {booking_time}</li>
+                </ul>
+                {message_section}
+              </div>
+              <p>Please log in to the admin panel to approve or decline this request.</p>
+              <div style="text-align: center;">
+                <a href="{settings.NEXTAUTH_URL}/admin/bookings" class="cta-btn">Manage Bookings</a>
+              </div>
+              <p>Best regards,<br/>System Dispatch</p>
+            </div>
+            <div class="footer">
+              © {datetime.now().year} Pallavi Photography System.
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+        return self._send(admin_email, f"New Booking Request from {client_name}", html_body)
+
+    def send_booking_status_updated_email(
+        self, client_email: str, client_name: str, booking_date: str, booking_time: str, status: str
+    ) -> bool:
+        """
+        Informs the client about their booking request status change.
+        """
+        status_text = "approved" if status == "approved" else "declined"
+        intro_text = f"We are pleased to inform you that your booking request has been <strong>{status_text}</strong>!" if status == "approved" else f"We regret to inform you that we are unable to accept your booking request for the specified slot."
+        
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+          {EMAIL_STYLES}
+        </head>
+        <body>
+          <div class="card">
+            <div class="logo">
+              <h1>PALLAVI</h1>
+              <span>Photography</span>
+            </div>
+            <div class="content">
+              <p>Hello {client_name},</p>
+              <p>{intro_text}</p>
+              <div class="accent-box">
+                <strong>Your Booking Details:</strong>
+                <ul>
+                  <li>Date: {booking_date}</li>
+                  <li>Time: {booking_time}</li>
+                  <li>Status: <span style="text-transform: uppercase; font-weight: bold; color: {'#2e7d32' if status == 'approved' else '#c62828'};">{status}</span></li>
+                </ul>
+              </div>
+              <p>If you have any questions or need to make changes, please reply directly to this email or call us.</p>
+              <p>Best regards,<br/>Pallavi Photography</p>
+            </div>
+            <div class="footer">
+              © {datetime.now().year} Pallavi Photography, Switzerland.
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+        return self._send(client_email, f"Booking Request Update: {status_text.capitalize()}", html_body)
+
+    def send_contact_enquiry_received_email(
+        self, admin_email: str, visitor_name: str, visitor_email: str, message: str
+    ) -> bool:
+        """
+        Notifies the admin that a new contact form enquiry has been received.
+        """
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+          {EMAIL_STYLES}
+        </head>
+        <body>
+          <div class="card">
+            <div class="logo">
+              <h1>PALLAVI</h1>
+              <span>Photography</span>
+            </div>
+            <div class="content">
+              <p>Dear Pallavi,</p>
+              <p>You have received a new message via the contact form on your website.</p>
+              <div class="accent-box">
+                <strong>Enquiry Details:</strong>
+                <p><strong>From:</strong> {visitor_name} (<a href="mailto:{visitor_email}">{visitor_email}</a>)</p>
+                <p><strong>Message:</strong></p>
+                <p style="white-space: pre-wrap;">{message}</p>
+              </div>
+              <p>You can reply directly to the visitor's email address.</p>
+            </div>
+            <div class="footer">
+              © {datetime.now().year} Pallavi Photography System.
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+        return self._send(admin_email, f"New Website Enquiry from {visitor_name}", html_body)
+
+    def send_contact_auto_reply_email(
+        self, visitor_email: str, visitor_name: str
+    ) -> bool:
+        """
+        Sends an automated confirmation email to the visitor.
+        """
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+          {EMAIL_STYLES}
+        </head>
+        <body>
+          <div class="card">
+            <div class="logo">
+              <h1>PALLAVI</h1>
+              <span>Photography</span>
+            </div>
+            <div class="content">
+              <p>Hello {visitor_name},</p>
+              <p>Thank you for reaching out and getting in touch! We have received your message and will read it shortly.</p>
+              <p>We typically respond within 24-48 hours. If your request is urgent, please feel free to call or WhatsApp us.</p>
+              <p>Have a wonderful day!</p>
+              <p>Best regards,<br/>Pallavi Photography</p>
+            </div>
+            <div class="footer">
+              © {datetime.now().year} Pallavi Photography, Switzerland.
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+        return self._send(visitor_email, "Thank you for contacting Pallavi Photography", html_body)
+
+    def send_newsletter_opt_in_email(
+        self, subscriber_email: str, opt_in_link: str
+    ) -> bool:
+        """
+        Sends an email confirmation for double opt-in subscription.
+        """
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+          {EMAIL_STYLES}
+        </head>
+        <body>
+          <div class="card">
+            <div class="logo">
+              <h1>PALLAVI</h1>
+              <span>Photography</span>
+            </div>
+            <div class="content">
+              <p>Hello,</p>
+              <p>Thank you for subscribing to our newsletter! Please click the button below to confirm your subscription and join our mailing list.</p>
+              <div style="text-align: center;">
+                <a href="{opt_in_link}" class="cta-btn">Confirm Subscription</a>
+              </div>
+              <p>If you did not make this request, you can safely ignore this email.</p>
+            </div>
+            <div class="footer">
+              © {datetime.now().year} Pallavi Photography, Switzerland.
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+        return self._send(subscriber_email, "Confirm Your Newsletter Subscription", html_body)
+
+    def send_newsletter_broadcast_email(
+        self, subscriber_email: str, subject: str, title: str, content: str, unsubscribe_link: str
+    ) -> bool:
+        """
+        Sends a newsletter email broadcast to subscribers.
+        """
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+          {EMAIL_STYLES}
+        </head>
+        <body>
+          <div class="card">
+            <div class="logo">
+              <h1>PALLAVI</h1>
+              <span>Photography</span>
+            </div>
+            <div class="content">
+              <h2 style="font-family: Georgia, serif; font-size: 20px; font-weight: normal; color: #2C2623;">{title}</h2>
+              <div style="font-size: 14px; line-height: 1.6; color: #2C2623; font-weight: 300;">
+                {content}
+              </div>
+              <p>Best regards,<br/>Pallavi Photography</p>
+            </div>
+            <div class="footer">
+              <p>© {datetime.now().year} Pallavi Photography, Switzerland.</p>
+              <p style="font-size: 9px;">You are receiving this email because you subscribed to our newsletter. <a href="{unsubscribe_link}" style="color: #6E635F; text-decoration: underline;">Unsubscribe here</a></p>
+            </div>
+          </div>
+        </body>
+        </html>
+        """
+        return self._send(subscriber_email, subject, html_body)
+
 # Singleton instance
 email_service = EmailService()
+
+
+

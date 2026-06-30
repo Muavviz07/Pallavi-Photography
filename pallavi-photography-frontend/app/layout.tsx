@@ -15,6 +15,7 @@ const inter = Inter({
 });
 
 import { SessionProvider } from "next-auth/react";
+import WhatsAppButton from "@/components/common/WhatsAppButton";
 
 export const metadata: Metadata = {
   title: "Pallavi Photography | Portrait & Family Photography Switzerland",
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#FCFAF7] text-[#2C2623] font-sans selection:bg-[#EAE4DC] selection:text-[#352F2C]">
         <SessionProvider>
           {children}
+          <WhatsAppButton />
         </SessionProvider>
       </body>
     </html>

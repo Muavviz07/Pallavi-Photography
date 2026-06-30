@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Mail, ArrowRight, Heart } from "lucide-react";
+import NewsletterSignup from "../forms/NewsletterSignup";
 
 const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -127,29 +128,7 @@ export default function Footer() {
           <p className="text-xs text-stone-400 leading-relaxed font-light">
             Subscribe to receive seasonal session availability, mini-shoot slots, and photography insights.
           </p>
-          {subscribed ? (
-            <p className="text-xs text-[#C4A484] font-medium transition-all duration-300">
-              Thank you! You have successfully subscribed to our list.
-            </p>
-          ) : (
-            <form onSubmit={handleSubscribe} className="flex max-w-sm border-b border-stone-500 pb-1">
-              <input
-                type="email"
-                placeholder="Your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="bg-transparent border-0 ring-0 outline-hidden flex-1 text-xs text-white placeholder-stone-500 py-1"
-              />
-              <button
-                type="submit"
-                className="text-stone-400 hover:text-[#C4A484] transition-colors pl-2"
-                aria-label="Subscribe"
-              >
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          )}
+          <NewsletterSignup />
         </div>
 
       </div>

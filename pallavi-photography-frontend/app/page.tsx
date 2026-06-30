@@ -6,6 +6,9 @@ import Image from "next/image";
 import { ArrowRight, ChevronLeft, ChevronRight, Send, CheckCircle } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ContactForm from "@/components/forms/ContactForm";
+import TestimonialsCarousel from "@/components/testimonials/TestimonialsCarousel";
+import { translations, Language } from "@/lib/translations";
 
 // Curated high-res imagery matching photography categories
 const PORTFOLIO_PREVIEWS = {
@@ -46,23 +49,7 @@ const PORTFOLIO_PREVIEWS = {
   }
 };
 
-const TESTIMONIALS = [
-  {
-    quote: "Pallavi has a magical gift with newborns. She handled our 10-day-old son with such gentle care. The portraits are emotional, minimalist, and absolutely beautiful.",
-    author: "Elena & Marc S.",
-    location: "Zürich, Switzerland"
-  },
-  {
-    quote: "The maternity session was a dream. Pallavi helped style the outfits and made me feel so confident and beautiful. We will cherish these pictures forever.",
-    author: "Sophie B.",
-    location: "Geneva, Switzerland"
-  },
-  {
-    quote: "We did a family sunset shoot in the Alps. Pallavi managed to capture our kids' wild spirits perfectly. The lighting, composition, and emotional warmth are perfect.",
-    author: "The Keller Family",
-    location: "Lucerne, Switzerland"
-  }
-];
+
 
 const BLOG_POSTS = [
   {
@@ -102,33 +89,20 @@ const INSTAGRAM_PHOTOS = [
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<keyof typeof PORTFOLIO_PREVIEWS>("newborn");
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  const [formData, setFormData] = useState({ name: "", email: "", category: "newborn", message: "" });
-  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [lang, setLang] = useState<Language>("EN");
 
-  // Auto-slide testimonials
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
-    }, 8000);
-    return () => clearInterval(timer);
+    const stored = (localStorage.getItem("lang") as Language) || "EN";
+    setLang(stored);
+
+    const handleLangChange = () => {
+      const nextLang = (localStorage.getItem("lang") as Language) || "EN";
+      setLang(nextLang);
+    };
+
+    window.addEventListener("languagechange", handleLangChange);
+    return () => window.removeEventListener("languagechange", handleLangChange);
   }, []);
-
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.name && formData.email) {
-      setFormSubmitted(true);
-      // Reset form after a small delay
-      setTimeout(() => {
-        setFormData({ name: "", email: "", category: "newborn", message: "" });
-      }, 3000);
-    }
-  };
 
   return (
     <>
@@ -162,7 +136,7 @@ export default function Home() {
               href="#explore-portfolio"
               className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-white border border-white/35 hover:border-white px-8 py-3.5 rounded-xs transition-all duration-300 hover:bg-white/5"
             >
-              <span>Explore Portfolios</span>
+              <span>{translations[lang].explorePortfolio}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -179,13 +153,13 @@ export default function Home() {
       <section id="about" className="py-24 bg-[#FCFAF7] border-b border-[#DCD0C0]/20">
         <div className="max-w-3xl mx-auto px-6 text-center space-y-8">
           <span className="text-[10px] uppercase tracking-[0.3em] text-[#C4A484] font-semibold">
-            Welcome to the Studio
+            {translations[lang].welcome}
           </span>
           <h3 className="text-3xl md:text-4xl font-light tracking-wide font-serif text-[#2C2623]">
-            Timeless Portraits, Natural Light
+            {translations[lang].timelessPortraits}
           </h3>
           <p className="text-[#6E635F] text-sm md:text-base leading-relaxed font-light">
-            I believe that photography is a gentle art. It is about documenting real, unscripted love, natural connections, and quiet moments. Based in Switzerland, I specialize in fine art newborn setups, maternity storytelling, and outdoor family collections using soft textures and natural illumination.
+            {translations[lang].introText}
           </p>
           <div className="pt-2">
             <div className="w-16 h-[1px] bg-[#DCD0C0] mx-auto" />
@@ -198,10 +172,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center md:text-left mb-16 space-y-2">
             <span className="text-[10px] uppercase tracking-[0.3em] text-[#C4A484] font-semibold block">
-              Curated Collections
+              {translations[lang].curatedCollections}
             </span>
             <h3 className="text-3xl md:text-4xl font-light tracking-wide font-serif">
-              Explore Our Portfolios
+              {translations[lang].explorePortfolio}
             </h3>
           </div>
 
@@ -276,20 +250,20 @@ export default function Home() {
         {/* Banner Content */}
         <div className="relative z-10 text-center px-6 max-w-3xl space-y-6">
           <span className="text-[10px] uppercase tracking-[0.4em] text-stone-200 block font-light">
-            Limited Monthly Slots Available
+            {translations[lang].slotsAvailable}
           </span>
           <h2 className="text-3xl sm:text-5xl font-light tracking-[0.25em] text-white uppercase font-serif">
-            Reserve Your Session
+            {translations[lang].reserveSession}
           </h2>
           <p className="text-xs sm:text-sm text-stone-300 font-light tracking-wide max-w-lg mx-auto leading-relaxed">
-            Every season brings beautiful lights and changes. Secure your spot today to document your family's precious milestone in Switzerland.
+            {translations[lang].reserveText}
           </p>
           <div className="pt-4">
             <Link
               href="#contact"
               className="inline-block text-xs uppercase tracking-widest text-[#2C2623] bg-[#FCFAF7] hover:bg-[#FAF8F5] px-8 py-3.5 rounded-sm transition-all duration-300 font-medium hover:shadow-md"
             >
-              Get In Touch
+              {translations[lang].getInTouch}
             </Link>
           </div>
         </div>
@@ -297,47 +271,7 @@ export default function Home() {
 
       {/* 5. TESTIMONIALS SECTION */}
       <section className="py-24 bg-[#FCFAF7] border-b border-[#DCD0C0]/20">
-        <div className="max-w-4xl mx-auto px-6 text-center relative">
-          <span className="text-[10px] uppercase tracking-[0.3em] text-[#C4A484] font-semibold block mb-8">
-            Kind Words
-          </span>
-          
-          {/* Testimonial Quote Slider */}
-          <div className="min-h-[160px] flex items-center justify-center">
-            {TESTIMONIALS.map((t, idx) => {
-              if (idx !== currentTestimonial) return null;
-              return (
-                <div key={idx} className="space-y-4 animate-fade-in">
-                  <p className="text-lg md:text-xl font-light font-serif italic leading-relaxed text-[#2C2623]">
-                    "{t.quote}"
-                  </p>
-                  <div className="pt-4">
-                    <span className="block text-xs uppercase tracking-widest font-semibold text-[#2C2623]">
-                      {t.author}
-                    </span>
-                    <span className="block text-[10px] text-[#6E635F] tracking-wider uppercase font-light">
-                      {t.location}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Dots Indicator */}
-          <div className="flex items-center justify-center space-x-2.5 mt-8">
-            {TESTIMONIALS.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentTestimonial(idx)}
-                className={`w-1.5 h-1.5 rounded-full cursor-pointer transition-all duration-300 ${
-                  idx === currentTestimonial ? "bg-[#C4A484] w-4" : "bg-[#DCD0C0]"
-                }`}
-                aria-label={`Go to testimonial ${idx + 1}`}
-              />
-            ))}
-          </div>
-        </div>
+        <TestimonialsCarousel />
       </section>
 
       {/* 6. BLOG LIST SECTION */}
@@ -348,7 +282,7 @@ export default function Home() {
               Journal & Notes
             </span>
             <h3 className="text-3xl md:text-4xl font-light tracking-wide font-serif">
-              Read Our Blog
+              {translations[lang].readBlog}
             </h3>
           </div>
 
@@ -413,79 +347,8 @@ export default function Home() {
           </div>
 
           {/* Right Form */}
-          <div className="md:col-span-7 bg-[#FAF8F5] border border-[#DCD0C0]/30 rounded-md p-8 shadow-xs">
-            {formSubmitted ? (
-              <div className="text-center py-12 space-y-4 animate-fade-in">
-                <CheckCircle className="w-12 h-12 text-[#C4A484] mx-auto" />
-                <h4 className="text-lg font-light font-serif">Message Sent!</h4>
-                <p className="text-xs text-[#6E635F] font-light max-w-sm mx-auto">
-                  Thank you for reaching out. We will get back to you within 24–48 hours to discuss your session.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="name" className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium">Name</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden focus:border-[#C4A484] transition-colors"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium">Email</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden focus:border-[#C4A484] transition-colors"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="category" className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium">Session Type</label>
-                  <select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleFormChange}
-                    className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden focus:border-[#C4A484] transition-colors"
-                  >
-                    <option value="newborn">Newborn Session</option>
-                    <option value="maternity">Maternity Portrait</option>
-                    <option value="family">Family Gathering</option>
-                    <option value="fine-art">Fine Art Session</option>
-                    <option value="nature">Outdoor Nature</option>
-                    <option value="other">Other / Inquiry</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="message" className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium">Message</label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    rows={4}
-                    value={formData.message}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden focus:border-[#C4A484] transition-colors resize-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full inline-flex items-center justify-center space-x-2 text-xs uppercase tracking-widest text-[#FCFAF7] bg-[#2C2623] hover:bg-[#352F2C] py-3 rounded-sm font-medium transition-all cursor-pointer shadow-xs"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Send Message</span>
-                </button>
-              </form>
-            )}
+          <div className="md:col-span-7">
+            <ContactForm />
           </div>
 
         </div>
@@ -496,10 +359,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 text-center space-y-12">
           <div className="space-y-2">
             <span className="text-[10px] uppercase tracking-[0.3em] text-[#C4A484] font-semibold block">
-              Social Journal
+              {translations[lang].socialJournal}
             </span>
             <h3 className="text-3xl font-light tracking-wide font-serif text-[#2C2623]">
-              Follow Us on Instagram
+              {translations[lang].followUs}
             </h3>
             <a
               href="https://instagram.com"

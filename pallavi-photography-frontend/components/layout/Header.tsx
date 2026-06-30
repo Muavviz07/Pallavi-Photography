@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { Menu, X, ChevronDown, User, Globe } from "lucide-react";
+import { translations, Language } from "@/lib/translations";
 
 const CATEGORIES = [
   { name: "Newborn", slug: "newborn" },
@@ -19,7 +20,20 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [language, setLanguage] = useState("EN"); // EN | DE
+  const [language, setLanguage] = useState("EN"); // EN | FR
+
+  useEffect(() => {
+    const storedLang = localStorage.getItem("lang") || "EN";
+    setLanguage(storedLang);
+  }, []);
+
+  const toggleLanguage = () => {
+    const nextLang = language === "EN" ? "FR" : "EN";
+    setLanguage(nextLang);
+    localStorage.setItem("lang", nextLang);
+    // Reload or dispatch custom event to alert other components
+    window.dispatchEvent(new Event("languagechange"));
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,15 +48,10 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
     setIsDropdownOpen(false);
   }, [pathname]);
-
-  const toggleLanguage = () => {
-    setLanguage((prev) => (prev === "EN" ? "DE" : "EN"));
-  };
 
   const isHome = pathname === "/";
 
@@ -57,7 +66,6 @@ export default function Header() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-        {/* Left Links (Desktop) */}
         <nav className="hidden md:flex items-center space-x-8 text-sm font-light uppercase tracking-widest">
           <Link
             href="/"
@@ -65,7 +73,7 @@ export default function Header() {
               pathname === "/" ? "text-[#C4A484] font-medium" : ""
             }`}
           >
-            Home
+            {translations[language as Language]?.home || "Home"}
           </Link>
           
           {/* Portfolio Dropdown */}
@@ -75,7 +83,7 @@ export default function Header() {
               onMouseEnter={() => setIsDropdownOpen(true)}
               className="flex items-center space-x-1 hover:text-[#C4A484] cursor-pointer transition-colors duration-200 uppercase tracking-widest text-sm font-light"
             >
-              <span>Portfolio</span>
+              <span>{translations[language as Language]?.portfolio || "Portfolio"}</span>
               <ChevronDown className="w-3 h-3" />
             </button>
             
@@ -101,7 +109,19 @@ export default function Header() {
             href="/#about"
             className="hover:text-[#C4A484] transition-colors duration-200"
           >
-            About
+            {translations[language as Language]?.about || "About"}
+          </Link>
+          <Link
+            href="/our-blogs"
+            className="hover:text-[#C4A484] transition-colors duration-200"
+          >
+            {translations[language as Language]?.journal || "Journal"}
+          </Link>
+          <Link
+            href="/book-a-session"
+            className="hover:text-[#C4A484] transition-colors duration-200"
+          >
+            {translations[language as Language]?.bookSession || "Book Session"}
           </Link>
         </nav>
 
@@ -123,7 +143,7 @@ export default function Header() {
             href="/#contact"
             className="text-xs uppercase tracking-wider border border-[#C4A484]/40 hover:border-[#C4A484] px-4 py-2 transition-all duration-300 text-sm font-light rounded-sm"
           >
-            Get In Touch
+            {translations[language as Language]?.getInTouch || "Get In Touch"}
           </Link>
 
           <Link
@@ -132,7 +152,7 @@ export default function Header() {
             title="Client Portal"
           >
             <User className="w-4 h-4" />
-            <span className="text-xs uppercase tracking-wider font-light">Portal</span>
+            <span className="text-xs uppercase tracking-wider font-light">{translations[language as Language]?.portal || "Portal"}</span>
           </Link>
           {/* Admin Dashboard Link */}
           {(() => {
@@ -143,7 +163,7 @@ export default function Header() {
                   href="/admin"
                   className="hover:text-[#C4A484] transition-colors duration-200 flex items-center space-x-1"
                 >
-                  <span className="text-xs uppercase tracking-wider font-light">Admin</span>
+                  <span className="text-xs uppercase tracking-wider font-light">{translations[language as Language]?.admin || "Admin"}</span>
                 </Link>
               );
             }
@@ -208,20 +228,32 @@ export default function Header() {
               href="/#about"
               className="py-1 border-b border-stone-100 hover:text-[#C4A484]"
             >
-              About
+              {translations[language as Language]?.about || "About"}
+            </Link>
+            <Link
+              href="/our-blogs"
+              className="py-1 border-b border-stone-100 hover:text-[#C4A484]"
+            >
+              {translations[language as Language]?.journal || "Journal"}
+            </Link>
+            <Link
+              href="/book-a-session"
+              className="py-1 border-b border-stone-100 hover:text-[#C4A484]"
+            >
+              {translations[language as Language]?.bookSession || "Book Session"}
             </Link>
             <Link
               href="/#contact"
               className="py-1 border-b border-stone-100 hover:text-[#C4A484]"
             >
-              Contact
+              {translations[language as Language]?.getInTouch || "Contact"}
             </Link>
             <Link
               href="/client-portal"
               className="py-1 flex items-center space-x-2 text-[#C4A484]"
             >
               <User className="w-4 h-4" />
-              <span>Client Portal</span>
+              <span>{translations[language as Language]?.portal || "Client Portal"}</span>
             </Link>
           </div>
         </div>

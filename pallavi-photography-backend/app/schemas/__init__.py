@@ -22,4 +22,31 @@ from app.schemas.client_gallery import (
     ClientGalleryResponse,
     ClientGalleryImageResponse,
 )
+from app.schemas.blog import (
+    BlogPostCreate,
+    BlogPostUpdate,
+    BlogPostResponse,
+    BlogPostTranslationCreate,
+    BlogPostTranslationResponse,
+)
+from app.schemas.booking import (
+    BookingCreate,
+    BookingUpdate,
+    BookingResponse,
+)
+from app.schemas.enquiry import (
+    EnquiryCreate,
+    EnquiryUpdate,
+    EnquiryResponse,
+)
+from app.schemas.newsletter import (
+    NewsletterSubscriberCreate,
+    NewsletterSubscriberResponse,
+)
+from app.schemas.testimonial import (
+    TestimonialCreate,
+    TestimonialUpdate,
+    TestimonialResponse,
+)
+
 
