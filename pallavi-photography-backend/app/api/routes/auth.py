@@ -1,0 +1,102 @@
+from datetime import timedelta
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from pydantic import ValidationError
+from app.api.dependencies import get_db, get_current_active_user
+from app.core import security
+from app.models.user import User, UserRole, UserStatus
+from app.schemas.user import UserCreate, UserResponse, LoginCredentials, Token, TokenPayload
+from jose import jwt, JWTError
+import uuid
+
+router = APIRouter()
+
+@router.post("/register", response_model=UserResponse)
+def register(user_in: UserCreate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == user_in.email).first()
+    if user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The user with this email already exists in the system.",
+        )
+    
+    hashed_password = security.get_password_hash(user_in.password)
+    
+    # Auto-seed the first registered user as Admin
+    first_user = db.query(User).first()
+    role = UserRole.ADMIN.value if not first_user else UserRole.CLIENT.value
+    
+    db_user = User(
+        email=user_in.email,
+        password_hash=hashed_password,
+        role=role,
+        status=UserStatus.ACTIVE.value
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+@router.post("/login", response_model=Token)
+def login(credentials: LoginCredentials, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == credentials.email).first()
+    if not user or not security.verify_password(credentials.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect email or password"
+        )
+    if user.status != UserStatus.ACTIVE.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user"
+        )
+        
+    access_token = security.create_access_token(subject=user.id)
+    refresh_token = security.create_refresh_token(subject=user.id)
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+@router.post("/refresh-token", response_model=Token)
+def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(
+            refresh_token, security.settings.SECRET_KEY, algorithms=[security.settings.ALGORITHM]
+        )
+        token_data = TokenPayload(**payload)
+        if token_data.type != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+            )
+    except (JWTError, ValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not validate refresh token",
+        )
+        
+    user = db.query(User).filter(User.id == uuid.UUID(token_data.sub)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.status != UserStatus.ACTIVE.value:
+        raise HTTPException(status_code=400, detail="Inactive user")
+        
+    access_token = security.create_access_token(subject=user.id)
+    new_refresh_token = security.create_refresh_token(subject=user.id)
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer"
+    }
+
+@router.post("/logout")
+def logout():
+    return {"message": "Successfully logged out"}
+
+@router.get("/me", response_model=UserResponse)
+def read_user_me(current_user: User = Depends(get_current_active_user)):
+    return current_user
