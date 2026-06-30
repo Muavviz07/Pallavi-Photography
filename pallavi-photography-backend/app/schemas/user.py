@@ -35,3 +35,7 @@ class Token(BaseModel):
 class TokenPayload(BaseModel):
     sub: str | None = None
     type: str | None = None
+
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)

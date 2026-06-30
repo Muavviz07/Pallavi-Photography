@@ -1,0 +1,596 @@
+import uuid
+from datetime import datetime, timezone, timedelta
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Header, Request
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from jose import jwt
+
+from app.api.dependencies import get_db, get_current_active_user, get_current_admin_user
+from app.core.config import settings
+from app.core import security
+from app.models.user import User, UserRole
+from app.models.client_gallery import ClientGallery
+from app.models.client_gallery_image import ClientGalleryImage
+from app.models.image import Image
+from app.schemas.client_gallery import (
+    ClientGalleryCreate,
+    ClientGalleryUpdate,
+    ClientGalleryResponse,
+    ClientGalleryImageResponse,
+)
+from app.schemas.image import ImageResponse
+from app.services.image_service import image_service
+from app.services.email_service import email_service
+
+router = APIRouter()
+
+class AccessRequest(BaseModel):
+    password: str
+
+class SelectionUpdate(BaseModel):
+    selected: bool
+
+def get_gallery_by_id_or_slug(db: Session, id_or_slug: str) -> Optional[ClientGallery]:
+    try:
+        gallery_uuid = uuid.UUID(id_or_slug)
+        return db.query(ClientGallery).filter(ClientGallery.id == gallery_uuid).first()
+    except ValueError:
+        return db.query(ClientGallery).filter(ClientGallery.slug == id_or_slug).first()
+
+def get_current_user_optional(request: Request, db: Session) -> Optional[User]:
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        sub = payload.get("sub")
+        if not sub:
+            return None
+        return db.query(User).filter(User.id == uuid.UUID(sub)).first()
+    except Exception:
+        return None
+
+def create_gallery_token(gallery_id: uuid.UUID) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(days=1)
+    to_encode = {"exp": expire, "sub": str(gallery_id), "type": "gallery_access"}
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def check_gallery_access(
+    id_or_slug: str,
+    request: Request,
+    db: Session
+) -> ClientGallery:
+    gallery = get_gallery_by_id_or_slug(db, id_or_slug)
+    if not gallery:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client gallery not found."
+        )
+        
+    user = get_current_user_optional(request, db)
+    
+    # Admins always bypass access restrictions
+    if user and user.role == UserRole.ADMIN.value:
+        return gallery
+        
+    # Owner of the gallery always bypasses password verification
+    if user and user.id == gallery.user_id:
+        return gallery
+        
+    # Check basic status
+    if gallery.status == "closed":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This gallery is closed."
+        )
+        
+    # Check expiry dates
+    if gallery.expiry_date:
+        # Normalize naive/aware datetimes
+        expiry = gallery.expiry_date.replace(tzinfo=timezone.utc) if gallery.expiry_date.tzinfo is None else gallery.expiry_date
+        if expiry < datetime.now(timezone.utc):
+            if gallery.status != "expired":
+                gallery.status = "expired"
+                db.add(gallery)
+                db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This gallery has expired."
+            )
+            
+    # Check password protection
+    if gallery.password_hash:
+        gallery_token = request.headers.get("X-Gallery-Token")
+        if not gallery_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Password is required to access this private gallery."
+            )
+        try:
+            payload = jwt.decode(
+                gallery_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+            )
+            if payload.get("sub") != str(gallery.id) or payload.get("type") != "gallery_access":
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid gallery access token."
+                )
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid gallery access token."
+            )
+            
+    # Check view permissions
+    if not gallery.can_view:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Viewing this gallery has been disabled by the administrator."
+        )
+        
+    return gallery
+
+@router.get("", response_model=List[ClientGalleryResponse])
+def list_client_galleries(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_active_user)
+):
+    """
+    List client galleries.
+    Admins see all, Client users see only their assigned galleries.
+    """
+    if current_user.role == UserRole.ADMIN.value:
+        return db.query(ClientGallery).order_by(ClientGallery.created_at.desc()).all()
+    else:
+        return db.query(ClientGallery).filter(ClientGallery.user_id == current_user.id).order_by(ClientGallery.created_at.desc()).all()
+
+@router.post("", response_model=ClientGalleryResponse, status_code=status.HTTP_201_CREATED)
+def create_client_gallery(
+    gallery_in: ClientGalleryCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """
+    Create a new client gallery. (Admin only)
+    """
+    existing = db.query(ClientGallery).filter(ClientGallery.slug == gallery_in.slug).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A client gallery with this slug already exists."
+        )
+        
+    # Verify owner exists
+    owner = db.query(User).filter(User.id == gallery_in.user_id).first()
+    if not owner:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Specified client owner user not found."
+        )
+        
+    password_hash = None
+    if gallery_in.password:
+        password_hash = security.get_password_hash(gallery_in.password)
+        
+    db_gallery = ClientGallery(
+        user_id=gallery_in.user_id,
+        title=gallery_in.title,
+        slug=gallery_in.slug,
+        description=gallery_in.description,
+        status=gallery_in.status,
+        password_hash=password_hash,
+        expiry_date=gallery_in.expiry_date,
+        can_view=gallery_in.can_view,
+        can_upload=gallery_in.can_upload,
+        can_replace=gallery_in.can_replace,
+        can_delete=gallery_in.can_delete,
+        can_download=gallery_in.can_download,
+        can_download_zip=gallery_in.can_download_zip,
+        can_edit_details=gallery_in.can_edit_details,
+        can_submit_selections=gallery_in.can_submit_selections,
+        can_share=gallery_in.can_share,
+    )
+    
+    db.add(db_gallery)
+    db.commit()
+    db.refresh(db_gallery)
+    return db_gallery
+
+@router.get("/{id_or_slug}")
+def get_client_gallery_meta(
+    id_or_slug: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Gets metadata for a gallery and indicates if password unlock is required.
+    """
+    gallery = get_gallery_by_id_or_slug(db, id_or_slug)
+    if not gallery:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client gallery not found."
+        )
+        
+    user = get_current_user_optional(request, db)
+    
+    # Check if password protection is active and if they need to unlock it
+    requires_password = False
+    if gallery.password_hash:
+        requires_password = True
+        # Determine if it's already unlocked
+        gallery_token = request.headers.get("X-Gallery-Token")
+        if gallery_token:
+            try:
+                payload = jwt.decode(
+                    gallery_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+                )
+                if payload.get("sub") == str(gallery.id) and payload.get("type") == "gallery_access":
+                    requires_password = False
+            except Exception:
+                pass
+                
+        # Admins and Owners bypass password protection requirements
+        if user and (user.role == UserRole.ADMIN.value or user.id == gallery.user_id):
+            requires_password = False
+
+    # Check status/expiry if user is NOT admin or owner
+    if not (user and (user.role == UserRole.ADMIN.value or user.id == gallery.user_id)):
+        if gallery.status == "closed":
+            raise HTTPException(status_code=403, detail="This gallery is closed.")
+        if gallery.expiry_date:
+            expiry = gallery.expiry_date.replace(tzinfo=timezone.utc) if gallery.expiry_date.tzinfo is None else gallery.expiry_date
+            if expiry < datetime.now(timezone.utc):
+                raise HTTPException(status_code=403, detail="This gallery has expired.")
+
+    # Return safe metadata. If password is required, hide full nested relationships.
+    return {
+        "id": gallery.id,
+        "title": gallery.title,
+        "slug": gallery.slug,
+        "description": gallery.description,
+        "status": gallery.status,
+        "expiry_date": gallery.expiry_date,
+        "requires_password": requires_password,
+        "can_view": gallery.can_view,
+        "can_upload": gallery.can_upload,
+        "can_download": gallery.can_download,
+        "can_download_zip": gallery.can_download_zip,
+        "can_submit_selections": gallery.can_submit_selections,
+        "can_share": gallery.can_share,
+        "selections_submitted": gallery.selections_submitted,
+        "selections_submitted_at": gallery.selections_submitted_at,
+        "cover_image_id": gallery.cover_image_id,
+        "cover_image": ImageResponse.model_validate(gallery.cover_image) if (gallery.cover_image and not requires_password) else None,
+        "user_id": gallery.user_id,
+    }
+
+@router.post("/{id_or_slug}/access")
+def unlock_client_gallery(
+    id_or_slug: str,
+    access_in: AccessRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Unlock password-protected gallery and retrieve a temporary access token.
+    """
+    gallery = get_gallery_by_id_or_slug(db, id_or_slug)
+    if not gallery:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client gallery not found."
+        )
+        
+    if not gallery.password_hash:
+        return {"unlocked": True, "token": None}
+        
+    if not security.verify_password(access_in.password, gallery.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password."
+        )
+        
+    token = create_gallery_token(gallery.id)
+    return {"unlocked": True, "token": token}
+
+@router.put("/{id}", response_model=ClientGalleryResponse)
+def update_client_gallery(
+    id: uuid.UUID,
+    gallery_in: ClientGalleryUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """
+    Update client gallery settings. (Admin only)
+    """
+    db_gallery = db.query(ClientGallery).filter(ClientGallery.id == id).first()
+    if not db_gallery:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client gallery not found."
+        )
+        
+    update_data = gallery_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        if field == "password" and value is not None:
+            db_gallery.password_hash = security.get_password_hash(value)
+        elif value is not None:
+            setattr(db_gallery, field, value)
+            
+    db.add(db_gallery)
+    db.commit()
+    db.refresh(db_gallery)
+    return db_gallery
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_client_gallery(
+    id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """
+    Delete client gallery. (Admin only)
+    """
+    db_gallery = db.query(ClientGallery).filter(ClientGallery.id == id).first()
+    if not db_gallery:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client gallery not found."
+        )
+    db.delete(db_gallery)
+    db.commit()
+    return None
+
+@router.get("/{id_or_slug}/images", response_model=List[ClientGalleryImageResponse])
+def list_client_gallery_images(
+    id_or_slug: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    List all images inside a private client gallery.
+    """
+    gallery = check_gallery_access(id_or_slug, request, db)
+    
+    images = db.query(ClientGalleryImage)\
+        .filter(ClientGalleryImage.client_gallery_id == gallery.id)\
+        .join(Image, ClientGalleryImage.image_id == Image.id)\
+        .order_by(Image.sort_order.asc(), Image.created_at.desc())\
+        .all()
+        
+    return images
+
+@router.post("/{id_or_slug}/images/{image_id}/select", response_model=ClientGalleryImageResponse)
+def select_gallery_image(
+    id_or_slug: str,
+    image_id: uuid.UUID,
+    selection_in: SelectionUpdate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Toggles the selection checkmark of a specific image inside a gallery.
+    """
+    gallery = check_gallery_access(id_or_slug, request, db)
+    
+    if not gallery.can_submit_selections:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Submitting selections has been disabled for this gallery."
+        )
+        
+    if gallery.selections_submitted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Selections have already been submitted and finalized."
+        )
+        
+    db_cg_image = db.query(ClientGalleryImage).filter(
+        ClientGalleryImage.client_gallery_id == gallery.id,
+        ClientGalleryImage.image_id == image_id
+    ).first()
+    
+    if not db_cg_image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image not found in this client gallery."
+        )
+        
+    db_cg_image.selected = selection_in.selected
+    db.add(db_cg_image)
+    db.commit()
+    db.refresh(db_cg_image)
+    return db_cg_image
+
+@router.post("/{id_or_slug}/images/upload", response_model=ClientGalleryImageResponse)
+async def upload_client_gallery_image(
+    id_or_slug: str,
+    request: Request,
+    file: UploadFile = File(...),
+    title: Optional[str] = Form(None),
+    alt_text: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload an image for a client gallery.
+    Admin can upload, or the client can upload if can_upload permission is set.
+    """
+    gallery = check_gallery_access(id_or_slug, request, db)
+    user = get_current_user_optional(request, db)
+    
+    # If not admin, check if upload is allowed for client
+    if not (user and user.role == UserRole.ADMIN.value):
+        if not gallery.can_upload:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Uploading images to this gallery has been disabled."
+            )
+            
+    file_data = await file.read()
+    try:
+        # Process and upload the image using standard image service
+        db_image = image_service.process_and_upload_image(
+            db=db,
+            file_data=file_data,
+            original_filename=file.filename,
+            gallery_id=None,  # Not in public gallery
+            title=title,
+            alt_text=alt_text,
+            description=description
+        )
+        
+        # Link to client gallery
+        db_cg_image = ClientGalleryImage(
+            client_gallery_id=gallery.id,
+            image_id=db_image.id,
+            selected=False
+        )
+        db.add(db_cg_image)
+        
+        # Auto cover image update if none is set
+        if not gallery.cover_image_id:
+            gallery.cover_image_id = db_image.id
+            db.add(gallery)
+            
+        db.commit()
+        db.refresh(db_cg_image)
+        return db_cg_image
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.delete("/{id_or_slug}/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_client_gallery_image(
+    id_or_slug: str,
+    image_id: uuid.UUID,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete an image from a client gallery.
+    Requires admin or delete permission enabled on gallery.
+    """
+    gallery = check_gallery_access(id_or_slug, request, db)
+    user = get_current_user_optional(request, db)
+    
+    # If not admin, check if delete is allowed for client
+    if not (user and user.role == UserRole.ADMIN.value):
+        if not gallery.can_delete:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Deleting images from this gallery has been disabled."
+            )
+            
+    db_cg_image = db.query(ClientGalleryImage).filter(
+        ClientGalleryImage.client_gallery_id == gallery.id,
+        ClientGalleryImage.image_id == image_id
+    ).first()
+    
+    if not db_cg_image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image link not found in this client gallery."
+        )
+        
+    # Use image service to clean up actual S3 files and the main image record
+    db.delete(db_cg_image)
+    image_service.delete_image_record(db, image_id)
+    db.commit()
+    return None
+
+@router.post("/{id_or_slug}/submit-selections")
+def submit_gallery_selections(
+    id_or_slug: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Lock and finalize the selected image checklist, then notify the admin.
+    """
+    gallery = check_gallery_access(id_or_slug, request, db)
+    
+    if not gallery.can_submit_selections:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Submitting selections has been disabled for this gallery."
+        )
+        
+    if gallery.selections_submitted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Selections have already been submitted."
+        )
+        
+    # Verify client details (needs to be associated with an account)
+    client_user = db.query(User).filter(User.id == gallery.user_id).first()
+    client_email = client_user.email if client_user else "unknown@client.com"
+    
+    # Get selected images count
+    selected_count = db.query(ClientGalleryImage).filter(
+        ClientGalleryImage.client_gallery_id == gallery.id,
+        ClientGalleryImage.selected == True
+    ).count()
+    
+    # Mark as finalized
+    gallery.selections_submitted = True
+    gallery.selections_submitted_at = datetime.now(timezone.utc)
+    db.add(gallery)
+    db.commit()
+    db.refresh(gallery)
+    
+    # Find admin email
+    admin_users = db.query(User).filter(User.role == UserRole.ADMIN.value).all()
+    admin_emails = [a.email for a in admin_users] if admin_users else ["admin@pallaviphotography.com"]
+    
+    for email in admin_emails:
+        email_service.send_selections_submitted_email(
+            admin_email=email,
+            client_email=client_email,
+            gallery_title=gallery.title,
+            selected_count=selected_count
+        )
+        
+    return {
+        "success": True,
+        "detail": "Selections finalized and admin notified.",
+        "submitted_at": gallery.selections_submitted_at,
+        "selected_count": selected_count
+    }
+
+@router.post("/{id_or_slug}/share")
+def share_client_gallery(
+    id_or_slug: str,
+    email: str,
+    plain_password: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """
+    Dispatches direct gallery shared link and password to client via email. (Admin only)
+    """
+    gallery = get_gallery_by_id_or_slug(db, id_or_slug)
+    if not gallery:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client gallery not found."
+        )
+        
+    gallery_link = f"{settings.NEXTAUTH_URL}/client-galleries/{gallery.slug}"
+    
+    # Send email
+    email_service.send_gallery_shared_email(
+        to_email=email,
+        gallery_title=gallery.title,
+        gallery_link=gallery_link,
+        password=plain_password
+    )
+    
+    return {"success": True, "detail": f"Gallery invite sent to {email}"}

@@ -5,7 +5,7 @@ from pydantic import ValidationError
 from app.api.dependencies import get_db, get_current_active_user
 from app.core import security
 from app.models.user import User, UserRole, UserStatus
-from app.schemas.user import UserCreate, UserResponse, LoginCredentials, Token, TokenPayload
+from app.schemas.user import UserCreate, UserResponse, LoginCredentials, Token, TokenPayload, ChangePassword
 from jose import jwt, JWTError
 import uuid
 
@@ -100,3 +100,19 @@ def logout():
 @router.get("/me", response_model=UserResponse)
 def read_user_me(current_user: User = Depends(get_current_active_user)):
     return current_user
+
+@router.post("/change-password", status_code=status.HTTP_200_OK)
+def change_password(
+    password_in: ChangePassword,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    if not security.verify_password(password_in.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password"
+        )
+    current_user.password_hash = security.get_password_hash(password_in.new_password)
+    db.add(current_user)
+    db.commit()
+    return {"message": "Password changed successfully"}

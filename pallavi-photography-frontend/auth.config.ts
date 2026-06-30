@@ -10,10 +10,22 @@ export const authConfig = {
       const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
       const isOnClientPortal = nextUrl.pathname.startsWith("/client-portal");
       
-      if (isOnDashboard || isOnClientPortal) {
-        if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
+      if (isOnDashboard) {
+        if (isLoggedIn) {
+          const role = (auth.user as any)?.role;
+          return role === "admin";
+        }
+        return false;
       }
+      
+      if (isOnClientPortal) {
+        if (isLoggedIn) {
+          const role = (auth.user as any)?.role;
+          return role === "client" || role === "admin";
+        }
+        return false;
+      }
+      
       return true;
     },
     async jwt({ token, user }) {

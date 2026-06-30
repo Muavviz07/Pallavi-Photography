@@ -5,6 +5,7 @@ from app.schemas.user import (
     LoginCredentials,
     Token,
     TokenPayload,
+    ChangePassword,
 )
 from app.schemas.gallery import (
     GalleryCreate,
@@ -14,5 +15,11 @@ from app.schemas.gallery import (
 from app.schemas.image import (
     ImageCreate,
     ImageResponse,
+)
+from app.schemas.client_gallery import (
+    ClientGalleryCreate,
+    ClientGalleryUpdate,
+    ClientGalleryResponse,
+    ClientGalleryImageResponse,
 )
 

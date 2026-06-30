@@ -14,6 +14,8 @@ const inter = Inter({
   display: "swap",
 });
 
+import { SessionProvider } from "next-auth/react";
+
 export const metadata: Metadata = {
   title: "Pallavi Photography | Portrait & Family Photography Switzerland",
   description: "High-end portrait, newborn, family, maternity, and fine art photography based in Switzerland. Capture your special moments with elegant, optimized galleries.",
@@ -30,7 +32,9 @@ export default function RootLayout({
       className={`${playfair.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#FCFAF7] text-[#2C2623] font-sans selection:bg-[#EAE4DC] selection:text-[#352F2C]">
-        {children}
+        <SessionProvider>
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );

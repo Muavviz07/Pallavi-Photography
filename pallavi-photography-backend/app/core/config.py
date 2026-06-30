@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     MINIO_ENDPOINT: str
     MINIO_BUCKET_NAME: str
     
+    RESEND_API_KEY: str | None = None
+    
     NEXT_PUBLIC_API_URL: str
     NEXTAUTH_URL: str
     
