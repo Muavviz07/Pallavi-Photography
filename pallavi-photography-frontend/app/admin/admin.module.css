@@ -1,0 +1,61 @@
+/* app/admin/admin.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  gap: 2rem;
+  background: rgba(255, 250, 240, 0.8);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.title {
+  font-family: var(--font-playfair);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c2623;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  text-decoration: none;
+  color: #2c2623;
+  transition: transform 0.2s ease, background 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.card h2 {
+  font-family: var(--font-inter);
+  font-size: 1.4rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.card p {
+  font-family: var(--font-inter);
+  font-size: 1rem;
+  margin: 0;
+}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { Menu, X, ChevronDown, User, Globe } from "lucide-react";
 
@@ -133,6 +134,21 @@ export default function Header() {
             <User className="w-4 h-4" />
             <span className="text-xs uppercase tracking-wider font-light">Portal</span>
           </Link>
+          {/* Admin Dashboard Link */}
+          {(() => {
+            const { data: session } = useSession();
+            if (session?.user?.role === "admin") {
+              return (
+                <Link
+                  href="/admin"
+                  className="hover:text-[#C4A484] transition-colors duration-200 flex items-center space-x-1"
+                >
+                  <span className="text-xs uppercase tracking-wider font-light">Admin</span>
+                </Link>
+              );
+            }
+            return null;
+          })()}
 
           <button
             onClick={toggleLanguage}
