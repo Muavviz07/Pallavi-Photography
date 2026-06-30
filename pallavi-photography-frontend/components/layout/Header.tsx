@@ -111,26 +111,26 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 left-0 right-0 z-40 bg-white border-b border-brand-border pt-2 pb-0.5 shadow-xs select-none">
-        <div className="max-w-[1450px] mx-auto px-6 md:px-10 grid grid-cols-2 lg:grid-cols-3 items-center">
+      <header className="relative z-40 bg-white border-b border-brand-border pt-2 pb-0.5 shadow-xs select-none">
+        <div className="max-w-[1450px] mx-auto px-6 md:px-10 flex items-center justify-between">
           
-          {/* Left Column: Logo */}
-          <div className="flex justify-start">
-            <Link href="/" className="flex items-center animate-fade-in">
+          {/* Left Column: Logo Container */}
+          <div className="flex-1 flex justify-start">
+            <Link href="/" className="flex items-center animate-fade-in cursor-pointer">
               <img
                 src="/Pallavi-Logo-V1.webp"
                 alt="Pallavi Photography Logo"
-                className="h-28 w-auto object-contain brightness-0"
+                className="h-28 w-auto object-contain"
               />
             </Link>
           </div>
 
-          {/* Center Column: Navigation Menu */}
-          <div className="hidden lg:flex justify-center">
+          {/* Center Column: Navigation Menu (Centering layout with flex-1/flex-initial boundary) */}
+          <div className="hidden lg:flex flex-shrink-0 justify-center">
             <nav className="flex items-center space-x-9 xl:space-x-13 text-[10px] font-medium tracking-[0.25em] text-brand-dark whitespace-nowrap">
               <Link
                 href="/"
-                className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 ${
+                className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 cursor-pointer ${
                   pathname === "/" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
                 }`}
               >
@@ -148,13 +148,13 @@ export default function Header() {
                   <ChevronDown className="w-3 h-3 opacity-60" />
                 </button>
                 {activeDropdown === "about" && (
-                  <div className="absolute left-0 top-full pt-3 min-w-[200px] z-50">
-                    <div className="w-max bg-white border border-brand-border shadow-md py-4 px-2 text-left animate-fade-in rounded-xs">
+                  <div className="absolute left-0 top-full pt-3 min-w-[240px] z-50">
+                    <div className="w-full bg-white border border-brand-border shadow-md py-5 px-6 text-left animate-fade-in rounded-xs space-y-1.5">
                       {ABOUT_ITEMS.map((item) => (
                         <Link
                           key={item.name}
                           href={item.href}
-                          className="block px-4 py-2 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150"
+                          className="block px-3 py-1.5 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150 rounded-sm cursor-pointer"
                         >
                           {item.name}
                         </Link>
@@ -175,13 +175,13 @@ export default function Header() {
                   <ChevronDown className="w-3 h-3 opacity-60" />
                 </button>
                 {activeDropdown === "pricing" && (
-                  <div className="absolute left-0 top-full pt-3 min-w-[200px] z-50">
-                    <div className="w-max bg-white border border-brand-border shadow-md py-4 px-2 text-left animate-fade-in rounded-xs">
+                  <div className="absolute left-0 top-full pt-3 min-w-[240px] z-50">
+                    <div className="w-full bg-white border border-brand-border shadow-md py-5 px-6 text-left animate-fade-in rounded-xs space-y-1.5">
                       {PRICING_ITEMS.map((item) => (
                         <Link
                           key={item.name}
                           href={item.href}
-                          className="block px-4 py-2.5 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150"
+                          className="block px-3 py-1.5 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150 rounded-sm cursor-pointer"
                         >
                           {item.name}
                         </Link>
@@ -202,13 +202,13 @@ export default function Header() {
                   <ChevronDown className="w-3 h-3 opacity-60" />
                 </button>
                 {activeDropdown === "gallery" && (
-                  <div className="absolute left-0 top-full pt-3 min-w-[200px] z-50">
-                    <div className="w-max bg-white border border-brand-border shadow-md py-4 px-2 text-left animate-fade-in rounded-xs">
+                  <div className="absolute left-0 top-full pt-3 min-w-[240px] z-50">
+                    <div className="w-full bg-white border border-brand-border shadow-md py-5 px-6 text-left animate-fade-in rounded-xs space-y-1.5">
                       {GALLERY_ITEMS.map((item) => (
                         <Link
                           key={item.name}
                           href={item.href}
-                          className="block px-4 py-2.5 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150"
+                          className="block px-3 py-1.5 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150 rounded-sm cursor-pointer"
                         >
                           {item.name}
                         </Link>
@@ -220,7 +220,7 @@ export default function Header() {
 
               <Link
                 href="/client-portal"
-                className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 ${
+                className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 cursor-pointer ${
                   pathname === "/client-portal" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
                 }`}
               >
@@ -229,7 +229,7 @@ export default function Header() {
 
               <Link
                 href="/our-blogs"
-                className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 ${
+                className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 cursor-pointer ${
                   pathname === "/our-blogs" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
                 }`}
               >
@@ -238,15 +238,15 @@ export default function Header() {
 
               <Link
                 href="/#contact"
-                className="hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 border-transparent text-brand-muted"
+                className="hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 border-transparent text-brand-muted cursor-pointer"
               >
                 CONTACT
               </Link>
             </nav>
           </div>
 
-          {/* Right Column: INFO Trigger Menu */}
-          <div className="flex justify-end">
+          {/* Right Column: INFO Trigger Container */}
+          <div className="flex-1 flex justify-end">
             <button
               onClick={() => setIsSidebarOpen(true)}
               className="hidden lg:flex items-center space-x-3 text-brand-muted hover:text-brand-dark transition-colors duration-250 cursor-pointer pb-2 border-b-2 border-transparent text-[10px] uppercase tracking-[0.25em]"
@@ -262,13 +262,13 @@ export default function Header() {
             <div className="flex items-center space-x-3 lg:hidden z-50">
               <button
                 onClick={toggleLanguage}
-                className="text-xs text-brand-dark hover:text-brand-sage px-2 py-1"
+                className="text-xs text-brand-dark hover:text-brand-sage px-2 py-1 cursor-pointer"
               >
                 {language}
               </button>
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-brand-dark hover:text-brand-sage p-2"
+                className="text-brand-dark hover:text-brand-sage p-2 cursor-pointer"
                 aria-label="Toggle Mobile Menu"
               >
                 {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -282,13 +282,13 @@ export default function Header() {
           <div className="fixed inset-0 z-40 bg-[#1A1A1A]/95 text-white flex flex-col justify-center px-8 py-16 space-y-6 animate-fade-in lg:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute top-6 right-6 text-white hover:text-brand-sage"
+              className="absolute top-6 right-6 text-white hover:text-brand-sage cursor-pointer"
             >
               <X className="w-7 h-7" />
             </button>
             
             <div className="flex flex-col space-y-4 text-center font-serif text-xl tracking-wider">
-              <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors">
+              <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
                 HOME
               </Link>
               
@@ -296,7 +296,7 @@ export default function Header() {
                 <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">ABOUT</span>
                 <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
                   {ABOUT_ITEMS.map((item) => (
-                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral">
+                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
                       {item.name}
                     </Link>
                   ))}
@@ -307,7 +307,7 @@ export default function Header() {
                 <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">PRICING</span>
                 <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
                   {PRICING_ITEMS.map((item) => (
-                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral">
+                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
                       {item.name}
                     </Link>
                   ))}
@@ -318,22 +318,22 @@ export default function Header() {
                 <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">OUR PORTFOLIO</span>
                 <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
                   {GALLERY_ITEMS.map((item) => (
-                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral">
+                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
                       {item.name}
                     </Link>
                   ))}
                 </div>
               </div>
 
-              <Link href="/client-portal" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors">
+              <Link href="/client-portal" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
                 CLIENT GALLERY
               </Link>
 
-              <Link href="/our-blogs" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors">
+              <Link href="/our-blogs" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
                 BLOGS
               </Link>
 
-              <Link href="/#contact" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors">
+              <Link href="/#contact" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
                 CONTACT
               </Link>
             </div>
@@ -341,78 +341,95 @@ export default function Header() {
         )}
       </header>
 
-      {/* Info Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex justify-end transition-opacity duration-300">
-          <div
-            ref={sidebarRef}
-            className="w-full max-w-[450px] h-full bg-[#3A3A3A] text-white p-8 md:p-12 relative flex flex-col justify-between overflow-y-auto z-50 animate-slide-in shadow-2xl"
-          >
-            {/* Top Close text & icon */}
-            <div className="flex justify-end">
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center space-x-2 text-[10px] uppercase tracking-[0.25em] text-white/70 hover:text-white transition-colors cursor-pointer"
+      {/* Info Sidebar Overlay with smooth hardware slide transition */}
+      <div 
+        className={`fixed inset-0 z-50 bg-black/40 flex justify-end transition-opacity duration-500 ${
+          isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <div
+          ref={sidebarRef}
+          className={`w-full max-w-[450px] h-full bg-[#4D514A] text-white p-8 md:p-12 relative flex flex-col justify-between overflow-y-auto shadow-2xl transform transition-transform duration-500 ease-out ${
+            isSidebarOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          {/* Top Panel: Close trigger only */}
+          <div className="flex justify-end">
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="flex items-center space-x-2 text-[10px] uppercase tracking-[0.25em] text-white/70 hover:text-white transition-colors cursor-pointer"
+            >
+              <span>CLOSE</span>
+              <X className="w-5 h-5 stroke-[1.5]" />
+            </button>
+          </div>
+
+          {/* Center Logo & Bio content */}
+          <div className="my-auto py-10 flex flex-col items-center text-center space-y-6">
+            <img
+              src="/Pallavi-Logo-V1.webp"
+              alt="Pallavi Photography Logo"
+              className="h-36 w-auto object-contain mx-auto"
+              style={{ filter: "invert(1) hue-rotate(180deg)" }}
+            />
+            <p className="text-xs md:text-sm font-light leading-relaxed text-white/80 max-w-sm mx-auto font-sans">
+              In the gentle rustle of leaves and the golden glow of light, nature whispers it’s timeless story. Our photography captures these quiet, breathtaking moments—celebrating the wild beauty of the outdoors and the intimate elegance of beautiful indoor portraits. Whether bathed in sunlight or softly lit inside, each image tells a story worth remembering.
+            </p>
+          </div>
+
+          {/* Bottom Socials, Email & Privacy Link */}
+          <div className="space-y-8 text-center pt-6 border-t border-white/10">
+            {/* INSTAGRAM Header */}
+            <div className="space-y-1">
+              <span className="text-[9px] uppercase tracking-[0.3em] text-white/60 block font-semibold">INSTAGRAM</span>
+              <a
+                href="https://instagram.com/Pallavivishk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-base font-serif italic text-white/90 hover:text-brand-sage transition-colors block cursor-pointer"
               >
-                <span>CLOSE</span>
-                <X className="w-4 h-4" />
-              </button>
+                @ Pallavivishk
+              </a>
             </div>
 
-            {/* Mid logo & content */}
-            <div className="my-auto py-12 flex flex-col items-center text-center space-y-8">
-              <img
-                src="/Pallavi-Logo-V1.webp"
-                alt="Pallavi Photography Logo"
-                className="h-20 w-auto object-contain brightness-0 invert"
-              />
-              <p className="text-xs md:text-sm font-light leading-relaxed text-white/80 max-w-sm">
-                I believe that photography is a gentle art. It is about documenting real, unscripted love, natural connections, and quiet moments. Based in Switzerland, I specialize in fine art newborn setups, maternity storytelling, and outdoor family collections using soft textures and natural illumination.
-              </p>
-              
-              <div className="w-8 h-[1px] bg-white/20"></div>
-
-              <div className="space-y-4">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-brand-sage block font-semibold">INSTAGRAM</span>
-                <a
-                  href="https://instagram.com/Pallavivishk"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-serif italic text-white/90 hover:text-brand-sage transition-colors"
-                >
-                  @Pallavivishk
+            {/* FOLLOW US Row */}
+            <div className="space-y-3">
+              <span className="text-[9px] uppercase tracking-[0.3em] text-white/60 block font-semibold">FOLLOW US</span>
+              <div className="flex items-center justify-center space-x-4 text-white/80">
+                <a href="#" className="hover:text-brand-sage transition-colors cursor-pointer">
+                  <Facebook className="w-4 h-4" />
+                </a>
+                <span className="w-12 h-[1px] bg-white/20"></span>
+                <a href="https://instagram.com/Pallavivishk" target="_blank" rel="noopener noreferrer" className="hover:text-brand-sage transition-colors cursor-pointer">
+                  <Instagram className="w-4 h-4" />
                 </a>
               </div>
             </div>
 
-            {/* Bottom follow us & WhatsApp */}
-            <div className="flex items-center justify-between pt-6 border-t border-white/10">
-              <div className="space-y-1.5 text-left">
-                <span className="text-[9px] uppercase tracking-widest text-white/50 block font-light">FOLLOW US</span>
-                <div className="flex space-x-3 text-white/80">
-                  <a href="#" className="hover:text-brand-sage transition-colors">
-                    <Facebook className="w-4 h-4" />
-                  </a>
-                  <a href="https://instagram.com/Pallavivishk" target="_blank" rel="noopener noreferrer" className="hover:text-brand-sage transition-colors">
-                    <Instagram className="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-
-              {/* Sidebar bottom WhatsApp */}
+            {/* Email link */}
+            <div>
               <a
-                href="https://wa.me/41789077644"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white hover:scale-105 hover:bg-green-600 transition-all duration-300"
-                title="Chat on WhatsApp"
+                href="mailto:Pallavi.Vishk@Gmail.Com"
+                className="text-base font-serif italic text-white/95 hover:text-brand-sage transition-colors block cursor-pointer"
               >
-                <MessageSquare className="w-5 h-5 fill-white text-green-500" />
+                Pallavi.Vishk@Gmail.Com
               </a>
             </div>
+
+            {/* Privacy Policy */}
+            <div className="pt-2">
+              <Link
+                href="/privacy-policy"
+                onClick={() => setIsSidebarOpen(false)}
+                className="text-[11px] font-serif italic text-white/50 hover:text-white transition-colors cursor-pointer"
+              >
+                Privacy Policy
+              </Link>
+            </div>
           </div>
+
         </div>
-      )}
+      </div>
     </>
   );
 }
