@@ -30,7 +30,7 @@ export default function Home() {
       <ReserveSessionSection />
 
       {/* 5. TESTIMONIALS SECTION */}
-      <section className="py-24 bg-brand-cream border-b border-brand-border">
+      <section className="py-24 bg-white border-b border-brand-border">
         <TestimonialsCarousel />
       </section>
 
@@ -38,25 +38,40 @@ export default function Home() {
       <BlogSection />
 
       {/* 7. GET IN TOUCH (CONTACT FORM) */}
-      <section id="contact" className="py-24 bg-brand-bg border-b border-brand-border">
+      <section id="contact" className="py-24 bg-white border-b border-brand-border">
         <div className="max-w-[1200px] mx-auto px-6 md:px-12 space-y-12">
           {/* Header Title */}
-          <div className="text-center space-y-4">
-            <span className="text-[10px] uppercase tracking-[0.3em] text-brand-sage font-semibold block">
-              Let's Connect
-            </span>
-            <h3 className="text-3xl sm:text-4xl font-light tracking-wide font-serif text-brand-dark uppercase">
-              Get In Touch
+          <div className="text-center space-y-2">
+            <h3 className="text-2xl sm:text-3xl md:text-4xl tracking-[0.25em] font-serif text-brand-dark uppercase" style={{ fontWeight: 300 }}>
+              GET IN TOUCH
             </h3>
-            <p className="text-xs text-brand-muted max-w-md mx-auto font-light leading-relaxed">
+            <p className="text-xs font-serif italic text-brand-muted leading-relaxed">
               Follow our latest stories.
             </p>
           </div>
 
-          {/* Form wrapper */}
-          <div className="max-w-xl mx-auto bg-brand-cream border border-brand-border p-8 md:p-12 rounded-xs shadow-xl">
+          {/* Form wrapper (styled with white background and thin border matching screenshot) */}
+          <div className="max-w-3xl mx-auto bg-white border border-stone-200/80 p-8 md:p-16 rounded-xs">
             <ContactForm />
           </div>
+        </div>
+      </section>
+
+      {/* 8. FOLLOW ME ON INSTAGRAM BANNER */}
+      <section className="py-24 bg-white text-center border-b border-brand-border">
+        <div className="space-y-4">
+          <h3 className="text-2xl sm:text-3xl md:text-4xl tracking-[0.3em] font-serif text-brand-dark uppercase" style={{ fontWeight: 300 }}>
+            FOLLOW ME ON INSTAGRAM
+          </h3>
+          <a 
+            href="https://instagram.com/Pallavivishk" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-sm sm:text-base font-serif italic text-brand-muted hover:text-brand-sage transition-colors tracking-wide block"
+            style={{ fontWeight: 300 }}
+          >
+            @ Pallavivishk
+          </a>
         </div>
       </section>
 

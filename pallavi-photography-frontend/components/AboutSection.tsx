@@ -1,76 +1,45 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
-
-interface AboutData {
-  title: string;
-  quote: string;
-  bio_text: string;
-  awards_text: string;
-  image_url?: string;
-}
 
 export default function AboutSection() {
-  const [data, setData] = useState<AboutData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchAbout() {
-      try {
-        const res = await api.get<AboutData>("/about");
-        setData(res);
-      } catch (err) {
-        console.error("Failed to load home about details", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchAbout();
-  }, []);
-
-  const quote = data?.quote || "Take in every little moment as they would not stay the same forever. Time flies....";
-  const bioPreview = data?.bio_text
-    ? data.bio_text.slice(0, 300) + "..."
-    : "I believe that photography is a gentle art. It is about documenting real, unscripted love, natural connections, and quiet moments. Based in Switzerland, I specialize in fine art newborn setups, maternity storytelling, and outdoor family collections...";
-
   return (
-    <section className="py-24 bg-brand-bg border-b border-brand-border">
-      <div className="max-w-[800px] mx-auto px-6 text-center space-y-10">
+    <section className="py-20 bg-[#FAF8F5] border-b border-brand-border/60">
+      <div className="max-w-[900px] mx-auto px-6 text-center space-y-8">
         
-        {/* Subtitle Eyebrow label */}
-        <span className="text-[10px] uppercase tracking-[0.3em] text-brand-sage font-semibold block">
-          Welcome to the Studio
-        </span>
-
-        {/* Heading serif */}
-        <h3 className="text-2xl sm:text-3xl md:text-4xl font-light tracking-wide font-serif text-brand-dark uppercase leading-tight">
-          Newborn, Children, Maternity, Family and Fine Art Photographer in Vevey, Vaud – Switzerland.
+        {/* Header (Serif spaced uppercase title matching screenshot) */}
+        <h3 className="text-base sm:text-lg tracking-[0.22em] font-serif text-brand-dark uppercase leading-relaxed" style={{ fontWeight: 400 }}>
+          NEWBORN, CHILDREN, MATERNITY, FAMILY AND FINE ART <br className="hidden sm:inline" />
+          PHOTOGRAPHER IN VEVEY, VAUD - SWITZERLAND.
         </h3>
 
-        {/* Hairline spacer */}
-        <div className="w-12 h-[1px] bg-brand-sage/40 mx-auto"></div>
-
-        {/* Quote italic block */}
-        <div className="max-w-xl mx-auto italic font-serif text-brand-muted text-sm leading-relaxed">
-          "{quote}"
+        {/* Bio Body Text blocks (light grey, spaced out, centered) */}
+        <div className="space-y-5 text-stone-500 font-light text-xs sm:text-[13px] leading-relaxed max-w-[850px] mx-auto">
+          <p>
+            Take in every little moment as they would not stay the same forever. Time flies....
+          </p>
+          <p>
+            Hi there ! I'm Pallavi, a professional family, newborn, baby, maternity, children, fine art and nature photographer based in Vevey, Switzerland. I work with families across Lausanne, Montreux and Morges, and also welcome clients from Geneva, Fribourg and Zurich for newborn and family portraits. I specialize in capturing authentic and timeless moments — from the beauty of pregnancy to the delicate early days of your newborn, the laughter of childhood, and the peaceful charm of the natural world.
+          </p>
+          <p>
+            Whether you're looking to document a special milestone or simply preserve everyday memories, I'm here to help you.
+          </p>
+          <p>
+            Thank you for stopping by ! Feel free to explore my portfolio and learn more about my journey and approach to photography.
+          </p>
         </div>
 
-        {/* Short biography preview */}
-        <p className="text-sm text-brand-muted leading-relaxed font-light">
-          {bioPreview}
-        </p>
-
-        {/* CTA Button styled as: flat design, sage green background, serif uppercase text, 2px border on hover */}
-        <div className="pt-4">
+        {/* Muted Sage-Grey flat CTA Button */}
+        <div className="flex justify-center pt-4">
           <Link
             href="/about"
-            className="inline-block bg-brand-sage hover:bg-transparent text-white hover:text-brand-sage border-2 border-brand-sage px-10 py-3.5 text-xs font-serif uppercase tracking-widest transition-all duration-300 font-medium rounded-sm"
+            className="w-48 h-11 inline-flex items-center justify-center text-[11px] font-sans uppercase tracking-[0.25em] text-white bg-[#A3A69C] hover:bg-[#8F9288] transition-colors duration-300 cursor-pointer select-none rounded-none"
           >
-            About Me
+            ABOUT ME
           </Link>
         </div>
+        
       </div>
     </section>
   );

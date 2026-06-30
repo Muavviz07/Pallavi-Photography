@@ -13,6 +13,72 @@ interface Slide {
   is_active: boolean;
 }
 
+const FALLBACK_SLIDES = [
+  {
+    id: "fb-1",
+    title: "New Beginnings",
+    image_url: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&q=70&w=1200",
+    order: 1,
+    is_active: true
+  },
+  {
+    id: "fb-2",
+    title: "Outdoor Maternity",
+    image_url: "https://images.unsplash.com/photo-1519689680058-324335c77ebe?auto=format&fit=crop&q=70&w=1200",
+    order: 2,
+    is_active: true
+  },
+  {
+    id: "fb-3",
+    title: "Fine Art Child Portrait",
+    image_url: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=70&w=1200",
+    order: 3,
+    is_active: true
+  },
+  {
+    id: "fb-4",
+    title: "Newborn Details",
+    image_url: "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&q=70&w=1200",
+    order: 4,
+    is_active: true
+  },
+  {
+    id: "fb-5",
+    title: "Maternity Portrait",
+    image_url: "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?auto=format&fit=crop&q=70&w=1200",
+    order: 5,
+    is_active: true
+  },
+  {
+    id: "fb-6",
+    title: "Family Outdoors",
+    image_url: "https://images.unsplash.com/photo-1476703719129-7c991e4b47c8?auto=format&fit=crop&q=70&w=1200",
+    order: 6,
+    is_active: true
+  },
+  {
+    id: "fb-7",
+    title: "Children Portrait",
+    image_url: "https://images.unsplash.com/photo-1481966115753-963394378f23?auto=format&fit=crop&q=70&w=1200",
+    order: 7,
+    is_active: true
+  },
+  {
+    id: "fb-8",
+    title: "Fine Art Newborn",
+    image_url: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=70&w=1200",
+    order: 8,
+    is_active: true
+  },
+  {
+    id: "fb-9",
+    title: "Mother and Baby",
+    image_url: "https://images.unsplash.com/photo-1492725764893-90b379c2b6e7?auto=format&fit=crop&q=70&w=1200",
+    order: 9,
+    is_active: true
+  }
+];
+
 export default function HeroSlider() {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -32,23 +98,29 @@ export default function HeroSlider() {
     fetchSlides();
   }, []);
 
+  // Merge database slides with fallbacks to always guarantee exactly 9 slides
+  const activeSlides = (slides.length >= 9 ? slides.slice(0, 9) : [
+    ...slides,
+    ...FALLBACK_SLIDES.slice(0, 9 - slides.length)
+  ]).filter(slide => slide.is_active !== false);
+
   // Auto-play timer
   useEffect(() => {
-    if (slides.length <= 1) return;
+    if (activeSlides.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentIdx((prev) => (prev + 1) % slides.length);
+      setCurrentIdx((prev) => (prev + 1) % activeSlides.length);
     }, 4500);
     return () => clearInterval(interval);
-  }, [slides]);
+  }, [activeSlides]);
 
   const handlePrev = () => {
-    if (slides.length === 0) return;
-    setCurrentIdx((prev) => (prev - 1 + slides.length) % slides.length);
+    if (activeSlides.length === 0) return;
+    setCurrentIdx((prev) => (prev - 1 + activeSlides.length) % activeSlides.length);
   };
 
   const handleNext = () => {
-    if (slides.length === 0) return;
-    setCurrentIdx((prev) => (prev + 1) % slides.length);
+    if (activeSlides.length === 0) return;
+    setCurrentIdx((prev) => (prev + 1) % activeSlides.length);
   };
 
   if (loading) {
@@ -60,17 +132,6 @@ export default function HeroSlider() {
       </section>
     );
   }
-
-  // Fallback slides if DB is empty
-  const activeSlides = slides.length > 0 ? slides : [
-    {
-      id: "default-1",
-      title: "New Beginnings",
-      image_url: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&q=80&w=1920",
-      order: 1,
-      is_active: true
-    }
-  ];
 
   const currentSlide = activeSlides[currentIdx];
 
@@ -88,6 +149,7 @@ export default function HeroSlider() {
             src={slide.image_url}
             alt={slide.title}
             className="w-full h-full object-cover object-center scale-102 transition-transform duration-[4500ms] ease-out"
+            loading={index === 0 ? "eager" : "lazy"}
           />
           {/* Readability scrim/gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/85 via-brand-dark/20 to-brand-dark/50" />
@@ -108,7 +170,7 @@ export default function HeroSlider() {
         <div className="pt-8">
           <Link
             href="/our-blogs"
-            className="inline-flex items-center space-x-2 text-[10px] uppercase tracking-widest text-white border border-white/35 hover:border-white px-8 py-3.5 rounded-sm transition-all duration-300 hover:bg-white/5"
+            className="inline-flex items-center space-x-2 text-[10px] uppercase tracking-widest text-white border border-white/35 hover:border-white px-8 py-3.5 rounded-sm transition-all duration-300 hover:bg-white/5 cursor-pointer"
           >
             <span>Explore Portfolio</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -136,18 +198,61 @@ export default function HeroSlider() {
         </>
       )}
 
-      {/* Bottom indicators */}
+      {/* Bottom Diamond & Circle indicators matching the reference image */}
       {activeSlides.length > 1 && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex space-x-3">
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex items-center space-x-6">
+          {/* Keyframe style injection for the revolving outline progress ring */}
+          <style>{`
+            @keyframes progress-ring-fill {
+              0% {
+                stroke-dashoffset: 62.83;
+              }
+              100% {
+                stroke-dashoffset: 0;
+              }
+            }
+          `}</style>
           {activeSlides.map((_, index) => (
             <button
               key={index}
-              onClick={() => setCurrentIdx(index)}
-              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                index === currentIdx ? "bg-white scale-120 shadow-xs" : "bg-white/30 hover:bg-white/50"
-              }`}
+              onClick={() => {
+                setCurrentIdx(index);
+              }}
+              className="relative flex items-center justify-center w-8 h-8 focus:outline-hidden cursor-pointer"
               aria-label={`Go to slide ${index + 1}`}
-            />
+            >
+              {/* SVG Revolving Circle for active indicator */}
+              {index === currentIdx && (
+                <svg key={currentIdx} className="absolute w-7 h-7 -rotate-90" viewBox="0 0 24 24">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.25)"
+                    strokeWidth="1"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="1.5"
+                    strokeDasharray="62.83"
+                    style={{
+                      animation: "progress-ring-fill 4500ms linear forwards"
+                    }}
+                  />
+                </svg>
+              )}
+              {/* Diamond indicator */}
+              <span
+                className={`w-1.5 h-1.5 rotate-45 transition-all duration-300 ${
+                  index === currentIdx ? "bg-white" : "bg-white/40 hover:bg-white/70"
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}

@@ -3,13 +3,23 @@
 import React, { useEffect, useState } from "react";
 
 export default function ReserveSessionSection() {
-  const [scrollY, setScrollY] = useState(0);
+  const [offsetY, setOffsetY] = useState(0);
 
   useEffect(() => {
+    const section = document.getElementById("reserve-session-section");
+    if (!section) return;
+
     function handleScroll() {
-      setScrollY(window.scrollY);
+      const rect = section.getBoundingClientRect();
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      // Calculate scroll progress when section is entering / in viewport
+      const scrolled = scrollTop - (rect.top + scrollTop - window.innerHeight);
+      if (scrolled > 0) {
+        setOffsetY(scrolled * 0.22); // Elegant parallax coefficient
+      }
     }
     window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); // Initial load run
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -21,49 +31,50 @@ export default function ReserveSessionSection() {
     }
   };
 
-  // Parallax transform calculation
-  const yOffset = scrollY * 0.15;
-
   return (
-    <section className="relative h-[60vh] w-full flex items-center justify-center overflow-hidden border-y border-brand-border">
+    <section
+      id="reserve-session-section"
+      className="relative h-[85vh] w-full flex items-center justify-center overflow-hidden border-y border-brand-border/60"
+    >
       {/* Background Image with Parallax Scroll Effect */}
       <div className="absolute inset-0 z-0">
         <div
-          className="w-full h-[120%] absolute -top-[10%] left-0"
+          className="w-full h-[155%] absolute -top-[30%] left-0"
           style={{
-            transform: `translateY(${yOffset}px)`,
-            backgroundImage: "url('https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=1920')",
+            transform: `translateY(${offsetY}px)`,
+            backgroundImage: "url('https://images.unsplash.com/photo-1625850864219-585a0e8fac0e?auto=format&fit=crop&q=80&w=1920')",
             backgroundSize: "cover",
-            backgroundPosition: "center"
+            backgroundPosition: "center 35%"
           }}
         />
-        {/* Scrim Overlay */}
-        <div className="absolute inset-0 bg-brand-dark/45" />
+        {/* Dark opacity overlay to ensure readability of white text */}
+        <div className="absolute inset-0 bg-black/55 z-10" />
       </div>
 
       {/* Content overlay */}
-      <div className="relative z-10 text-center max-w-3xl px-6 space-y-6">
-        <span className="text-[10px] uppercase tracking-[0.3em] text-white/90 font-semibold block">
-          Limited Monthly Slots Available
-        </span>
-        
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-light tracking-wide font-serif text-white uppercase">
-          Reserve Your Session
+      <div className="relative z-20 text-center max-w-4xl px-6 space-y-6">
+
+        {/* Serif Spaced Title */}
+        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-[50px] font-light tracking-[0.25em] font-serif text-white uppercase drop-shadow-sm">
+          RESERVE YOUR SESSION
         </h2>
-        
-        <p className="text-xs sm:text-sm text-stone-200 font-light tracking-wider max-w-xl mx-auto leading-relaxed uppercase">
+
+        {/* Serif Italic description paragraph matching reference image */}
+        <p className="text-sm sm:text-base font-serif italic text-stone-200 tracking-wide max-w-2xl mx-auto leading-relaxed">
           Whether you're looking to book a session, ask a question, or just say hello — I'd love to hear from you. Every story is unique, and I'm here to help you capture yours in the most beautiful way.
         </p>
 
-        <div className="pt-4">
+        {/* Outline transparent white button matching reference screenshot */}
+        <div className="pt-6">
           <a
             href="#contact"
             onClick={handleScrollToContact}
-            className="inline-block bg-brand-sage hover:bg-transparent text-white hover:text-brand-sage border-2 border-brand-sage px-10 py-3.5 text-xs font-serif uppercase tracking-widest transition-all duration-300 font-medium rounded-sm"
+            className="inline-flex items-center justify-center border border-white/60 hover:border-white text-white text-[11px] font-sans uppercase tracking-[0.25em] px-8 py-3.5 transition-all duration-300 hover:bg-white/5 cursor-pointer rounded-none select-none"
           >
-            Get In Touch
+            GET IN TOUCH
           </a>
         </div>
+
       </div>
     </section>
   );

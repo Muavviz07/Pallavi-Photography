@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Send, CheckCircle, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 
 export default function NewsletterSignup() {
@@ -29,34 +29,49 @@ export default function NewsletterSignup() {
   return (
     <div className="w-full">
       {status === "success" ? (
-        <div className="flex items-center space-x-3 bg-brand-cream border border-brand-sage/30 rounded-xs p-4 text-brand-dark animate-fade-in">
-          <CheckCircle className="w-5 h-5 text-brand-sage shrink-0" />
-          <p className="text-[11px] font-light">
-            Thank you! Please check your email to confirm your subscription.
+        <div className="text-center py-2 animate-fade-in">
+          <p className="text-[11px] font-serif italic text-brand-sage">
+            Thank you for subscribing!
           </p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-2">
-          <div className="flex items-center border-b border-brand-border py-1.5 focus-within:border-brand-dark transition-colors duration-250">
+        <form onSubmit={handleSubmit} className="space-y-1">
+          <div className="flex items-center justify-between border-b border-brand-border/80 py-1 focus-within:border-brand-dark transition-colors duration-250 w-full relative">
+            <span className="text-[10px] tracking-[0.2em] text-stone-400 font-light select-none shrink-0 mr-3">
+              E-MAIL
+            </span>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="YOUR EMAIL ADDRESS"
               required
               disabled={status === "loading"}
-              className="flex-1 bg-transparent text-xs text-brand-dark placeholder-stone-400 outline-hidden py-1"
+              className="flex-1 bg-transparent text-xs text-brand-dark outline-hidden py-1"
             />
             <button
               type="submit"
               disabled={status === "loading"}
-              className="text-brand-sage hover:text-brand-dark transition-colors p-1.5 cursor-pointer disabled:opacity-60"
+              className="text-stone-400 hover:text-brand-dark transition-colors p-1 cursor-pointer disabled:opacity-60 shrink-0"
               title="Subscribe"
             >
               {status === "loading" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Send className="w-4 h-4" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-4 h-4 text-stone-400"
+                >
+                  <rect width="20" height="16" x="2" y="4" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
               )}
             </button>
           </div>

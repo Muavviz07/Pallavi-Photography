@@ -127,7 +127,7 @@ export default function Header() {
 
           {/* Center Column: Navigation Menu (Centering layout with flex-1/flex-initial boundary) */}
           <div className="hidden lg:flex flex-shrink-0 justify-center">
-            <nav className="flex items-center space-x-9 xl:space-x-13 text-[10px] font-medium tracking-[0.25em] text-brand-dark whitespace-nowrap">
+            <nav className="flex items-center space-x-9 xl:space-x-13 text-[11px] font-medium tracking-[0.25em] text-brand-dark whitespace-nowrap">
               <Link
                 href="/"
                 className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 cursor-pointer ${
@@ -154,7 +154,7 @@ export default function Header() {
                         <Link
                           key={item.name}
                           href={item.href}
-                          className="block px-3 py-1.5 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150 rounded-sm cursor-pointer"
+                          className="block px-3 py-1.5 text-[11px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150 rounded-sm cursor-pointer"
                         >
                           {item.name}
                         </Link>
@@ -181,7 +181,7 @@ export default function Header() {
                         <Link
                           key={item.name}
                           href={item.href}
-                          className="block px-3 py-1.5 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150 rounded-sm cursor-pointer"
+                          className="block px-3 py-1.5 text-[11px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150 rounded-sm cursor-pointer"
                         >
                           {item.name}
                         </Link>
@@ -208,7 +208,7 @@ export default function Header() {
                         <Link
                           key={item.name}
                           href={item.href}
-                          className="block px-3 py-1.5 text-[10px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150 rounded-sm cursor-pointer"
+                          className="block px-3 py-1.5 text-[11px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150 rounded-sm cursor-pointer"
                         >
                           {item.name}
                         </Link>
@@ -249,7 +249,7 @@ export default function Header() {
           <div className="flex-1 flex justify-end">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="hidden lg:flex items-center space-x-3 text-brand-muted hover:text-brand-dark transition-colors duration-250 cursor-pointer pb-2 border-b-2 border-transparent text-[10px] uppercase tracking-[0.25em]"
+              className="hidden lg:flex items-center space-x-3 text-brand-muted hover:text-brand-dark transition-colors duration-250 cursor-pointer pb-2 border-b-2 border-transparent text-[11px] uppercase tracking-[0.25em]"
             >
               <span className="font-semibold">INFO</span>
               <div className="flex flex-col space-y-[4.5px]">

@@ -67,25 +67,18 @@ export default function TestimonialsCarousel({ category }: { category?: string }
 
   return (
     <div className="max-w-4xl mx-auto px-6 text-center relative">
-      <span className="text-[10px] uppercase tracking-[0.3em] text-brand-sage font-semibold block mb-8">
-        Kind Words
+      <span className="text-[11px] uppercase tracking-[0.25em] text-brand-sage font-semibold block mb-2">
+        TESTIMONIALS
       </span>
+      <h3 className="text-xl sm:text-2xl font-serif text-brand-dark uppercase tracking-[0.15em] block mb-8" style={{ fontWeight: 300 }}>
+        What Our Clients Say
+      </h3>
 
-      <div className="min-h-[160px] flex items-center justify-center">
+      <div className="min-h-[120px] flex items-center justify-center">
         <div className="space-y-4 animate-fade-in transition-opacity duration-300">
           <p className="text-lg md:text-xl font-light font-serif italic leading-relaxed text-brand-dark">
             "{current.text}"
           </p>
-          <div className="pt-4">
-            <span className="block text-xs uppercase tracking-widest font-semibold text-brand-dark">
-              {current.author}
-            </span>
-            {current.role && (
-              <span className="block text-[10px] text-brand-muted tracking-wider uppercase font-light">
-                {current.role}
-              </span>
-            )}
-          </div>
         </div>
       </div>
 
@@ -96,7 +89,7 @@ export default function TestimonialsCarousel({ category }: { category?: string }
               key={idx}
               onClick={() => setCurrentIndex(idx)}
               className={`w-1.5 h-1.5 rounded-full cursor-pointer transition-all duration-300 ${
-                idx === currentIndex ? "bg-brand-sage w-4" : "bg-brand-cream"
+                idx === currentIndex ? "bg-brand-dark w-4" : "bg-stone-200 hover:bg-stone-300"
               }`}
               aria-label={`Go to testimonial ${idx + 1}`}
             />

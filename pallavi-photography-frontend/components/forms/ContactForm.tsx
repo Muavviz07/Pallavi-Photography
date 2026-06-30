@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Send, CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 
 export default function ContactForm() {
@@ -45,22 +45,23 @@ export default function ContactForm() {
   };
 
   return (
-    <div className="w-full max-w-[600px] mx-auto py-6">
+    <div className="w-full">
       {status === "success" ? (
         <div className="text-center py-12 space-y-4 animate-fade-in">
-          <CheckCircle className="w-12 h-12 text-brand-sage mx-auto" />
+          <CheckCircle className="w-12 h-12 text-[#A3A69C] mx-auto" />
           <h4 className="text-lg font-light font-serif text-brand-dark uppercase">Message Sent!</h4>
           <p className="text-xs text-brand-muted font-light max-w-sm mx-auto leading-relaxed">
             Thank you for reaching out. We have received your inquiry and will respond within 24–48 hours to discuss your photography details.
           </p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* NAME */}
-          <div className="flex flex-col space-y-2">
+        <form onSubmit={handleSubmit} className="space-y-10">
+          
+          {/* Row 1: NAME (Full Width) */}
+          <div className="flex flex-col space-y-1">
             <label
               htmlFor="form-name"
-              className="text-[10px] uppercase tracking-widest text-brand-dark font-medium"
+              className="text-[10px] uppercase tracking-[0.25em] text-stone-400 font-medium"
             >
               NAME
             </label>
@@ -70,58 +71,62 @@ export default function ContactForm() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="YOUR FULL NAME"
               required
               disabled={status === "loading"}
-              className="w-full bg-transparent border-b border-brand-border py-2.5 text-xs text-brand-dark placeholder-stone-400 outline-hidden focus:border-brand-dark transition-colors duration-200 disabled:opacity-60"
+              className="w-full bg-transparent border-b border-stone-200 py-1 text-xs text-brand-dark outline-hidden focus:border-brand-dark transition-colors duration-200 disabled:opacity-60"
             />
           </div>
 
-          {/* E-MAIL */}
-          <div className="flex flex-col space-y-2">
-            <label
-              htmlFor="form-email"
-              className="text-[10px] uppercase tracking-widest text-brand-dark font-medium"
-            >
-              E-MAIL
-            </label>
-            <input
-              type="email"
-              id="form-email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="YOUR EMAIL ADDRESS"
-              required
-              disabled={status === "loading"}
-              className="w-full bg-transparent border-b border-brand-border py-2.5 text-xs text-brand-dark placeholder-stone-400 outline-hidden focus:border-brand-dark transition-colors duration-200 disabled:opacity-60"
-            />
+          {/* Row 2: E-MAIL and TENTATIVE DATE (2 Columns) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+            
+            {/* E-MAIL */}
+            <div className="flex flex-col space-y-1">
+              <label
+                htmlFor="form-email"
+                className="text-[10px] uppercase tracking-[0.25em] text-stone-400 font-medium"
+              >
+                E-MAIL
+              </label>
+              <input
+                type="email"
+                id="form-email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                disabled={status === "loading"}
+                className="w-full bg-transparent border-b border-stone-200 py-1 text-xs text-brand-dark outline-hidden focus:border-brand-dark transition-colors duration-200 disabled:opacity-60"
+              />
+            </div>
+
+            {/* TENTATIVE DATE */}
+            <div className="flex flex-col space-y-1">
+              <label
+                htmlFor="form-date"
+                className="text-[10px] uppercase tracking-[0.25em] text-stone-400 font-medium"
+              >
+                TENTATIVE DATE
+              </label>
+              <input
+                type="text"
+                id="form-date"
+                name="tentative_date"
+                value={formData.tentative_date}
+                onChange={handleChange}
+                placeholder="DD.MM.YYYY"
+                disabled={status === "loading"}
+                className="w-full bg-transparent border-b border-stone-200 py-1 text-xs text-brand-dark placeholder-stone-300 outline-hidden focus:border-brand-dark transition-colors duration-200 disabled:opacity-60"
+              />
+            </div>
+
           </div>
 
-          {/* TENTATIVE DATE */}
-          <div className="flex flex-col space-y-2">
-            <label
-              htmlFor="form-date"
-              className="text-[10px] uppercase tracking-widest text-brand-dark font-medium"
-            >
-              TENTATIVE DATE
-            </label>
-            <input
-              type="date"
-              id="form-date"
-              name="tentative_date"
-              value={formData.tentative_date}
-              onChange={handleChange}
-              disabled={status === "loading"}
-              className="w-full bg-transparent border-b border-brand-border py-2.5 text-xs text-brand-dark outline-hidden focus:border-brand-dark transition-colors duration-200 disabled:opacity-60"
-            />
-          </div>
-
-          {/* TELL US MORE */}
-          <div className="flex flex-col space-y-2">
+          {/* Row 3: TELL US MORE (Full Width Textarea) */}
+          <div className="flex flex-col space-y-1">
             <label
               htmlFor="form-message"
-              className="text-[10px] uppercase tracking-widest text-brand-dark font-medium"
+              className="text-[10px] uppercase tracking-[0.25em] text-stone-400 font-medium"
             >
               TELL US MORE
             </label>
@@ -131,10 +136,9 @@ export default function ContactForm() {
               rows={4}
               value={formData.message}
               onChange={handleChange}
-              placeholder="YOUR MESSAGE..."
               required
               disabled={status === "loading"}
-              className="w-full bg-transparent border-b border-brand-border py-2.5 text-xs text-brand-dark placeholder-stone-400 outline-hidden focus:border-brand-dark transition-colors duration-200 resize-none disabled:opacity-60"
+              className="w-full bg-transparent border-b border-stone-200 py-1.5 text-xs text-brand-dark outline-hidden focus:border-brand-dark transition-colors duration-200 resize-y min-h-[80px] disabled:opacity-60"
             />
           </div>
           
@@ -142,21 +146,21 @@ export default function ContactForm() {
             <p className="text-xs text-red-600 font-light">{errorMessage}</p>
           )}
 
-          {/* SEND BUTTON */}
-          <button
-            type="submit"
-            disabled={status === "loading"}
-            className="w-full inline-flex items-center justify-center space-x-2 text-xs font-serif uppercase tracking-widest text-white bg-brand-sage hover:bg-transparent hover:text-brand-sage border-2 border-brand-sage py-3.5 rounded-sm font-medium transition-all duration-300 cursor-pointer shadow-xs disabled:opacity-60"
-          >
-            {status === "loading" ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <Send className="w-3.5 h-3.5" />
-                <span>Send Message</span>
-              </>
-            )}
-          </button>
+          {/* Centered SEND Button */}
+          <div className="flex justify-center pt-2">
+            <button
+              type="submit"
+              disabled={status === "loading"}
+              className="w-48 h-11 inline-flex items-center justify-center text-[11px] font-sans uppercase tracking-[0.25em] text-white bg-[#A3A69C] hover:bg-[#8F9288] transition-colors duration-300 cursor-pointer disabled:opacity-60 select-none rounded-none"
+            >
+              {status === "loading" ? (
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+              ) : (
+                "SEND"
+              )}
+            </button>
+          </div>
+
         </form>
       )}
     </div>
