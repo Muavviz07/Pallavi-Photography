@@ -63,6 +63,12 @@ export default async function AdminLayout({
                   Manage Pricing
                 </Link>
                 <Link
+                  href="/admin/faqs"
+                  className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                >
+                  Manage FAQs
+                </Link>
+                <Link
                   href="/admin/blogs"
                   className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
                 >

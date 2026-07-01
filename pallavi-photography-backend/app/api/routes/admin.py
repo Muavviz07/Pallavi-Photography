@@ -10,7 +10,7 @@ from app.models.user import User
 from app.schemas.client_gallery import ClientGalleryCreate, ClientGalleryUpdate, ClientGalleryResponse
 from app.schemas.user import UserResponse, UserUpdate
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(tags=["admin"])
 
 # Galleries CRUD
 @router.get("/galleries", response_model=List[ClientGalleryResponse])

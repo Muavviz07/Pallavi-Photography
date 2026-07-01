@@ -63,5 +63,10 @@ from app.schemas.pricing_section import (
     PricingSectionUpdate,
     PricingSectionResponse,
 )
+from app.schemas.faq import (
+    FAQCreate,
+    FAQUpdate,
+    FAQResponse,
+)
 
 

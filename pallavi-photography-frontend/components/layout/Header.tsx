@@ -55,7 +55,7 @@ const PRICING_ITEMS = [
   { name: "Maternity", href: "/maternity" },
   { name: "Fine Art", href: "/fine-art" },
   { name: "Nature Photostock", href: "/nature" },
-  { name: "FAQs", href: "/pricing/faqs" }
+  { name: "FAQs", href: "/faqs" }
 ];
 
 const GALLERY_ITEMS = [
@@ -151,7 +151,7 @@ export default function Header() {
     { name: t.maternity, href: "/maternity" },
     { name: t.fineArt, href: "/fine-art" },
     { name: t.naturePhotostock, href: "/nature" },
-    { name: t.faqs, href: "/pricing/faqs" }
+    { name: t.faqs, href: "/faqs" }
   ];
 
   const GALLERY_ITEMS = [

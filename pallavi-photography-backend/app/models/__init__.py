@@ -11,4 +11,5 @@ from app.models.testimonial import Testimonial
 from app.models.hero_slide import HeroSlide
 from app.models.about_section import AboutSection
 from app.models.pricing_section import PricingSection
+from app.models.faq import FAQ
 
