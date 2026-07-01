@@ -57,6 +57,12 @@ export default async function AdminLayout({
                   Booking Requests
                 </Link>
                 <Link
+                  href="/admin/pricing"
+                  className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                >
+                  Manage Pricing
+                </Link>
+                <Link
                   href="/admin/blogs"
                   className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
                 >

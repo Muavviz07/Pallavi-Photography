@@ -5,254 +5,544 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { ArrowLeft, Check, Sparkles } from "lucide-react";
+import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
+import { api } from "@/lib/api";
 
 interface PricingPlan {
   name: string;
   price: string;
-  description: string;
+  description?: string;
   features: string[];
+  button_type?: "solid" | "outline";
 }
 
-const PRICING_DATA: Record<string, { title: string; subtitle: string; description: string; image: string; plans: PricingPlan[] }> = {
+interface PricingData {
+  category: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  intro_text: string;
+  notes_text: string;
+  plans: PricingPlan[];
+}
+
+const FALLBACK_PRICING_DATA: Record<string, PricingData> = {
   newborn: {
-    title: "Newborn Collection",
-    subtitle: "Artistic, soft, and gentle newborn photography in-studio",
-    description: "Capture the precious, fleeting details of your baby's first weeks. Our newborn sessions are held in a warm, sanitized studio environment with beautiful props, soft wraps, and natural lighting.",
-    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&q=80&w=1200",
+    category: "newborn",
+    title: "NEWBORN PHOTOGRAPHY IN VEVEY, LAUSANNE & VAUD",
+    subtitle: "NEWBORN SESSION",
+    description: "If you're looking for a professional newborn photographer in Vevey or Lausanne, I recommend booking your session during pregnancy to ensure availability.",
+    intro_text: "The ideal time for a newborn photoshoot is within the first 14 days after birth. During this precious stage, babies are naturally sleepy and curled up, allowing for gentle posing and beautifully timeless portraits. At Pallavi Photography, each newborn photography session in Vevey is designed with your baby's safety, comfort, and well-being as the highest priority.\n\nSessions are calm, baby-led, and unhurried—creating a relaxed experience for both parents and newborns. I welcome families from Lausanne, Vevey, and across the Vaud region, offering a warm and personalized photography experience tailored to your family. A curated collection of handcrafted props, wraps, and outfits is available in soft, elegant tones. Every setup is thoughtfully styled to create artistic, natural-looking newborn portraits you will treasure for years to come.\n\nOn this page, you'll find detailed pricing information, including the different packages, products, and services I offer—so you can choose what package suits your needs. If you'd love to see beautiful newborn moments I've captured for other families, explore the gallery here:",
+    notes_text: "NOTE: TRAVEL FEE APPLIES FOR LOCATION BEYOND 2 KM\n\nA CHF 100 non-refundable deposit (session fee) is required to secure your date and session. The remaining balance is due on the day of the session.\nAdditional digital photos can be purchased from the gallery at: 1 photo CHF 30, 3 photos CHF 75, 5 photos CHF 120.\nFamily session info: due to space limitations, a maximum of 4–5 people can be accommodated indoors. Larger groups can be photographed outdoors. Gift vouchers are also available to purchase.",
     plans: [
       {
-        name: "Essential",
+        name: "PETITE COLLECTION",
         price: "CHF 450",
-        description: "Perfect to capture the first milestones",
-        features: ["2 hours in-studio session", "15 fully edited high-res digital photos", "Access to beautiful newborn wardrobe & props", "Online private client gallery for selection", "Print release"]
+        features: [
+          "1–2 hours session, baby, parent and sibling poses included",
+          "Colour palette can be selected for the session",
+          "Use of curated props and baby outfits",
+          "Password-protected online gallery for image selection",
+          "10 high-resolution (professionally edited) digital images to download",
+          "5 passe-partouts with 13 × 18 cm prints, mounted in 20 × 25 cm mats",
+          "20 credit to use towards wall art, canvases, bigger mat, acrylic prints, or a future session"
+        ],
+        button_type: "solid"
       },
       {
-        name: "Premium Legacy",
-        price: "CHF 750",
-        description: "Full baby storytelling collection including family photos",
-        features: ["3 hours in-studio session", "30 fully edited high-res digital photos", "Newborn & sibling/parent poses included", "Custom fine art print album (10 pages)", "Online private client gallery", "Complimentary maternity mini-session voucher"]
+        name: "CLASSIC COLLECTION",
+        price: "CHF 650",
+        features: [
+          "2–4 hours session, baby, parent and sibling poses included",
+          "Colour palette can be selected for the session",
+          "Use of curated props and baby outfits",
+          "Password-protected online gallery for image selection",
+          "15 high-resolution (professionally edited) digital images to download",
+          "All 15 prints (13 × 18 cm) in a premium keepsake box with acrylic display lid",
+          "50 credit to use towards wall art, canvases, bigger mat, acrylic prints, or a future session"
+        ],
+        button_type: "outline"
+      },
+      {
+        name: "LUXE STORY COLLECTION",
+        price: "CHF 850",
+        features: [
+          "2–4 hours session, baby, parent and sibling poses included",
+          "Colour palette can be selected for the session",
+          "Use of curated props and baby outfits",
+          "Password-protected online gallery for image selection",
+          "20 high-resolution (professionally edited) digital images to download",
+          "All 20 prints (13 × 18 cm) in a premium keepsake box with acrylic display lid",
+          "Beautifully designed 20-page mini photo book",
+          "50 credit to use towards wall art, canvases, bigger mat, acrylic prints, or a future session"
+        ],
+        button_type: "outline"
       }
     ]
   },
   children: {
-    title: "Children Portraits",
-    subtitle: "Documenting milestone childhood memories with natural light",
-    description: "Celebrate the growth, giggles, and personality of your children. Sessions can be conducted outdoors or in our minimalist natural-light studio setups.",
-    image: "https://images.unsplash.com/photo-1476703719129-8eb99415f6e8?auto=format&fit=crop&q=80&w=1200",
+    category: "children",
+    title: "CHILDREN PORTRAITURE IN SWITZERLAND",
+    subtitle: "CHILDREN SESSION",
+    description: "If you're looking for a professional child photographer, I recommend booking your session early to secure your preferred date.",
+    intro_text: "Milestone child portraiture captures the laughter, curiosity, and unique personality of your child as they grow. Whether in our calm studio or outdoors in beautiful Swiss natural locations, each session is tailored to your child's pace.\n\nWe design fun, interactive shoots where children can be themselves, creating natural and unforced expressions. From toddlers to pre-teens, every portrait is a memory frozen in time.",
+    notes_text: "NOTE: TRAVEL FEE APPLIES FOR LOCATION BEYOND 2 KM\n\nA CHF 100 non-refundable deposit is required to secure your booking slot.",
     plans: [
       {
-        name: "Studio Portrait",
+        name: "STUDIO PORTRAIT",
         price: "CHF 380",
-        description: "Minimalist classic studio portraiture",
-        features: ["1 hour session", "12 edited high-res digital photos", "Minimalist studio backdrop setup", "Online private gallery", "Print release"]
+        features: [
+          "1 hour session",
+          "12 edited high-res digital photos",
+          "Minimalist studio backdrop setup",
+          "Online private gallery",
+          "Print release"
+        ],
+        button_type: "solid"
       },
       {
-        name: "Outdoor Storybook",
+        name: "OUTDOOR STORYBOOK",
         price: "CHF 550",
-        description: "Creative storytelling session in beautiful outdoor location",
-        features: ["1.5 hours session in location", "25 edited high-res digital photos", "Natural settings, action and details documented", "Online private gallery", "Fine Art prints set (5 prints)"]
+        features: [
+          "1.5 hours session in location",
+          "25 edited high-res digital photos",
+          "Natural settings, action and details documented",
+          "Online private gallery",
+          "Fine Art prints set (5 prints)"
+        ],
+        button_type: "outline"
       }
     ]
   },
   family: {
-    title: "Family Collections",
-    subtitle: "Warm, authentic connections captured in natural locations",
-    description: "Unscripted, warm laughter and real hugs in Vaud or Vevey. We focus on capturing authentic relationships and timeless moments in stunning Swiss nature backgrounds.",
-    image: "https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=1200",
+    category: "family",
+    title: "FAMILY PORTRAIT PHOTOGRAPHY IN VEY LAUSANNE & VAUD",
+    subtitle: "FAMILY SESSION",
+    description: "Celebrate the connection, hugs, and laughter of your family.",
+    intro_text: "Every family has a unique connection, and my outdoor family sessions are designed to celebrate your togetherness. We focus on natural light, real smiles, and unscripted embraces in the breathtaking Swiss landscape.",
+    notes_text: "NOTE: TRAVEL FEE APPLIES FOR LOCATION BEYOND 2 KM\n\nA CHF 100 non-refundable deposit is required to secure your booking slot.",
     plans: [
       {
-        name: "Golden Hour Session",
+        name: "GOLDEN HOUR SESSION",
         price: "CHF 490",
-        description: "Sunkissed portraiture in natural backdrop",
-        features: ["1.5 hours sunset outdoor session", "20 edited high-res digital photos", "Up to 5 family members", "Online private selection gallery", "Print release"]
+        features: [
+          "1.5 hours sunset outdoor session",
+          "20 edited high-res digital photos",
+          "Up to 5 family members",
+          "Online private selection gallery",
+          "Print release"
+        ],
+        button_type: "solid"
       },
       {
-        name: "Elite Signature",
+        name: "ELITE SIGNATURE",
         price: "CHF 850",
-        description: "The ultimate family heirloom session and album set",
-        features: ["2 hours in choice location", "45 edited high-res digital photos", "Custom premium photo book album", "High-res downloads for sharing", "Unlimited group edits"]
+        features: [
+          "2 hours in choice location",
+          "45 edited high-res digital photos",
+          "Custom premium photo book album",
+          "High-res downloads for sharing",
+          "Unlimited group edits"
+        ],
+        button_type: "outline"
       }
     ]
   },
   maternity: {
-    title: "Maternity Grace",
-    subtitle: "Elegant pregnancy portraiture celebrating a new chapter",
-    description: "Honoring the beauty of motherhood. We provide guidance on elegant styling, wraps, and gorgeous locations (lakeside, mountain peaks, or studio) to celebrate your maternity journey.",
-    image: "https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=1200",
+    category: "maternity",
+    title: "MATERNITY PORTRAIT SESSIONS IN SWITZERLAND",
+    subtitle: "MATERNITY SESSION",
+    description: "Pregnancy is a beautiful chapter, filled with anticipation and grace.",
+    intro_text: "Celebrate the strength and glow of motherhood. We offer custom sessions by Geneva Lake or in our private natural light studio, providing access to elegant designer wardrobe and gowns.",
+    notes_text: "NOTE: TRAVEL FEE APPLIES FOR LOCATION BEYOND 2 KM\n\nA CHF 100 non-refundable deposit is required to secure your booking slot.",
     plans: [
       {
-        name: "Lakeside Sunset Session",
+        name: "LAKESIDE SUNSET SESSION",
         price: "CHF 450",
-        description: "Romantic pregnancy shoot by Geneva Lake",
-        features: ["1.5 hours session", "15 edited high-res digital photos", "Access to elegant maternity gowns selection", "Partner & older children included", "Online private selection gallery"]
+        features: [
+          "1.5 hours session",
+          "15 edited high-res digital photos",
+          "Access to elegant maternity gowns selection",
+          "Partner & older children included",
+          "Online private selection gallery"
+        ],
+        button_type: "solid"
       },
       {
-        name: "Maternity & Newborn Bundle",
+        name: "MATERNITY & NEWBORN BUNDLE",
         price: "CHF 990",
-        description: "Save CHF 210 with this ultimate double milestone package",
-        features: ["Full Lakeside Maternity session (15 photos)", "Full Legacy Newborn session (30 photos)", "Custom fine art print sets", "Extended session times", "Highest priority calendar slots reserving"]
+        features: [
+          "Full Lakeside Maternity session (15 photos)",
+          "Full Legacy Newborn session (30 photos)",
+          "Custom fine art print sets",
+          "Extended session times",
+          "Highest priority calendar slots reserving"
+        ],
+        button_type: "outline"
       }
     ]
   },
   "fine-art": {
-    title: "Fine Art Custom Portraiture",
-    subtitle: "Highly styled editorial portraits resembling classic paintings",
-    description: "Designed for those looking for signature, painting-like portraits. Custom painterly lighting, deep colors, and exquisite styling make these photographs standalone works of art.",
-    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&q=80&w=1200",
+    category: "fine-art",
+    title: "FINE ART EDITORIAL PORTRAITS IN SWITZERLAND",
+    subtitle: "FINE ART SESSION",
+    description: "Highly styled conceptual portraits resembling classical oil paintings.",
+    intro_text: "Designed for those seeking signature, museum-grade portraiture. Using deep painterly contrast and hand-crafted backdrops, these sessions turn your portrait into a piece of fine art.",
+    notes_text: "NOTE: TRAVEL FEE APPLIES FOR LOCATION BEYOND 2 KM\n\nA CHF 150 non-refundable deposit is required to secure your booking slot.",
     plans: [
       {
-        name: "Single Creative Master",
+        name: "SINGLE CREATIVE MASTER",
         price: "CHF 600",
-        description: "A unique painterly editorial portrait piece",
-        features: ["2 hours structured conceptual shoot", "5 heavily retouched painterly masterpiece files", "Custom mood board and styling guidance", "Fine art museum-grade printed canvas (40x50cm)", "Print release"]
+        features: [
+          "2 hours structured conceptual shoot",
+          "5 heavily retouched painterly masterpiece files",
+          "Custom mood board and styling guidance",
+          "Fine art museum-grade printed canvas (40x50cm)",
+          "Print release"
+        ],
+        button_type: "solid"
       }
     ]
   },
   nature: {
-    title: "Nature Photostock",
-    subtitle: "Licensing landscape and wildlife collections from Vaud",
-    description: "High-resolution editorial and commercial licensing of stunning Swiss scenery, wildlife, and lake scenes from Vevey and the surrounding Alps.",
-    image: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=1200",
+    category: "nature",
+    title: "NATURE & LANDSCAPE PHOTOSTOCK LICENSING",
+    subtitle: "NATURE LICENSING",
+    description: "High-resolution digital downloads and exclusive print licensing.",
+    intro_text: "Bring the raw majesty of Swiss alpine landscapes and calm Geneva Lake scenes to your space. Our curated print-ready photostock is available for editorial, commercial, and personal wall art licensing.",
+    notes_text: "High-res files are delivered as digital TIFF/RAW or premium museum-grade prints. Custom orders available upon request.",
     plans: [
       {
-        name: "Standard License",
-        price: "CHF 150 / image",
-        description: "Digital web publication usage",
-        features: ["High-res digital download", "Web/social usage permissions", "Lifetime digital royalty free usage"]
+        name: "STANDARD LICENSE",
+        price: "CHF 150",
+        features: [
+          "High-res digital download",
+          "Web/social usage permissions",
+          "Lifetime digital royalty free usage"
+        ],
+        button_type: "solid"
       },
       {
-        name: "Commercial Exclusive",
-        price: "CHF 600 / image",
-        description: "Print and exclusive publication rights",
-        features: ["TIFF and RAW files download", "Full print licensing", "Exclusive commercial print use release"]
-      }
-    ]
-  },
-  faqs: {
-    title: "Pricing FAQs",
-    subtitle: "Everything you need to know about booking and deliverables",
-    description: "Transparency is key. Here are details about booking deposit fees, cancellation, dress selections, and image selection delivery windows.",
-    image: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=1200",
-    plans: [
-      {
-        name: "Booking & Retainer",
-        price: "Deposit: CHF 150",
-        description: "Retainer details",
-        features: ["CHF 150 non-refundable deposit secures slot", "Balance payable on the shoot session date", "One rescheduling permitted with 48h notice"]
-      },
-      {
-        name: "Turnaround Time",
-        price: "Delivery: 2-3 Weeks",
-        description: "Editing timelines",
-        features: ["Online selection proofing gallery within 5 days", "Fully edited high-res downloads in 2-3 weeks", "Express delivery (3 days) available for CHF 100 surcharge"]
+        name: "COMMERCIAL EXCLUSIVE",
+        price: "CHF 600",
+        features: [
+          "TIFF and RAW files download",
+          "Full print licensing",
+          "Exclusive commercial print use release"
+        ],
+        button_type: "outline"
       }
     ]
   }
 };
 
+const CATEGORY_IMAGES: Record<string, string> = {
+  newborn: "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=800",
+  children: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=600&auto=format&fit=crop&q=60",
+  family: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=800",
+  maternity: "https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=600&auto=format&fit=crop&q=60",
+  "fine-art": "https://images.unsplash.com/photo-1637511844674-d2c52d5f29b5?w=600&auto=format&fit=crop&q=60",
+  nature: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=800"
+};
+
 export default function PricingCategoryPage() {
   const params = useParams();
-  const category = (params.category as string) || "newborn";
-  
-  const data = PRICING_DATA[category] || PRICING_DATA.newborn;
+  const rawCategory = (params.category as string) || "newborn";
+  const category = rawCategory.toLowerCase() === "fine-art" ? "fine-art" : rawCategory.toLowerCase();
+
+  const [pricing, setPricing] = useState<PricingData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [lang, setLang] = useState("EN");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("lang") || "EN";
+    setLang(stored);
+
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("lang") || "EN");
+    };
+
+    window.addEventListener("languagechange", handleLangChange);
+    return () => window.removeEventListener("languagechange", handleLangChange);
+  }, []);
+
+  useEffect(() => {
+    async function loadPricing() {
+      try {
+        const res = await api.get<any>(`/pricing/${category}`);
+        if (res) {
+          const parsedPlans = res.plans_json ? JSON.parse(res.plans_json) : [];
+          setPricing({
+            category: res.category,
+            title: res.title,
+            subtitle: res.subtitle,
+            description: res.description,
+            intro_text: res.intro_text,
+            notes_text: res.notes_text,
+            plans: parsedPlans
+          });
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch pricing for category ${category}, falling back to static configurations.`, err);
+        setPricing(FALLBACK_PRICING_DATA[category] || FALLBACK_PRICING_DATA.newborn);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadPricing();
+  }, [category]);
+
+  if (loading || !pricing) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-sm font-medium uppercase tracking-[0.2em] animate-pulse text-stone-400">
+          Loading pricing details...
+        </div>
+      </div>
+    );
+  }
+
+  // Parse price label details helper
+  const parsePrice = (priceStr: string) => {
+    const parts = priceStr.split(" ");
+    if (parts.length >= 2) {
+      return { currency: parts[0], value: parts.slice(1).join(" ") };
+    }
+    return { currency: "CHF", value: priceStr };
+  };
 
   return (
     <>
       <Header />
-      
-      <main className="min-h-screen bg-brand-bg pt-32 pb-24">
-        <div className="max-w-[1200px] mx-auto px-6 md:px-12 space-y-16">
-          {/* Back link */}
-          <Link
-            href="/"
-            className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-brand-muted hover:text-brand-dark transition-colors duration-200"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Home</span>
-          </Link>
 
-          {/* Intro Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <span className="text-[10px] uppercase tracking-[0.3em] text-brand-sage font-semibold">
-                Investment Packages
-              </span>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-light tracking-wide font-serif text-brand-dark leading-tight uppercase">
-                {data.title}
-              </h2>
-              <p className="text-sm font-serif italic text-brand-muted leading-relaxed">
-                "{data.subtitle}"
-              </p>
-              <p className="text-sm text-brand-muted leading-relaxed max-w-xl">
-                {data.description}
-              </p>
-              
-              <div className="pt-4">
-                <Link
-                  href="/book-a-session"
-                  className="inline-flex items-center space-x-2 bg-brand-sage text-white text-xs uppercase tracking-widest px-8 py-3.5 hover:bg-brand-dark transition-colors duration-300 rounded-sm"
-                >
-                  <span>Book This Session</span>
-                  <Sparkles className="w-3.5 h-3.5" />
-                </Link>
-              </div>
+      {/* Standardized Breadcrumbs Banner */}
+      <BreadcrumbsBanner
+        title={pricing.subtitle}
+        paths={[
+          { label: "Home", href: "/" },
+          { label: pricing.subtitle.charAt(0) + pricing.subtitle.slice(1).toLowerCase() }
+        ]}
+      />
+
+      {/* Main Container */}
+      <main className="bg-white py-16">
+        <div className="max-w-[1280px] mx-auto px-6 md:px-10 space-y-20">
+          
+          {/* Top Intro Section (Clean Full-Width Text Layout matching Grid width) */}
+          <div className="w-full text-left space-y-6">
+            <h2 className="text-xl sm:text-2xl md:text-[28px] tracking-[0.2em] font-serif text-brand-dark uppercase font-light leading-snug">
+              {pricing.title}
+            </h2>
+            
+            <div className="w-12 h-[1.5px] bg-[#A3A69C] opacity-60"></div>
+            
+            {/* Split description block by paragraphs */}
+            <div className="space-y-5 text-sm text-stone-500 font-sans font-light leading-relaxed tracking-wide text-justify">
+              {pricing.intro_text.split("\n\n").map((para, idx) => {
+                const isLead = idx === 0;
+                return (
+                  <p key={idx} className={isLead ? "text-stone-600 font-normal text-base leading-relaxed" : ""}>
+                    {para}
+                  </p>
+                );
+              })}
             </div>
 
-            <div className="h-[400px] rounded-xs overflow-hidden shadow-lg border border-brand-border">
-              <img
-                src={data.image}
-                alt={data.title}
-                className="w-full h-full object-cover"
-              />
+            {/* Re-designed Gallery Link Button */}
+            <div className="pt-4 flex items-center">
+              <Link
+                href={`/our-gallery/${category}`}
+                className="inline-flex items-center space-x-2 text-[11px] font-sans uppercase tracking-[0.25em] text-[#8F9288] hover:text-[#7D8076] border-b border-[#8F9288]/40 hover:border-[#7D8076] pb-1 transition-all duration-300 cursor-pointer"
+              >
+                <span>{lang === "FR" ? `Voir la galerie ${category}` : `View ${category.charAt(0).toUpperCase() + category.slice(1)} Gallery`}</span>
+                <span className="text-xs">→</span>
+              </Link>
             </div>
+
+            {/* Note text below button */}
+            <p className="text-xs text-stone-400 font-serif italic pt-1">
+              {pricing.description}
+            </p>
           </div>
 
-          {/* Pricing cards grid */}
-          <div className="space-y-10 pt-10">
-            <h3 className="text-center text-xl tracking-[0.2em] font-light uppercase text-brand-dark">
-              Available Sessions & Plans
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {data.plans.map((plan) => (
-                <div
-                  key={plan.name}
-                  className="bg-brand-cream border border-brand-border p-8 md:p-10 rounded-xs flex flex-col justify-between space-y-8"
-                >
-                  <div className="space-y-4">
-                    <span className="text-xs uppercase tracking-[0.2em] text-brand-sage block font-semibold">
-                      {plan.name}
-                    </span>
-                    <div className="text-3xl font-light tracking-wider text-brand-dark">
-                      {plan.price}
-                    </div>
-                    <p className="text-xs text-brand-muted italic">
-                      {plan.description}
+          {/* Package Lists Section (Rendered only if category has plans) */}
+          {pricing.plans && pricing.plans.length > 0 && (
+            <div className="space-y-20 pt-6">
+              
+              {/* Standard Session Packages */}
+              <div className="space-y-12">
+                {/* Pricing Grid Title */}
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl sm:text-3xl tracking-[0.25em] font-serif text-brand-dark uppercase" style={{ fontWeight: 300 }}>
+                    {pricing.subtitle}
+                  </h3>
+                  <p className="text-xs sm:text-sm font-serif italic text-stone-500">
+                    {lang === "FR" 
+                      ? "Chaque formule est conçue et réalisée par mes soins, garantissant une touche personnelle à chaque image" 
+                      : "Every package is crafted and delivered by me, ensuring a personal touch in every frame"}
+                  </p>
+                </div>
+
+                {/* Packages Grid (Flex wrap to align 1, 2, or 3 packages to the middle/center horizontally) */}
+                <div className="flex flex-wrap justify-center gap-8 items-stretch">
+                  {pricing.plans.slice(0, 3).map((plan, index) => {
+                    const priceData = parsePrice(plan.price);
+
+                    return (
+                      <div
+                        key={plan.name}
+                        className="bg-[#FCFAF9]/40 border border-stone-200/50 p-8 md:p-10 flex flex-col justify-between space-y-12 text-center transition-all duration-350 hover:bg-[#FCFAF9]/90 hover:shadow-xs group w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.33%-1.5rem)] max-w-[365px] min-w-[280px]"
+                      >
+                        <div className="space-y-8">
+                          {/* Top Accent Bar inside column */}
+                          <div className="w-8 h-[2px] bg-[#8F9288]/40 mx-auto transition-all group-hover:w-16 duration-300"></div>
+
+                          {/* Plan Title */}
+                          <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-[#8F9288] block font-semibold">
+                            {plan.name}
+                          </span>
+
+                          {/* Price Block */}
+                          <div className="text-stone-400 font-serif italic text-sm">
+                            {priceData.currency}
+                            <span className="text-4xl sm:text-5xl font-extralight font-serif text-stone-600 italic ml-1 block -mt-1">
+                              {priceData.value}
+                            </span>
+                          </div>
+
+                          {/* Separator Accent */}
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className="w-4 h-[0.5px] bg-stone-200"></div>
+                            <span className="text-[7px] text-stone-300">✦</span>
+                            <div className="w-4 h-[0.5px] bg-stone-200"></div>
+                          </div>
+
+                          {/* Plan Bullet Features */}
+                          <div className="flex justify-center">
+                            <ul className="space-y-4 text-left max-w-[260px]">
+                              {plan.features.map((f, idx) => (
+                                <li key={idx} className="flex items-start space-x-3 text-stone-500 text-xs sm:text-[13px] font-sans font-light leading-relaxed">
+                                  <span className="w-1 h-1 rounded-full bg-stone-300 shrink-0 mt-2"></span>
+                                  <span>{f}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Plan Button (Solid Background Color) */}
+                        <div className="pt-6 flex justify-center">
+                          <Link
+                            href="/book-a-session"
+                            className="w-full max-w-[220px] h-11 inline-flex items-center justify-center text-[9px] sm:text-[10px] font-sans uppercase tracking-[0.25em] transition-all duration-300 border bg-[#8F9288] border-[#8F9288] text-white hover:bg-[#7D8076] hover:border-[#7D8076] hover:tracking-[0.3em] font-medium rounded-none cursor-pointer"
+                          >
+                            {lang === "FR" ? "S'INFORMER" : "ENQUIRE"}
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Maternity & Newborn Combo Section (Rendered only if additional combo plans exist) */}
+              {pricing.plans.length > 3 && (
+                <div className="space-y-12 pt-8 border-t border-stone-100">
+                  <div className="text-center space-y-2">
+                    <h3 className="text-2xl sm:text-3xl tracking-[0.25em] font-serif text-brand-dark uppercase" style={{ fontWeight: 300 }}>
+                      Maternity & Newborn Combo – Cherish Every Moment
+                    </h3>
+                    <p className="text-xs sm:text-sm font-serif italic text-stone-500">
+                      Celebrate the journey from bump to baby with our exclusive photography packages
                     </p>
-                    
-                    <div className="w-8 h-[1px] bg-brand-sage/20 my-4"></div>
-                    
-                    <ul className="space-y-3.5">
-                      {plan.features.map((f, idx) => (
-                        <li key={idx} className="flex items-start space-x-3 text-xs text-brand-muted">
-                          <Check className="w-3.5 h-3.5 text-brand-sage shrink-0 mt-0.5" />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
                   </div>
 
-                  <Link
-                    href="/book-a-session"
-                    className="w-full text-center border border-brand-dark/30 hover:border-brand-dark text-[10px] uppercase tracking-widest py-3 hover:bg-brand-dark hover:text-white transition-all duration-300 rounded-sm font-medium"
-                  >
-                    Select Plan
-                  </Link>
+                  {/* Combo Packages Grid (Centered Flex Container for less than 3 packages) */}
+                  <div className="flex flex-wrap justify-center gap-8 items-stretch">
+                    {pricing.plans.slice(3).map((plan) => {
+                      const priceData = parsePrice(plan.price);
+
+                      return (
+                        <div
+                          key={plan.name}
+                          className="bg-[#FCFAF9]/40 border border-stone-200/50 p-8 md:p-10 flex flex-col justify-between space-y-12 text-center transition-all duration-350 hover:bg-[#FCFAF9]/90 hover:shadow-xs group w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.33%-1.5rem)] max-w-[365px] min-w-[280px]"
+                        >
+                          <div className="space-y-8">
+                            {/* Top Accent Bar inside column */}
+                            <div className="w-8 h-[2px] bg-[#8F9288]/40 mx-auto transition-all group-hover:w-16 duration-300"></div>
+
+                            {/* Plan Title */}
+                            <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-[#8F9288] block font-semibold">
+                              {plan.name}
+                            </span>
+
+                            {/* Price Block */}
+                            <div className="text-stone-400 font-serif italic text-sm">
+                              {priceData.currency}
+                              <span className="text-4xl sm:text-5xl font-extralight font-serif text-stone-600 italic ml-1 block -mt-1">
+                                {priceData.value}
+                              </span>
+                            </div>
+
+                            {/* Separator Accent */}
+                            <div className="flex items-center justify-center space-x-2">
+                              <div className="w-4 h-[0.5px] bg-stone-200"></div>
+                              <span className="text-[7px] text-stone-300">✦</span>
+                              <div className="w-4 h-[0.5px] bg-stone-200"></div>
+                            </div>
+
+                            {/* Plan Bullet Features */}
+                            <div className="flex justify-center">
+                              <ul className="space-y-4 text-left max-w-[260px]">
+                                {plan.features.map((f, idx) => (
+                                  <li key={idx} className="flex items-start space-x-3 text-stone-500 text-xs sm:text-[13px] font-sans font-light leading-relaxed">
+                                    <span className="w-1 h-1 rounded-full bg-stone-300 shrink-0 mt-2"></span>
+                                    <span>{f}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+
+                          {/* Plan Button (Solid Background Color) */}
+                          <div className="pt-6 flex justify-center">
+                            <Link
+                              href="/book-a-session"
+                              className="w-full max-w-[220px] h-11 inline-flex items-center justify-center text-[9px] sm:text-[10px] font-sans uppercase tracking-[0.25em] transition-all duration-300 border bg-[#8F9288] border-[#8F9288] text-white hover:bg-[#7D8076] hover:border-[#7D8076] hover:tracking-[0.3em] font-medium rounded-none cursor-pointer"
+                            >
+                              {lang === "FR" ? "S'INFORMER" : "ENQUIRE"}
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              ))}
+              )}
+
+              {/* Bottom Notes Block */}
+              {pricing.notes_text && (
+                <div className="bg-[#FAF8F5] border border-stone-200/60 p-8 md:p-12 rounded-none space-y-6 text-center max-w-4xl mx-auto">
+                  {pricing.notes_text.split("\n\n").map((note, idx) => {
+                    const isTitle = note.startsWith("NOTE:") || note.startsWith("Note:");
+                    return (
+                      <p
+                        key={idx}
+                        className={`text-stone-500 leading-relaxed font-sans ${
+                          isTitle
+                            ? "text-[11px] sm:text-xs uppercase tracking-[0.2em] font-medium text-stone-600"
+                            : "text-xs sm:text-[13px] font-light max-w-2xl mx-auto"
+                        }`}
+                      >
+                        {note}
+                      </p>
+                    );
+                  })}
+                </div>
+              )}
+
             </div>
-          </div>
+          )}
         </div>
       </main>
 

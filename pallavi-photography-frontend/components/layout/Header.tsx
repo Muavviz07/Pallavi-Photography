@@ -49,12 +49,12 @@ const ABOUT_ITEMS = [
 ];
 
 const PRICING_ITEMS = [
-  { name: "NewBorn", href: "/pricing/newborn" },
-  { name: "Children", href: "/pricing/children" },
-  { name: "Family", href: "/pricing/family" },
-  { name: "Maternity", href: "/pricing/maternity" },
-  { name: "Fine Art", href: "/pricing/fine-art" },
-  { name: "Nature Photostock", href: "/pricing/nature" },
+  { name: "NewBorn", href: "/newborn" },
+  { name: "Children", href: "/children" },
+  { name: "Family", href: "/family" },
+  { name: "Maternity", href: "/maternity" },
+  { name: "Fine Art", href: "/fine-art" },
+  { name: "Nature Photostock", href: "/nature" },
   { name: "FAQs", href: "/pricing/faqs" }
 ];
 
@@ -145,12 +145,12 @@ export default function Header() {
   ];
 
   const PRICING_ITEMS = [
-    { name: t.newborn, href: "/pricing/newborn" },
-    { name: t.children, href: "/pricing/children" },
-    { name: t.family, href: "/pricing/family" },
-    { name: t.maternity, href: "/pricing/maternity" },
-    { name: t.fineArt, href: "/pricing/fine-art" },
-    { name: t.naturePhotostock, href: "/pricing/nature" },
+    { name: t.newborn, href: "/newborn" },
+    { name: t.children, href: "/children" },
+    { name: t.family, href: "/family" },
+    { name: t.maternity, href: "/maternity" },
+    { name: t.fineArt, href: "/fine-art" },
+    { name: t.naturePhotostock, href: "/nature" },
     { name: t.faqs, href: "/pricing/faqs" }
   ];
 

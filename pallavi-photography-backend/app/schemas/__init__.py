@@ -58,5 +58,10 @@ from app.schemas.about_section import (
     AboutSectionUpdate,
     AboutSectionResponse,
 )
+from app.schemas.pricing_section import (
+    PricingSectionCreate,
+    PricingSectionUpdate,
+    PricingSectionResponse,
+)
 
 
