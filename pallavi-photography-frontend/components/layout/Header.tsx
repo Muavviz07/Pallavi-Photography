@@ -319,7 +319,7 @@ export default function Header() {
               </Link>
 
               <Link
-                href="/#contact"
+                href="/contact"
                 className="hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 border-transparent text-brand-muted cursor-pointer"
               >
                 {t.contact}
@@ -415,7 +415,7 @@ export default function Header() {
                 {t.blogs}
               </Link>
 
-              <Link href="/#contact" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
+              <Link href="/contact" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
                 {t.contact}
               </Link>
             </div>

@@ -5,6 +5,7 @@ from app.models.hero_slide import HeroSlide
 from app.models.about_section import AboutSection
 from app.models.pricing_section import PricingSection
 from app.models.faq import FAQ
+from app.models.contact_section import ContactSection
 import json
 from app.core import security
 
@@ -576,6 +577,25 @@ def seed_db():
             db.add(faq_item)
         db.commit()
         print("FAQ items seeded successfully!")
+
+        # Seed Contact Section
+        print("Cleaning and seeding Contact section...")
+        db.query(ContactSection).delete()
+        contact = ContactSection(
+            title="LET'S CONNECT",
+            title_fr="CONTACTONS-NOUS",
+            p1="Whether you’re looking to book a session, ask a question, or just say hello — I’d love to hear from you. Every story is unique, and I’m here to help you capture yours in the most beautiful way.",
+            p1_fr="Que vous souhaitiez réserver une séance, poser une question ou simplement dire bonjour, j’aimerais beaucoup avoir de vos nouvelles. Chaque histoire est unique et je suis là pour vous aider à capturer la vôtre de la plus belle des manières.",
+            p2="Have a date in mind? Drop a message with the type of shoot you’re interested in — portraits, events, lifestyle, or something personal — and we’ll make it happen.",
+            p2_fr="Vous avez une date en tête ? Laissez un message avec le type de séance qui vous intéresse — portraits, événements, style de vie ou quelque chose de personnel — et nous ferons en sorte que cela se réalise.",
+            email="pallavi.vishk@gmail.com",
+            phone="+41 789077644",
+            whatsapp="+41 789077644",
+            instagram="@pallavivishk"
+        )
+        db.add(contact)
+        db.commit()
+        print("Contact section seeded successfully!")
             
     except Exception as e:
         print(f"Seeding failed: {e}")

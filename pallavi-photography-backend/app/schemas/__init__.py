@@ -68,5 +68,9 @@ from app.schemas.faq import (
     FAQUpdate,
     FAQResponse,
 )
+from app.schemas.contact_section import (
+    ContactSectionUpdate,
+    ContactSectionResponse,
+)
 
 

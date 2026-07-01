@@ -12,4 +12,5 @@ from app.models.hero_slide import HeroSlide
 from app.models.about_section import AboutSection
 from app.models.pricing_section import PricingSection
 from app.models.faq import FAQ
+from app.models.contact_section import ContactSection
 

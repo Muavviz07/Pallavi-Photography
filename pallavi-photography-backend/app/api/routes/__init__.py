@@ -1,5 +1,4 @@
-from fastapi import APIRouter
-from app.api.routes import auth, health, galleries, client_galleries, admin, blogs, bookings, enquiries, newsletter, testimonials, hero_sliders, about, pricing, faqs
+from app.api.routes import auth, health, galleries, client_galleries, admin, blogs, bookings, enquiries, newsletter, testimonials, hero_sliders, about, pricing, faqs, contact
 
 api_router = APIRouter()
 
@@ -17,5 +16,6 @@ api_router.include_router(hero_sliders.router, tags=["hero-sliders"])
 api_router.include_router(about.router, tags=["about"])
 api_router.include_router(pricing.router, tags=["pricing"])
 api_router.include_router(faqs.router, tags=["faqs"])
+api_router.include_router(contact.router, tags=["contact"])
 
 
