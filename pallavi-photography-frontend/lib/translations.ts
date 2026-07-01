@@ -20,6 +20,17 @@ export const translations = {
     readBlog: "Read Our Blog",
     socialJournal: "Social Journal",
     followUs: "Follow Us on Instagram",
+    // About Section
+    aboutTitle: "NEWBORN, CHILDREN, MATERNITY, FAMILY AND FINE ART PHOTOGRAPHER IN VEVEY, VAUD - SWITZERLAND.",
+    aboutQuote: "Take in every little moment as they would not stay the same forever. Time flies....",
+    aboutBio1: "Hi there ! I'm Pallavi, a professional family, newborn, baby, maternity, children, fine art and nature photographer based in Vevey, Switzerland. I work with families across Lausanne, Montreux and Morges, and also welcome clients from Geneva, Fribourg and Zurich for newborn and family portraits. I specialize in capturing authentic and timeless moments — from the beauty of pregnancy to the delicate early days of your newborn, the laughter of childhood, and the peaceful charm of the natural world.",
+    aboutBio2: "Whether you're looking to document a special milestone or simply preserve everyday memories, I'm here to help you.",
+    aboutBio3: "Thank you for stopping by ! Feel free to explore my portfolio and learn more about my journey and approach to photography.",
+    aboutBtn: "ABOUT ME",
+    // Reserve Section
+    reserveSectionTitle: "RESERVE YOUR SESSION",
+    reserveSectionDesc: "Whether you're looking to book a session, ask a question, or just say hello — I'd love to hear from you. Every story is unique, and I'm here to help you capture yours in the most beautiful way.",
+    reserveSectionBtn: "GET IN TOUCH",
   },
   FR: {
     home: "Accueil",
@@ -42,6 +53,17 @@ export const translations = {
     readBlog: "Découvrez Notre Blog",
     socialJournal: "Journal Social",
     followUs: "Suivez-nous sur Instagram",
+    // About Section
+    aboutTitle: "PHOTOGRAPHE POUR NOUVEAU-NÉS, ENFANTS, MATERNITÉ, FAMILLE ET FINE ART À VEVEY, VAUD - SUISSE.",
+    aboutQuote: "Profitez de chaque petit moment car ils ne resteront pas les mêmes pour toujours. Le temps passe si vite...",
+    aboutBio1: "Bonjour ! Je m'appelle Pallavi, photographe professionnelle spécialisée dans les portraits de famille, nouveau-nés, bébés, maternité, enfants, fine art et nature à Vevey, Suisse. Je travaille avec des familles à Lausanne, Montreux et Morges, et j'accueille également des clients de Genève, Fribourg et Zurich. Je capture des moments authentiques et intemporels — de la grossesse aux premiers jours de bébé, en passant par les éclats de rire de l'enfance et le charme de la nature.",
+    aboutBio2: "Que vous souhaitiez documenter une étape spéciale ou simplement immortaliser des souvenirs quotidiens, je suis là pour vous aider.",
+    aboutBio3: "Merci pour votre visite ! N'hésitez pas à explorer mon portfolio et à en savoir plus sur mon parcours et mon approche de la photographie.",
+    aboutBtn: "À PROPOS DE MOI",
+    // Reserve Section
+    reserveSectionTitle: "RÉSERVEZ VOTRE SÉANCE",
+    reserveSectionDesc: "Que vous souhaitiez réserver une séance, poser une question ou simplement dire bonjour, j'aimerais beaucoup avoir de vos nouvelles. Chaque histoire est unique et je suis là pour vous aider à capturer la vôtre de la plus belle des manières.",
+    reserveSectionBtn: "CONTACTEZ-NOUS",
   }
 };
 

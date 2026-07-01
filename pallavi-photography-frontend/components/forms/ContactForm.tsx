@@ -4,6 +4,27 @@ import React, { useState } from "react";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 
+const formTranslations = {
+  EN: {
+    successTitle: "Message Sent!",
+    successDesc: "Thank you for reaching out. We have received your inquiry and will respond within 24–48 hours to discuss your photography details.",
+    nameLabel: "NAME",
+    emailLabel: "E-MAIL",
+    dateLabel: "TENTATIVE DATE",
+    messageLabel: "TELL US MORE",
+    sendBtn: "SEND",
+  },
+  FR: {
+    successTitle: "Message Envoyé !",
+    successDesc: "Merci pour votre message. Nous avons bien reçu votre demande et nous vous répondrons dans les 24 à 48 heures pour discuter des détails de votre séance.",
+    nameLabel: "NOM",
+    emailLabel: "E-MAIL",
+    dateLabel: "DATE PRÉVUE",
+    messageLabel: "DITES-EN PLUS",
+    sendBtn: "ENVOYER",
+  }
+};
+
 export default function ContactForm() {
   const [formData, setFormData] = useState({
     name: "",
@@ -13,6 +34,21 @@ export default function ContactForm() {
   });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [lang, setLang] = useState("EN");
+
+  React.useEffect(() => {
+    const stored = localStorage.getItem("lang") || "EN";
+    setLang(stored);
+
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("lang") || "EN");
+    };
+
+    window.addEventListener("languagechange", handleLangChange);
+    return () => window.removeEventListener("languagechange", handleLangChange);
+  }, []);
+
+  const t = formTranslations[lang as "EN" | "FR"] || formTranslations.EN;
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -40,7 +76,7 @@ export default function ContactForm() {
       setFormData({ name: "", email: "", tentative_date: "", message: "" });
     } catch (err: any) {
       setStatus("error");
-      setErrorMessage(err.message || "An unexpected error occurred. Please try again.");
+      setErrorMessage(err.message || (lang === "FR" ? "Une erreur est survenue." : "An unexpected error occurred. Please try again."));
     }
   };
 
@@ -49,9 +85,9 @@ export default function ContactForm() {
       {status === "success" ? (
         <div className="text-center py-12 space-y-4 animate-fade-in">
           <CheckCircle className="w-12 h-12 text-[#A3A69C] mx-auto" />
-          <h4 className="text-lg font-light font-serif text-brand-dark uppercase">Message Sent!</h4>
+          <h4 className="text-lg font-light font-serif text-brand-dark uppercase">{t.successTitle}</h4>
           <p className="text-xs text-brand-muted font-light max-w-sm mx-auto leading-relaxed">
-            Thank you for reaching out. We have received your inquiry and will respond within 24–48 hours to discuss your photography details.
+            {t.successDesc}
           </p>
         </div>
       ) : (
@@ -63,7 +99,7 @@ export default function ContactForm() {
               htmlFor="form-name"
               className="text-[10px] uppercase tracking-[0.25em] text-stone-400 font-medium"
             >
-              NAME
+              {t.nameLabel}
             </label>
             <input
               type="text"
@@ -86,7 +122,7 @@ export default function ContactForm() {
                 htmlFor="form-email"
                 className="text-[10px] uppercase tracking-[0.25em] text-stone-400 font-medium"
               >
-                E-MAIL
+                {t.emailLabel}
               </label>
               <input
                 type="email"
@@ -106,7 +142,7 @@ export default function ContactForm() {
                 htmlFor="form-date"
                 className="text-[10px] uppercase tracking-[0.25em] text-stone-400 font-medium"
               >
-                TENTATIVE DATE
+                {t.dateLabel}
               </label>
               <input
                 type="text"
@@ -128,7 +164,7 @@ export default function ContactForm() {
               htmlFor="form-message"
               className="text-[10px] uppercase tracking-[0.25em] text-stone-400 font-medium"
             >
-              TELL US MORE
+              {t.messageLabel}
             </label>
             <textarea
               id="form-message"
@@ -156,7 +192,7 @@ export default function ContactForm() {
               {status === "loading" ? (
                 <Loader2 className="w-4 h-4 animate-spin text-white" />
               ) : (
-                "SEND"
+                t.sendBtn
               )}
             </button>
           </div>

@@ -56,9 +56,88 @@ const CATEGORY_META: Record<string, { label: string; prefix: string; fallbackImg
   }
 };
 
+const CATEGORY_META_TRANS: Record<string, Record<string, { label: string; defaultDesc: string }>> = {
+  EN: {
+    newborn: {
+      label: "NEWBORN",
+      defaultDesc: "Cozy newborn portraiture capturing the pure details of your baby's first weeks in Vevey."
+    },
+    children: {
+      label: "CHILDREN",
+      defaultDesc: "Authentic, playful outdoor and studio milestone sessions for growing children."
+    },
+    family: {
+      label: "FAMILY",
+      defaultDesc: "Natural light family gatherings capturing real connections in Swiss landscapes."
+    },
+    maternity: {
+      label: "MATERNITY",
+      defaultDesc: "Elegant and serene pregnancy portraits by Lake Geneva or conceptual studio setups."
+    },
+    "fine-art": {
+      label: "FINE ART",
+      defaultDesc: "Highly styled conceptual portraits resembling classical oil paintings."
+    },
+    nature: {
+      label: "NATURE",
+      defaultDesc: "Exclusive scenery print licenses from Vaud Alps and Swiss lakes."
+    }
+  },
+  FR: {
+    newborn: {
+      label: "NOUVEAU-NÉ",
+      defaultDesc: "Séances photo nouveau-né chaleureuses capturant les premiers jours de votre bébé à Vevey."
+    },
+    children: {
+      label: "ENFANTS",
+      defaultDesc: "Séances d'étape ludiques et authentiques en plein air ou en studio pour enfants."
+    },
+    family: {
+      label: "FAMILLE",
+      defaultDesc: "Réunions de famille en lumière naturelle immortalisant de vraies connexions en Suisse."
+    },
+    maternity: {
+      label: "MATERNITÉ",
+      defaultDesc: "Portraits de grossesse élégants et sereins au bord du lac Léman ou en studio."
+    },
+    "fine-art": {
+      label: "FINE ART",
+      defaultDesc: "Portraits conceptuels hautement stylisés ressemblant à des peintures à l'huile classiques."
+    },
+    nature: {
+      label: "NATURE",
+      defaultDesc: "Licences d'impression de paysages exclusifs des Alpes vaudoises et des lacs suisses."
+    }
+  }
+};
+
+const sectionTranslations = {
+  EN: {
+    title: "EXPLORE THE PORTFOLIO",
+    desc: "Discover newborn, maternity, children, family and fine art photography created in Vevey and across Vaud. Each session is thoughtfully styled to create timeless, elegant portraits for your family."
+  },
+  FR: {
+    title: "DÉCOUVREZ LE PORTFOLIO",
+    desc: "Découvrez des photographies de nouveau-nés, de maternité, d'enfants, de famille et d'art créées à Vevey et dans tout le canton de Vaud. Chaque séance est pensée avec soin pour créer des portraits intemporels."
+  }
+};
+
 export default function ExplorePortfolioSection() {
   const [activeCategory, setActiveCategory] = useState("newborn");
   const [categoryData, setCategoryData] = useState<Record<string, Gallery>>({});
+  const [lang, setLang] = useState("EN");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("lang") || "EN";
+    setLang(stored);
+
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("lang") || "EN");
+    };
+
+    window.addEventListener("languagechange", handleLangChange);
+    return () => window.removeEventListener("languagechange", handleLangChange);
+  }, []);
 
   useEffect(() => {
     async function loadGalleries() {
@@ -82,9 +161,11 @@ export default function ExplorePortfolioSection() {
   }, []);
 
   const currentMeta = CATEGORY_META[activeCategory];
+  const transMeta = CATEGORY_META_TRANS[lang as "EN" | "FR"]?.[activeCategory] || CATEGORY_META_TRANS.EN[activeCategory];
   const currentDbGallery = categoryData[activeCategory];
   const featuredImage = currentDbGallery?.cover_image?.url || currentMeta.fallbackImg;
   const linkHref = currentDbGallery ? `/our-gallery/${currentDbGallery.slug}` : `/our-gallery/${activeCategory}`;
+  const sectionText = sectionTranslations[lang as "EN" | "FR"] || sectionTranslations.EN;
 
   return (
     <section id="explore-portfolio" className="py-24 bg-white border-b border-brand-border/60">
@@ -108,10 +189,10 @@ export default function ExplorePortfolioSection() {
         {/* Header content (reduced title size by 2 points and weight to 200/extralight) */}
         <div className="text-center mb-2 space-y-3">
           <h3 className="text-3xl sm:text-4xl lg:text-[46px] tracking-[0.25em] font-serif text-brand-dark uppercase" style={{ fontWeight: 200 }}>
-            EXPLORE THE PORTFOLIO
+            {sectionText.title}
           </h3>
           <p className="text-sm sm:text-base text-stone-500 max-w-3xl mx-auto font-sans font-light leading-relaxed">
-            Discover newborn, maternity, children, family and fine art photography created in Vevey and across Vaud. Each session is thoughtfully styled to create timeless, elegant portraits for your family.
+            {sectionText.desc}
           </p>
         </div>
 
@@ -122,6 +203,7 @@ export default function ExplorePortfolioSection() {
           <div className="lg:col-span-3 flex flex-col justify-center space-y-6 lg:pl-0 py-2">
             {Object.keys(CATEGORY_META).map((key) => {
               const meta = CATEGORY_META[key];
+              const tMeta = CATEGORY_META_TRANS[lang as "EN" | "FR"]?.[key] || CATEGORY_META_TRANS.EN[key];
               const isActive = activeCategory === key;
               // Determine custom link for this specific category item
               const itemDbGallery = categoryData[key];
@@ -146,7 +228,7 @@ export default function ExplorePortfolioSection() {
                           isActive ? "text-brand-dark font-normal" : "text-stone-400 hover:text-stone-700"
                         }`}
                       >
-                        {meta.label}
+                        {tMeta.label}
                         <span
                           className={`absolute bottom-0 left-0 h-[1.5px] bg-brand-dark transition-all duration-300 ease-out origin-left ${
                             isActive ? "w-full scale-x-100" : "w-0 scale-x-0 group-hover:w-full group-hover:scale-x-100"

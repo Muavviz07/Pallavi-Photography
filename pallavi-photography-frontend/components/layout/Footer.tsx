@@ -141,41 +141,21 @@ export default function Footer() {
 
       </div>
 
-      {/* Bottom Bar: Copyright and Language Selector */}
+      {/* Bottom Bar: Copyright */}
       <div className="bg-[#FAF8F5] border-t border-brand-border/60 py-4 px-6 md:px-10">
-        <div className="max-w-[1450px] mx-auto flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+        <div className="max-w-[1450px] mx-auto flex justify-center items-center">
           
-          {/* Left Side: Language Box Selector */}
-          <div className="flex items-center space-x-1.5 bg-white border border-stone-200 shadow-xs px-3 py-1 text-[11px] font-medium text-stone-700 rounded-sm select-none">
-            <span className="text-base leading-none">🇬🇧</span>
-            <span className="tracking-wide">EN</span>
-            <span className="text-[8px] text-stone-400">▲</span>
-          </div>
-
           {/* Center: Copyright Text */}
           <div className="text-center">
             <p className="text-[12px] font-serif italic text-stone-500">
               © Copyright 2026 – Powered by DELQ Solutions
             </p>
           </div>
-
-          {/* Right Side Spacer/Placeholder to balance layout flex box */}
-          <div className="hidden md:block w-16"></div>
           
         </div>
       </div>
 
-      {/* Persistent WhatsApp Floating Button */}
-      <a
-        href="https://wa.me/41789077644"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 w-11 h-11 bg-green-500 rounded-full flex items-center justify-center text-white hover:scale-105 hover:bg-green-600 transition-all duration-300 shadow-lg z-40"
-        title="Chat on WhatsApp"
-      >
-        <MessageSquare className="w-5.5 h-5.5 fill-white text-green-500" />
-      </a>
-      
+
     </footer>
   );
 }

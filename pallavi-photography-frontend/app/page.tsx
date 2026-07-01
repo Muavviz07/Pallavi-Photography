@@ -11,7 +11,36 @@ import BlogSection from "@/components/BlogSection";
 import ContactForm from "@/components/forms/ContactForm";
 import Footer from "@/components/layout/Footer";
 
+const pageTranslations = {
+  EN: {
+    getInTouch: "GET IN TOUCH",
+    followLatest: "Follow our latest stories.",
+    followInsta: "FOLLOW ME ON INSTAGRAM",
+  },
+  FR: {
+    getInTouch: "CONTACTEZ-NOUS",
+    followLatest: "Suivez nos dernières histoires.",
+    followInsta: "SUIVEZ-MOI SUR INSTAGRAM",
+  }
+};
+
 export default function Home() {
+  const [lang, setLang] = useState("EN");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("lang") || "EN";
+    setLang(stored);
+
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("lang") || "EN");
+    };
+
+    window.addEventListener("languagechange", handleLangChange);
+    return () => window.removeEventListener("languagechange", handleLangChange);
+  }, []);
+
+  const t = pageTranslations[lang as "EN" | "FR"] || pageTranslations.EN;
+
   return (
     <>
       {/* Dynamic Header Component */}
@@ -43,10 +72,10 @@ export default function Home() {
           {/* Header Title */}
           <div className="text-center space-y-2">
             <h3 className="text-2xl sm:text-3xl md:text-4xl tracking-[0.25em] font-serif text-brand-dark uppercase" style={{ fontWeight: 300 }}>
-              GET IN TOUCH
+              {t.getInTouch}
             </h3>
             <p className="text-xs font-serif italic text-brand-muted leading-relaxed">
-              Follow our latest stories.
+              {t.followLatest}
             </p>
           </div>
 
@@ -61,7 +90,7 @@ export default function Home() {
       <section className="py-24 bg-white text-center border-b border-brand-border">
         <div className="space-y-4">
           <h3 className="text-2xl sm:text-3xl md:text-4xl tracking-[0.3em] font-serif text-brand-dark uppercase" style={{ fontWeight: 300 }}>
-            FOLLOW ME ON INSTAGRAM
+            {t.followInsta}
           </h3>
           <a 
             href="https://instagram.com/Pallavivishk" 

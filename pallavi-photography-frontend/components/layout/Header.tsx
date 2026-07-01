@@ -67,6 +67,49 @@ const GALLERY_ITEMS = [
   { name: "Nature", href: "/our-gallery/nature" }
 ];
 
+const navTranslations: Record<string, Record<string, string>> = {
+  EN: {
+    home: "HOME",
+    about: "ABOUT",
+    aboutMe: "About Me",
+    awards: "Recognitions & Awards",
+    pricing: "PRICING",
+    gallery: "OUR GALLERY",
+    clientGallery: "CLIENT GALLERY",
+    blogs: "BLOGS",
+    contact: "CONTACT",
+    info: "INFO",
+    newborn: "NewBorn",
+    children: "Children",
+    family: "Family",
+    maternity: "Maternity",
+    fineArt: "Fine Art",
+    nature: "Nature",
+    naturePhotostock: "Nature Photostock",
+    faqs: "FAQs"
+  },
+  FR: {
+    home: "ACCUEIL",
+    about: "À PROPOS",
+    aboutMe: "À Propos de Moi",
+    awards: "Distinctions & Prix",
+    pricing: "TARIFS",
+    gallery: "GALERIE",
+    clientGallery: "GALERIE CLIENT",
+    blogs: "BLOGS",
+    contact: "CONTACT",
+    info: "INFO",
+    newborn: "Nouveau-Né",
+    children: "Enfants",
+    family: "Famille",
+    maternity: "Maternité",
+    fineArt: "Fine Art",
+    nature: "Nature",
+    naturePhotostock: "Photostock Nature",
+    faqs: "FAQ"
+  }
+};
+
 export default function Header() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -78,6 +121,13 @@ export default function Header() {
   useEffect(() => {
     const storedLang = localStorage.getItem("lang") || "EN";
     setLanguage(storedLang);
+
+    const handleLangChange = () => {
+      setLanguage(localStorage.getItem("lang") || "EN");
+    };
+
+    window.addEventListener("languagechange", handleLangChange);
+    return () => window.removeEventListener("languagechange", handleLangChange);
   }, []);
 
   const toggleLanguage = () => {
@@ -86,6 +136,32 @@ export default function Header() {
     localStorage.setItem("lang", nextLang);
     window.dispatchEvent(new Event("languagechange"));
   };
+
+  const t = navTranslations[language] || navTranslations.EN;
+
+  const ABOUT_ITEMS = [
+    { name: t.aboutMe, href: "/about" },
+    { name: t.awards, href: "/about?section=awards" }
+  ];
+
+  const PRICING_ITEMS = [
+    { name: t.newborn, href: "/pricing/newborn" },
+    { name: t.children, href: "/pricing/children" },
+    { name: t.family, href: "/pricing/family" },
+    { name: t.maternity, href: "/pricing/maternity" },
+    { name: t.fineArt, href: "/pricing/fine-art" },
+    { name: t.naturePhotostock, href: "/pricing/nature" },
+    { name: t.faqs, href: "/pricing/faqs" }
+  ];
+
+  const GALLERY_ITEMS = [
+    { name: t.newborn, href: "/our-gallery/newborn" },
+    { name: t.children, href: "/our-gallery/children" },
+    { name: t.family, href: "/our-gallery/family" },
+    { name: t.maternity, href: "/our-gallery/maternity" },
+    { name: t.fineArt, href: "/our-gallery/fine-art" },
+    { name: t.nature, href: "/our-gallery/nature" }
+  ];
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -134,7 +210,7 @@ export default function Header() {
                   pathname === "/" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
                 }`}
               >
-                HOME
+                {t.home}
               </Link>
 
               {/* ABOUT Dropdown */}
@@ -144,7 +220,7 @@ export default function Header() {
                 onMouseLeave={() => setActiveDropdown(null)}
               >
                 <button className="flex items-center space-x-1 hover:text-brand-dark cursor-pointer transition-colors duration-200 uppercase text-brand-muted pb-2 border-b-2 border-transparent">
-                  <span>ABOUT</span>
+                  <span>{t.about}</span>
                   <ChevronDown className="w-3 h-3 opacity-60" />
                 </button>
                 {activeDropdown === "about" && (
@@ -171,7 +247,7 @@ export default function Header() {
                 onMouseLeave={() => setActiveDropdown(null)}
               >
                 <button className="flex items-center space-x-1 hover:text-brand-dark cursor-pointer transition-colors duration-200 uppercase text-brand-muted pb-2 border-b-2 border-transparent">
-                  <span>PRICING</span>
+                  <span>{t.pricing}</span>
                   <ChevronDown className="w-3 h-3 opacity-60" />
                 </button>
                 {activeDropdown === "pricing" && (
@@ -198,7 +274,7 @@ export default function Header() {
                 onMouseLeave={() => setActiveDropdown(null)}
               >
                 <button className="flex items-center space-x-1 hover:text-brand-dark cursor-pointer transition-colors duration-200 uppercase text-brand-muted pb-2 border-b-2 border-transparent">
-                  <span>OUR GALLERY</span>
+                  <span>{t.gallery}</span>
                   <ChevronDown className="w-3 h-3 opacity-60" />
                 </button>
                 {activeDropdown === "gallery" && (
@@ -224,7 +300,7 @@ export default function Header() {
                   pathname === "/client-portal" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
                 }`}
               >
-                CLIENT GALLERY
+                {t.clientGallery}
               </Link>
 
               <Link
@@ -233,14 +309,14 @@ export default function Header() {
                   pathname === "/our-blogs" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
                 }`}
               >
-                BLOGS
+                {t.blogs}
               </Link>
 
               <Link
                 href="/#contact"
                 className="hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 border-transparent text-brand-muted cursor-pointer"
               >
-                CONTACT
+                {t.contact}
               </Link>
             </nav>
           </div>
@@ -251,7 +327,7 @@ export default function Header() {
               onClick={() => setIsSidebarOpen(true)}
               className="hidden lg:flex items-center space-x-3 text-brand-muted hover:text-brand-dark transition-colors duration-250 cursor-pointer pb-2 border-b-2 border-transparent text-[11px] uppercase tracking-[0.25em]"
             >
-              <span className="font-semibold">INFO</span>
+              <span className="font-semibold">{t.info}</span>
               <div className="flex flex-col space-y-[4.5px]">
                 <div className="w-7 h-[1.5px] bg-current"></div>
                 <div className="w-7 h-[1.5px] bg-current"></div>
@@ -289,11 +365,11 @@ export default function Header() {
             
             <div className="flex flex-col space-y-4 text-center font-serif text-xl tracking-wider">
               <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
-                HOME
+                {t.home}
               </Link>
               
               <div className="space-y-1">
-                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">ABOUT</span>
+                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">{t.about}</span>
                 <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
                   {ABOUT_ITEMS.map((item) => (
                     <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
@@ -304,7 +380,7 @@ export default function Header() {
               </div>
 
               <div className="space-y-1">
-                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">PRICING</span>
+                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">{t.pricing}</span>
                 <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
                   {PRICING_ITEMS.map((item) => (
                     <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
@@ -315,7 +391,7 @@ export default function Header() {
               </div>
 
               <div className="space-y-1">
-                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">OUR PORTFOLIO</span>
+                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">{t.gallery}</span>
                 <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
                   {GALLERY_ITEMS.map((item) => (
                     <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
@@ -326,15 +402,15 @@ export default function Header() {
               </div>
 
               <Link href="/client-portal" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
-                CLIENT GALLERY
+                {t.clientGallery}
               </Link>
 
               <Link href="/our-blogs" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
-                BLOGS
+                {t.blogs}
               </Link>
 
               <Link href="/#contact" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
-                CONTACT
+                {t.contact}
               </Link>
             </div>
           </div>
@@ -359,7 +435,7 @@ export default function Header() {
               onClick={() => setIsSidebarOpen(false)}
               className="flex items-center space-x-2 text-[10px] uppercase tracking-[0.25em] text-white/70 hover:text-white transition-colors cursor-pointer"
             >
-              <span>CLOSE</span>
+              <span>{t.close || "CLOSE"}</span>
               <X className="w-5 h-5 stroke-[1.5]" />
             </button>
           </div>
@@ -373,7 +449,7 @@ export default function Header() {
               style={{ filter: "invert(1) hue-rotate(180deg)" }}
             />
             <p className="text-xs md:text-sm font-light leading-relaxed text-white/80 max-w-sm mx-auto font-sans">
-              In the gentle rustle of leaves and the golden glow of light, nature whispers it’s timeless story. Our photography captures these quiet, breathtaking moments—celebrating the wild beauty of the outdoors and the intimate elegance of beautiful indoor portraits. Whether bathed in sunlight or softly lit inside, each image tells a story worth remembering.
+              {t.sidebarBio || "In the gentle rustle of leaves and the golden glow of light, nature whispers it’s timeless story..."}
             </p>
           </div>
 

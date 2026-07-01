@@ -16,6 +16,7 @@ const inter = Inter({
 
 import { SessionProvider } from "next-auth/react";
 import WhatsAppButton from "@/components/common/WhatsAppButton";
+import LanguageSwitcher from "@/components/common/LanguageSwitcher";
 
 export const metadata: Metadata = {
   title: "Pallavi Photography | Portrait & Family Photography Switzerland",
@@ -36,6 +37,7 @@ export default function RootLayout({
         <SessionProvider>
           {children}
           <WhatsAppButton />
+          <LanguageSwitcher />
         </SessionProvider>
       </body>
     </html>

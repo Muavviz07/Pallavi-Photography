@@ -1,9 +1,23 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { translations } from "@/lib/translations";
 
 export default function ReserveSessionSection() {
   const [offsetY, setOffsetY] = useState(0);
+  const [lang, setLang] = useState("EN");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("lang") || "EN";
+    setLang(stored);
+
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("lang") || "EN");
+    };
+
+    window.addEventListener("languagechange", handleLangChange);
+    return () => window.removeEventListener("languagechange", handleLangChange);
+  }, []);
 
   useEffect(() => {
     const section = document.getElementById("reserve-session-section");
@@ -31,6 +45,8 @@ export default function ReserveSessionSection() {
     }
   };
 
+  const t = translations[lang as "EN" | "FR"] || translations.EN;
+
   return (
     <section
       id="reserve-session-section"
@@ -56,12 +72,12 @@ export default function ReserveSessionSection() {
 
         {/* Serif Spaced Title */}
         <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-[50px] font-light tracking-[0.25em] font-serif text-white uppercase drop-shadow-sm">
-          RESERVE YOUR SESSION
+          {t.reserveSectionTitle}
         </h2>
 
         {/* Serif Italic description paragraph matching reference image */}
         <p className="text-sm sm:text-base font-serif italic text-stone-200 tracking-wide max-w-2xl mx-auto leading-relaxed">
-          Whether you're looking to book a session, ask a question, or just say hello — I'd love to hear from you. Every story is unique, and I'm here to help you capture yours in the most beautiful way.
+          {t.reserveSectionDesc}
         </p>
 
         {/* Outline transparent white button matching reference screenshot */}
@@ -71,7 +87,7 @@ export default function ReserveSessionSection() {
             onClick={handleScrollToContact}
             className="inline-flex items-center justify-center border border-white/60 hover:border-white text-white text-[11px] font-sans uppercase tracking-[0.25em] px-8 py-3.5 transition-all duration-300 hover:bg-white/5 cursor-pointer rounded-none select-none"
           >
-            GET IN TOUCH
+            {t.reserveSectionBtn}
           </a>
         </div>
 
