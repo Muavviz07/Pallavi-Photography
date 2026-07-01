@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, X, ArrowLeft } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
 
 // Curated high-res fallback imagery for visual showcase
 const FALLBACK_IMAGES: Record<string, Array<{ id: string; url: string; title: string; altText: string }>> = {
@@ -165,8 +166,18 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
   return (
     <>
       <Header />
+
+      {/* Standardized Breadcrumbs Banner */}
+      <BreadcrumbsBanner
+        title={`${categoryKey} GALLERY`}
+        paths={[
+          { label: "Home", href: "/" },
+          { label: "Our Gallery", href: "/our-gallery" },
+          { label: categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1) }
+        ]}
+      />
       
-      <main className="flex-1 pt-32 pb-24 bg-[#FCFAF7]">
+      <main className="flex-1 pt-14 pb-24 bg-[#FCFAF7]">
         {/* Gallery Intro Header */}
         <div className="max-w-4xl mx-auto px-6 text-center space-y-6 mb-16">
           <Link

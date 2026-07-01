@@ -50,7 +50,7 @@ export default function AboutSection() {
         {/* Muted Sage-Grey flat CTA Button */}
         <div className="flex justify-center pt-4">
           <Link
-            href="/about"
+            href="/about-me"
             className="w-48 h-11 inline-flex items-center justify-center text-[11px] font-sans uppercase tracking-[0.25em] text-white bg-[#A3A69C] hover:bg-[#8F9288] transition-colors duration-300 cursor-pointer select-none rounded-none"
           >
             {t.aboutBtn}

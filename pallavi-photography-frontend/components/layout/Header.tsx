@@ -44,8 +44,8 @@ const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 const ABOUT_ITEMS = [
-  { name: "About Me", href: "/about" },
-  { name: "Recognitions & Awards", href: "/about?section=awards" }
+  { name: "About Me", href: "/about-me" },
+  { name: "Recognitions & Awards", href: "/about-me?section=awards" }
 ];
 
 const PRICING_ITEMS = [
@@ -140,8 +140,8 @@ export default function Header() {
   const t = navTranslations[language] || navTranslations.EN;
 
   const ABOUT_ITEMS = [
-    { name: t.aboutMe, href: "/about" },
-    { name: t.awards, href: "/about?section=awards" }
+    { name: t.aboutMe, href: "/about-me" },
+    { name: t.awards, href: "/about-me?section=awards" }
   ];
 
   const PRICING_ITEMS = [
@@ -219,10 +219,13 @@ export default function Header() {
                 onMouseEnter={() => setActiveDropdown("about")}
                 onMouseLeave={() => setActiveDropdown(null)}
               >
-                <button className="flex items-center space-x-1 hover:text-brand-dark cursor-pointer transition-colors duration-200 uppercase text-brand-muted pb-2 border-b-2 border-transparent">
+                <Link
+                  href="/about-me"
+                  className="flex items-center space-x-1 hover:text-brand-dark cursor-pointer transition-colors duration-200 uppercase text-brand-muted pb-2 border-b-2 border-transparent"
+                >
                   <span>{t.about}</span>
                   <ChevronDown className="w-3 h-3 opacity-60" />
-                </button>
+                </Link>
                 {activeDropdown === "about" && (
                   <div className="absolute left-0 top-full pt-3 min-w-[240px] z-50">
                     <div className="w-full bg-white border border-brand-border shadow-md py-5 px-6 text-left animate-fade-in rounded-xs space-y-1.5">
@@ -273,10 +276,13 @@ export default function Header() {
                 onMouseEnter={() => setActiveDropdown("gallery")}
                 onMouseLeave={() => setActiveDropdown(null)}
               >
-                <button className="flex items-center space-x-1 hover:text-brand-dark cursor-pointer transition-colors duration-200 uppercase text-brand-muted pb-2 border-b-2 border-transparent">
+                <Link
+                  href="/our-gallery"
+                  className="flex items-center space-x-1 hover:text-brand-dark cursor-pointer transition-colors duration-200 uppercase text-brand-muted pb-2 border-b-2 border-transparent"
+                >
                   <span>{t.gallery}</span>
                   <ChevronDown className="w-3 h-3 opacity-60" />
-                </button>
+                </Link>
                 {activeDropdown === "gallery" && (
                   <div className="absolute left-0 top-full pt-3 min-w-[240px] z-50">
                     <div className="w-full bg-white border border-brand-border shadow-md py-5 px-6 text-left animate-fade-in rounded-xs space-y-1.5">
