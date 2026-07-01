@@ -41,29 +41,60 @@ const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const footerTranslations = {
+  EN: {
+    followUs: "FOLLOW US",
+    newsletter: "NEWSLETTER",
+    followLatest: "Follow our latest stories.",
+    privacy: "Privacy Policy"
+  },
+  FR: {
+    followUs: "SUIVEZ-NOUS",
+    newsletter: "NEWSLETTER",
+    followLatest: "Suivez nos dernières histoires.",
+    privacy: "Politique de Confidentialité"
+  }
+};
+
 export default function Footer() {
+  const [lang, setLang] = React.useState("EN");
+
+  React.useEffect(() => {
+    const stored = localStorage.getItem("lang") || "EN";
+    setLang(stored);
+
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("lang") || "EN");
+    };
+
+    window.addEventListener("languagechange", handleLangChange);
+    return () => window.removeEventListener("languagechange", handleLangChange);
+  }, []);
+
+  const t = footerTranslations[lang as "EN" | "FR"] || footerTranslations.EN;
+
   return (
-    <footer className="bg-white text-brand-dark pt-16 border-t border-brand-border/60">
+    <footer className="bg-white text-brand-dark pt-20 border-t border-brand-border/60">
       
       {/* 3-Column Content Grid with vertical borders */}
       <div className="max-w-[1450px] mx-auto px-6 md:px-10 grid grid-cols-1 lg:grid-cols-3 items-stretch pb-16">
         
         {/* Column 1: Follow Us */}
-        <div className="flex flex-col items-center text-center justify-center space-y-5 py-6 lg:py-2">
-          <h4 className="text-[11px] uppercase tracking-[0.25em] text-brand-dark font-medium">
-            FOLLOW US
+        <div className="flex flex-col items-center text-center justify-center space-y-6 py-10 lg:py-4">
+          <h4 className="text-[17px] uppercase tracking-[0.25em] text-brand-dark font-light font-serif">
+            {t.followUs}
           </h4>
           
           {/* Social Icons with connector line */}
-          <div className="flex items-center space-x-4 text-stone-500">
+          <div className="flex items-center space-x-6 text-stone-500">
             <a
               href="#"
               className="hover:text-brand-dark transition-colors duration-200"
               aria-label="Facebook"
             >
-              <Facebook className="w-4 h-4" />
+              <Facebook className="w-[18px] h-[18px]" />
             </a>
-            <span className="w-8 h-[1px] bg-stone-300"></span>
+            <span className="w-12 h-[1px] bg-stone-300"></span>
             <a
               href="https://instagram.com/Pallavivishk"
               target="_blank"
@@ -71,20 +102,20 @@ export default function Footer() {
               className="hover:text-brand-dark transition-colors duration-200"
               aria-label="Instagram"
             >
-              <Instagram className="w-4 h-4" />
+              <Instagram className="w-[18px] h-[18px]" />
             </a>
           </div>
 
           {/* Contact Links */}
-          <div className="flex flex-col items-center space-y-2 pt-1">
+          <div className="flex flex-col items-center space-y-2.5 pt-1">
             <a
               href="mailto:pallavi.vishk@gmail.com"
-              className="text-sm font-serif italic text-brand-dark hover:text-brand-sage transition-colors"
+              className="text-[15px] font-serif italic text-brand-dark hover:text-brand-sage transition-colors"
             >
               pallavi.vishk@gmail.com
             </a>
             
-            <div className="flex items-center space-x-2 text-sm font-serif italic text-brand-dark">
+            <div className="flex items-center space-x-2 text-[15px] font-serif italic text-brand-dark">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
@@ -108,33 +139,33 @@ export default function Footer() {
         </div>
 
         {/* Column 2: Centered Logo Column with vertical borders */}
-        <div className="flex flex-col items-center justify-center text-center space-y-4 py-6 lg:py-2 border-y lg:border-y-0 lg:border-x border-brand-border px-4 md:px-8">
+        <div className="flex flex-col items-center justify-center text-center space-y-4 py-10 lg:py-4 border-y lg:border-y-0 lg:border-x border-brand-border px-4 md:px-8">
           <Link href="/" className="group cursor-pointer">
             <img
               src="/Pallavi-Logo-V1.webp"
               alt="Pallavi Photography Logo"
-              className="h-28 w-auto object-contain"
+              className="h-36 w-auto object-contain"
             />
           </Link>
         </div>
 
         {/* Column 3: Newsletter Column */}
-        <div className="flex flex-col items-center text-center justify-center space-y-4 py-6 lg:py-2">
-          <h4 className="text-[11px] uppercase tracking-[0.25em] text-brand-dark font-medium">
-            NEWSLETTER
+        <div className="flex flex-col items-center text-center justify-center space-y-5 py-10 lg:py-4">
+          <h4 className="text-[17px] uppercase tracking-[0.25em] text-brand-dark font-light font-serif">
+            {t.newsletter}
           </h4>
-          <p className="text-xs font-serif italic text-brand-muted">
-            Follow our latest stories.
+          <p className="text-sm font-serif italic text-stone-500">
+            {t.followLatest}
           </p>
-          <div className="w-full max-w-[280px] mx-auto pt-1">
+          <div className="w-full max-w-[300px] mx-auto pt-1">
             <NewsletterSignup />
           </div>
-          <div className="pt-1">
+          <div className="pt-2">
             <Link
               href="/privacy-policy"
-              className="text-[11px] font-serif italic text-stone-400 hover:text-brand-dark transition-colors block"
+              className="text-[13px] font-serif italic text-stone-400 hover:text-brand-dark transition-colors block"
             >
-              Privacy Policy
+              {t.privacy}
             </Link>
           </div>
         </div>
