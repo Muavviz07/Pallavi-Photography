@@ -1,3 +1,4 @@
+from fastapi import APIRouter
 from app.api.routes import auth, health, galleries, client_galleries, admin, blogs, bookings, enquiries, newsletter, testimonials, hero_sliders, about, pricing, faqs, contact
 
 api_router = APIRouter()
