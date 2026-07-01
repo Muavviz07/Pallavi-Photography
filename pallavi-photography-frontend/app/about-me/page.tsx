@@ -1,167 +1,113 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+import React, { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { ArrowRight, Sparkles, Award } from "lucide-react";
-import { api } from "@/lib/api";
+import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
 
-interface AboutData {
-  title: string;
-  quote: string;
-  bio_text: string;
-  awards_text: string;
-  image_url?: string;
-}
+const aboutTranslations = {
+  EN: {
+    bannerTitle: "ABOUT ME",
+    breadcrumbHome: "Home",
+    breadcrumbAbout: "About Me",
+    quoteText: "There’s a quiet story and a unique kind of beauty in everything around us.",
+    heading: "I'M PALLAVI,",
+    p1: "your Newborn babies, children, family, maternity and nature photographer based in Vevey, Switzerland. I am here to capture photographs of your family, children, babies and grandparents which evoke emotions, tell stories and build connections. It has been an incredible journey ever since I picked my camera. Learning the art and knowing what I can create with my camera is phenomenal. I started my journey with nature photography and now, I absolutely love to capture family portrait photographs. Over the years, I have attended portrait workshops, online training, to better fine tune my skills which are naturally embedded in me as a nature photographer.",
+    p2: "I am equally passionate for portrait and nature photography. Where, portrait photography honours me to capture beautiful and timeless images for you, nature photography gives me a chance to capture uniqueness and beautiful art of nature. Photography has given me the present of capturing the stories of today. I believe a photograph possesses the power to narrate the stories in generations to come, all without sound or words. This is why I feel privileged to be a part of this art form, and I am grateful for every moment I get to spend behind the camera.",
+    p3: "So if you want to have a lovely portrait created for Newborn babies, children, family, maternity then , please contact me to book a photography session and let me capture the moment which matters most to you",
+    p4: "And if nature speaks to your heart like it does to mine, feel free to explore my NatureVibes gallery — a curated collection of fine art photographs available for purchase and licensing. Simply reach out to me for high-resolution quotes or custom orders.",
+    p5: "Thank you for being here. I look forward to capturing the moments that matter most to you."
+  },
+  FR: {
+    bannerTitle: "À PROPOS DE MOI",
+    breadcrumbHome: "Accueil",
+    breadcrumbAbout: "À Propos de Moi",
+    quoteText: "Il y a une histoire silencieuse et une beauté unique dans chaque chose qui nous entoure.",
+    heading: "JE SUIS PALLAVI,",
+    p1: "votre photographe de nouveau-nés, d'enfants, de famille, de maternité et de nature basée à Vevey, en Suisse. Je suis ici pour capturer des photographies de votre famille, de vos enfants, de vos bébés et de vos grands-parents qui évoquent des émotions, racontent des histoires et créent des liens. C'est un voyage incroyable depuis que j'ai pris mon appareil photo. Apprendre l'art et savoir ce que je peux créer avec mon appareil photo est phénoménal. J'ai commencé mon parcours avec la photographie de nature et maintenant, j'adore capturer des portraits de famille. Au fil des ans, j'ai participé à des ateliers de portrait et à des formations en ligne pour perfectionner mes compétences, qui sont naturellement ancrées en moi en tant que photographe de nature.",
+    p2: "Je suis également passionnée par la photographie de portrait et de nature. Là où la photographie de portrait m'honore de capturer des images magnifiques et intemporelles pour vous, la photographie de nature me donne la chance de capturer la singularité et l'art de la nature. La photographie m'a offert le cadeau de capturer les histoires d'aujourd'hui. Je crois qu'une photographie possède le pouvoir de raconter des histoires aux générations à venir, le tout sans bruit ni paroles. C'est pourquoi je me sens privilégiée de faire partie de cette forme d'art, et je suis reconnaissante pour chaque instant que je passe derrière l'appareil photo.",
+    p3: "Alors si vous souhaitez avoir un joli portrait créé pour votre nouveau-né, vos enfants, votre famille ou votre maternité, veuillez me contacter pour réserver une séance photo et laissez-moi capturer le moment qui compte le plus pour vous.",
+    p4: "Et si la nature parle à votre cœur comme elle le fait au mien, n'hésitez pas à explorer ma galerie NatureVibes — une collection soigneusement sélectionnée de photographies d'art disponibles à l'achat et sous licence. Contactez-moi simplement pour obtenir des devis haute résolution ou des commandes personnalisées.",
+    p5: "Merci d'être ici. J'ai hâte de capturer les moments qui comptent le plus pour vous."
+  }
+};
 
-function AboutPageContent() {
-  const searchParams = useSearchParams();
-  const section = searchParams.get("section");
-  const [data, setData] = useState<AboutData | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function AboutMePage() {
+  const [lang, setLang] = useState("EN");
 
   useEffect(() => {
-    async function fetchAbout() {
-      try {
-        const res = await api.get<AboutData>("/about");
-        setData(res);
-      } catch (err) {
-        console.error("Failed to fetch about data", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchAbout();
+    const stored = localStorage.getItem("lang") || "EN";
+    setLang(stored);
+
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("lang") || "EN");
+    };
+
+    window.addEventListener("languagechange", handleLangChange);
+    return () => window.removeEventListener("languagechange", handleLangChange);
   }, []);
 
-  useEffect(() => {
-    if (section === "awards") {
-      const el = document.getElementById("awards-section");
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth" });
-      }
-    }
-  }, [section, data]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="text-sm font-medium uppercase tracking-[0.2em] animate-pulse text-brand-sage">
-          Loading Studio Details...
-        </div>
-      </div>
-    );
-  }
-
-  const bioText = data?.bio_text || "I believe that photography is a gentle art...";
-  const quoteText = data?.quote || "Take in every little moment as they would not stay the same forever...";
-  const awardsText = data?.awards_text || "Recognitions & Awards details...";
+  const t = aboutTranslations[lang as "EN" | "FR"] || aboutTranslations.EN;
 
   return (
     <>
       <Header />
-      
-      <main className="min-h-screen bg-brand-bg pt-32 pb-24">
-        <div className="max-w-[1200px] mx-auto px-6 md:px-12 space-y-20">
+
+      {/* Standardized Breadcrumbs Banner */}
+      <BreadcrumbsBanner
+        title={t.bannerTitle}
+        paths={[
+          { label: "Home", href: "/" },
+          { label: "About Me" }
+        ]}
+      />
+
+      {/* Main Content Body */}
+      <main className="py-16 md:py-20 bg-white">
+        <div className="max-w-[1100px] mx-auto px-6 md:px-10 space-y-16">
           
-          {/* Main Biography Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left side text column */}
-            <div className="lg:col-span-7 space-y-8">
-              <span className="text-[10px] uppercase tracking-[0.3em] text-brand-sage font-semibold block">
-                Switzerland Portrait Studio
-              </span>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-light tracking-wide font-serif text-brand-dark leading-tight uppercase">
-                Newborn, Children, Maternity, Family and Fine Art Photographer in Vevey, Vaud – Switzerland.
-              </h2>
-              
-              <div className="w-12 h-[1px] bg-brand-sage/40"></div>
-
-              {/* Quote block */}
-              <div className="pl-6 border-l border-brand-sage/30">
-                <p className="text-base font-serif italic text-brand-muted leading-relaxed">
-                  "{quoteText}"
-                </p>
-              </div>
-
-              {/* Description paragraphs */}
-              <div className="text-sm text-brand-muted leading-relaxed space-y-6">
-                {bioText.split("\n\n").map((para, i) => (
-                  <p key={i}>{para}</p>
-                ))}
-              </div>
-
-              <div className="pt-4">
-                <Link
-                  href="/book-a-session"
-                  className="inline-flex items-center space-x-3 bg-brand-sage text-white text-xs uppercase tracking-widest px-8 py-3.5 hover:bg-brand-dark transition-all duration-300 rounded-sm"
-                >
-                  <span>Book a Session</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Right side Image display column */}
-            <div className="lg:col-span-5 relative">
-              <div className="aspect-[4/5] rounded-xs overflow-hidden shadow-2xl border border-brand-border bg-brand-cream relative">
+          {/* Top Row: Picture + Quote */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 items-center">
+            {/* Left side Image */}
+            <div className="col-span-1 md:col-span-6 flex justify-center md:justify-start">
+              <div className="w-full max-w-[420px] aspect-square overflow-hidden bg-brand-cream border border-brand-border/40 rounded-xs shadow-xs">
                 <img
-                  src={data?.image_url || "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=800"}
+                  src="/Pallavi.jpg"
                   alt="Pallavi Portrait Photographer"
                   className="w-full h-full object-cover"
                 />
               </div>
-              {/* Floating accent elements */}
-              <div className="absolute -bottom-6 -left-6 bg-[#D4A5A5] text-white p-6 rounded-xs shadow-lg hidden md:block border border-brand-border/10">
-                <Sparkles className="w-6 h-6 mb-2 animate-pulse" />
-                <span className="text-[10px] uppercase tracking-widest font-semibold block">Artistic Capture</span>
-                <span className="text-[9px] text-white/80 block font-light">Natural Lighting setups</span>
+            </div>
+
+            {/* Right side Elegant Quote */}
+            <div className="col-span-1 md:col-span-6 flex items-center justify-center py-4">
+              <div className="relative pl-12 pr-6 py-4">
+                {/* Large visual quote marks */}
+                <span className="absolute left-0 top-0 text-[100px] font-serif leading-none text-stone-200 select-none pointer-events-none font-light">
+                  “
+                </span>
+                <p className="font-serif italic text-base sm:text-lg md:text-xl text-stone-600 leading-relaxed font-light relative z-10">
+                  {t.quoteText}
+                </p>
+                <span className="absolute right-0 bottom-[-30px] text-[100px] font-serif leading-none text-stone-200 select-none pointer-events-none font-light">
+                  ”
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Awards & Recognitions Section */}
-          <div id="awards-section" className="pt-16 border-t border-brand-border space-y-10">
-            <div className="text-center space-y-3">
-              <span className="text-[10px] uppercase tracking-[0.3em] text-brand-sage font-semibold block">
-                Milestones & Press
-              </span>
-              <h3 className="text-2xl md:text-3xl font-light tracking-wide font-serif text-brand-dark uppercase">
-                Recognitions & Awards
-              </h3>
-            </div>
-
-            <div className="bg-brand-cream border border-brand-border p-8 md:p-12 rounded-xs max-w-4xl mx-auto flex flex-col md:flex-row items-center md:items-start gap-8">
-              <div className="bg-brand-sage/10 text-brand-sage p-4 rounded-full">
-                <Award className="w-10 h-10" />
-              </div>
-              <div className="space-y-6 text-left flex-1">
-                <div className="text-sm text-brand-muted leading-relaxed space-y-4">
-                  {awardsText.split("\n\n").map((para, i) => (
-                    <p key={i}>{para}</p>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4 border-t border-brand-border">
-                  <div className="text-center md:text-left">
-                    <span className="text-lg font-serif text-brand-dark font-medium block">2026</span>
-                    <span className="text-[10px] tracking-wider text-brand-muted uppercase">Vaud Arts Select</span>
-                  </div>
-                  <div className="text-center md:text-left">
-                    <span className="text-lg font-serif text-brand-dark font-medium block">Top 10</span>
-                    <span className="text-[10px] tracking-wider text-brand-muted uppercase">Swiss Newborn Photographers</span>
-                  </div>
-                  <div className="text-center md:text-left">
-                    <span className="text-lg font-serif text-brand-dark font-medium block">Gold</span>
-                    <span className="text-[10px] tracking-wider text-brand-muted uppercase">Fine Art Portrait Award</span>
-                  </div>
-                  <div className="text-center md:text-left">
-                    <span className="text-lg font-serif text-brand-dark font-medium block">Featured</span>
-                    <span className="text-[10px] tracking-wider text-brand-muted uppercase">Maternity Journeys Mag</span>
-                  </div>
-                </div>
-              </div>
+          {/* Bottom Row: Biography Content */}
+          <div className="space-y-6 pt-4">
+            <h2 className="text-2xl sm:text-3xl tracking-[0.25em] font-serif text-[#2C2623] uppercase">
+              {t.heading}
+            </h2>
+            
+            <div className="space-y-6 text-sm text-stone-500 font-sans font-light leading-relaxed tracking-wide text-justify">
+              <p>{t.p1}</p>
+              <p>{t.p2}</p>
+              <p>{t.p3}</p>
+              <p>{t.p4}</p>
+              <p>{t.p5}</p>
             </div>
           </div>
 
@@ -170,19 +116,5 @@ function AboutPageContent() {
 
       <Footer />
     </>
-  );
-}
-
-export default function AboutPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="text-sm font-medium uppercase tracking-[0.2em] animate-pulse text-brand-sage">
-          Loading Studio Details...
-        </div>
-      </div>
-    }>
-      <AboutPageContent />
-    </Suspense>
   );
 }
