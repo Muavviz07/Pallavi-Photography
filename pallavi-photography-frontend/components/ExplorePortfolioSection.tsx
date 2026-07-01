@@ -27,7 +27,7 @@ const CATEGORY_META: Record<string, { label: string; prefix: string; fallbackImg
   children: {
     label: "CHILDREN",
     prefix: "02",
-    fallbackImg: "https://images.unsplash.com/photo-1481966115753-963394378f23?auto=format&fit=crop&q=80&w=1200",
+    fallbackImg: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fENoaWxkcmVuJTIwcGhvdG9zaG9vdHxlbnwwfHwwfHx8MA%3D%3D",
     defaultDesc: "Authentic, playful outdoor and studio milestone sessions for growing children."
   },
   family: {
@@ -39,13 +39,13 @@ const CATEGORY_META: Record<string, { label: string; prefix: string; fallbackImg
   maternity: {
     label: "MATERNITY",
     prefix: "04",
-    fallbackImg: "https://images.unsplash.com/photo-1559466273-d95e72debaf8?auto=format&fit=crop&q=80&w=1200",
+    fallbackImg: "https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8TWF0ZXJuaXR5JTIwcGhvdG9zaG9vdHxlbnwwfHwwfHx8MA%3D%3D",
     defaultDesc: "Elegant and serene pregnancy portraits by Lake Geneva or conceptual studio setups."
   },
   "fine-art": {
     label: "FINE ART",
     prefix: "05",
-    fallbackImg: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=1200",
+    fallbackImg: "https://images.unsplash.com/photo-1637511844674-d2c52d5f29b5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8RmluZWFydCUyMHBob3Rvc2hvb3R8ZW58MHx8MHx8fDA%3D",
     defaultDesc: "Highly styled conceptual portraits resembling classical oil paintings."
   },
   nature: {

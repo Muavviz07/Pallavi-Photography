@@ -50,31 +50,68 @@ def seed_db():
             print(f"Client user '{client_email}' already exists.")
             
         # Seed Hero Slides
-        if db.query(HeroSlide).count() == 0:
-            print("Seeding default hero slides...")
-            slides = [
-                HeroSlide(
-                    title="New Beginnings",
-                    image_url="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&q=80&w=1920",
-                    order=1,
-                    is_active=True
-                ),
-                HeroSlide(
-                    title="Timeless Childhood",
-                    image_url="https://images.unsplash.com/photo-1476703719129-8eb99415f6e8?auto=format&fit=crop&q=80&w=1920",
-                    order=2,
-                    is_active=True
-                ),
-                HeroSlide(
-                    title="Maternity Grace",
-                    image_url="https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=1920",
-                    order=3,
-                    is_active=True
-                )
-            ]
-            db.bulk_save_objects(slides)
-            db.commit()
-            print("Hero slides seeded successfully!")
+        print("Cleaning existing hero slides...")
+        db.query(HeroSlide).delete()
+        print("Seeding default hero slides...")
+        slides = [
+            HeroSlide(
+                title="New Beginnings",
+                image_url="https://images.unsplash.com/photo-1583086762675-5a88bcc72548?w=1600&auto=format&fit=crop&q=80",
+                order=1,
+                is_active=True
+            ),
+            HeroSlide(
+                title="Timeless Childhood",
+                image_url="https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=1600&auto=format&fit=crop&q=80",
+                order=2,
+                is_active=True
+            ),
+            HeroSlide(
+                title="Family Connections",
+                image_url="https://plus.unsplash.com/premium_photo-1671114205636-b64b9ec631ee?w=1600&auto=format&fit=crop&q=80",
+                order=3,
+                is_active=True
+            ),
+            HeroSlide(
+                title="Maternity Grace",
+                image_url="https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=1600&auto=format&fit=crop&q=80",
+                order=4,
+                is_active=True
+            ),
+            HeroSlide(
+                title="Fine Art Portraits",
+                image_url="https://images.unsplash.com/photo-1637511844674-d2c52d5f29b5?w=1600&auto=format&fit=crop&q=80",
+                order=5,
+                is_active=True
+            ),
+            HeroSlide(
+                title="Nature Scenery",
+                image_url="https://images.unsplash.com/photo-1698758966922-857c726739d5?w=1600&auto=format&fit=crop&q=80",
+                order=6,
+                is_active=True
+            ),
+            HeroSlide(
+                title="Newborn Details",
+                image_url="https://images.unsplash.com/photo-1583086762675-5a88bcc72548?w=1600&auto=format&fit=crop&q=80",
+                order=7,
+                is_active=True
+            ),
+            HeroSlide(
+                title="Milestone Moments",
+                image_url="https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=1600&auto=format&fit=crop&q=80",
+                order=8,
+                is_active=True
+            ),
+            HeroSlide(
+                title="Maternity Elegance",
+                image_url="https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=1600&auto=format&fit=crop&q=80",
+                order=9,
+                is_active=True
+            )
+        ]
+        db.bulk_save_objects(slides)
+        db.commit()
+        print("Hero slides seeded successfully!")
             
         # Seed About Section
         if db.query(AboutSection).count() == 0:

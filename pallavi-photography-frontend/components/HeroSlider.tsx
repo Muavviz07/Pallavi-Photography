@@ -17,82 +17,81 @@ const FALLBACK_SLIDES = [
   {
     id: "fb-1",
     title: "New Beginnings",
-    image_url: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&q=70&w=1200",
+    image_url: "https://images.unsplash.com/photo-1583086762675-5a88bcc72548?w=1600&auto=format&fit=crop&q=80",
     order: 1,
     is_active: true
   },
   {
     id: "fb-2",
-    title: "Outdoor Maternity",
-    image_url: "https://images.unsplash.com/photo-1519689680058-324335c77ebe?auto=format&fit=crop&q=70&w=1200",
+    title: "Timeless Childhood",
+    image_url: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=1600&auto=format&fit=crop&q=80",
     order: 2,
     is_active: true
   },
   {
     id: "fb-3",
-    title: "Fine Art Child Portrait",
-    image_url: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=70&w=1200",
+    title: "Family Connections",
+    image_url: "https://plus.unsplash.com/premium_photo-1671114205636-b64b9ec631ee?w=1600&auto=format&fit=crop&q=80",
     order: 3,
     is_active: true
   },
   {
     id: "fb-4",
-    title: "Newborn Details",
-    image_url: "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&q=70&w=1200",
+    title: "Maternity Grace",
+    image_url: "https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=1600&auto=format&fit=crop&q=80",
     order: 4,
     is_active: true
   },
   {
     id: "fb-5",
-    title: "Maternity Portrait",
-    image_url: "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?auto=format&fit=crop&q=70&w=1200",
+    title: "Fine Art Portraits",
+    image_url: "https://images.unsplash.com/photo-1637511844674-d2c52d5f29b5?w=1600&auto=format&fit=crop&q=80",
     order: 5,
     is_active: true
   },
   {
     id: "fb-6",
-    title: "Family Outdoors",
-    image_url: "https://images.unsplash.com/photo-1476703719129-7c991e4b47c8?auto=format&fit=crop&q=70&w=1200",
+    title: "Nature Scenery",
+    image_url: "https://images.unsplash.com/photo-1698758966922-857c726739d5?w=1600&auto=format&fit=crop&q=80",
     order: 6,
     is_active: true
   },
   {
     id: "fb-7",
-    title: "Children Portrait",
-    image_url: "https://images.unsplash.com/photo-1481966115753-963394378f23?auto=format&fit=crop&q=70&w=1200",
+    title: "Newborn Details",
+    image_url: "https://images.unsplash.com/photo-1583086762675-5a88bcc72548?w=1600&auto=format&fit=crop&q=80",
     order: 7,
     is_active: true
   },
   {
     id: "fb-8",
-    title: "Fine Art Newborn",
-    image_url: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=70&w=1200",
+    title: "Milestone Moments",
+    image_url: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=1600&auto=format&fit=crop&q=80",
     order: 8,
     is_active: true
   },
   {
     id: "fb-9",
-    title: "Mother and Baby",
-    image_url: "https://images.unsplash.com/photo-1492725764893-90b379c2b6e7?auto=format&fit=crop&q=70&w=1200",
+    title: "Maternity Elegance",
+    image_url: "https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=1600&auto=format&fit=crop&q=80",
     order: 9,
     is_active: true
   }
 ];
 
 export default function HeroSlider() {
-  const [slides, setSlides] = useState<Slide[]>([]);
+  const [slides, setSlides] = useState<Slide[]>(FALLBACK_SLIDES);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchSlides() {
       try {
         const res = await api.get<Slide[]>("/hero-sliders");
-        setSlides(res);
+        if (res && res.length > 0) {
+          setSlides(res);
+        }
       } catch (err) {
         console.error("Failed to load hero slides", err);
-      } finally {
-        setLoading(false);
       }
     }
     fetchSlides();
@@ -103,6 +102,15 @@ export default function HeroSlider() {
     ...slides,
     ...FALLBACK_SLIDES.slice(0, 9 - slides.length)
   ]).filter(slide => slide.is_active !== false);
+
+  // Background Prefetching of all slides to ensure lag-free image rendering
+  useEffect(() => {
+    if (activeSlides.length === 0) return;
+    activeSlides.forEach((slide) => {
+      const img = new Image();
+      img.src = slide.image_url;
+    });
+  }, [activeSlides]);
 
   // Auto-play timer
   useEffect(() => {
@@ -122,16 +130,6 @@ export default function HeroSlider() {
     if (activeSlides.length === 0) return;
     setCurrentIdx((prev) => (prev + 1) % activeSlides.length);
   };
-
-  if (loading) {
-    return (
-      <section className="relative min-h-[100dvh] w-full flex items-center justify-center bg-zinc-950 text-white">
-        <div className="text-xs uppercase tracking-[0.3em] font-light animate-pulse text-brand-sage">
-          Entering Studio...
-        </div>
-      </section>
-    );
-  }
 
   const currentSlide = activeSlides[currentIdx];
 
