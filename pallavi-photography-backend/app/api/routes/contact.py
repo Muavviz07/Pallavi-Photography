@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_db, get_current_admin_user
+from app.api.dependencies import get_db, get_current_admin_user, require_feature
 from app.models.contact_section import ContactSection
 from app.models.user import User
 from app.schemas.contact_section import ContactSectionUpdate, ContactSectionResponse
@@ -30,7 +30,7 @@ def get_contact_section(db: Session = Depends(get_db)):
 def update_contact_section(
     contact_in: ContactSectionUpdate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("contact"))
 ):
     contact = db.query(ContactSection).first()
     if not contact:

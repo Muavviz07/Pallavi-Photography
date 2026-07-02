@@ -43,7 +43,8 @@ export default function AdminAnalytics() {
     );
   }
 
-  if (session && (session.user as any)?.role !== "admin") {
+  const role = (session?.user as any)?.role;
+  if (session && role !== "admin" && role !== "super_admin") {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-4">
         <ShieldAlert className="w-12 h-12 text-red-500" />

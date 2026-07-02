@@ -5,7 +5,7 @@ from sqlalchemy import or_
 from typing import List, Optional
 from datetime import datetime
 
-from app.api.dependencies import get_db, get_current_admin_user
+from app.api.dependencies import get_db, get_current_admin_user, require_feature
 from app.models.blog import BlogPost, BlogPostTranslation
 from app.models.user import User
 from app.schemas.blog import BlogPostCreate, BlogPostUpdate, BlogPostResponse
@@ -53,7 +53,7 @@ def get_blog_by_slug(slug: str, db: Session = Depends(get_db)):
 def create_blog_post(
     post_in: BlogPostCreate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("blogs"))
 ):
     # Check if slug exists
     if db.query(BlogPost).filter(BlogPost.slug == post_in.slug).first():
@@ -81,7 +81,7 @@ def create_blog_post(
 @router.get("/admin/all", response_model=List[BlogPostResponse])
 def admin_list_blogs(
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("blogs"))
 ):
     return db.query(BlogPost).order_by(BlogPost.created_at.desc()).all()
 
@@ -90,7 +90,7 @@ def admin_list_blogs(
 def admin_get_blog(
     post_id: uuid.UUID,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("blogs"))
 ):
     post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
     if not post:
@@ -103,7 +103,7 @@ def admin_update_blog(
     post_id: uuid.UUID,
     post_in: BlogPostUpdate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("blogs"))
 ):
     post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
     if not post:
@@ -138,7 +138,7 @@ def admin_update_blog(
 def admin_delete_blog(
     post_id: uuid.UUID,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("blogs"))
 ):
     post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
     if not post:

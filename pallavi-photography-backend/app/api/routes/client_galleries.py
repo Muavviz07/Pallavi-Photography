@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from jose import jwt
 
-from app.api.dependencies import get_db, get_current_active_user, get_current_admin_user
+from app.api.dependencies import get_db, get_current_active_user, get_current_admin_user, require_feature, get_current_admin_or_client_user_with_feature
 from app.core.config import settings
 from app.core import security
 from app.models.user import User, UserRole
@@ -137,7 +137,7 @@ def check_gallery_access(
 @router.get("", response_model=List[ClientGalleryResponse])
 def list_client_galleries(
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_active_user)
+    current_user = Depends(get_current_admin_or_client_user_with_feature("galleries"))
 ):
     """
     List client galleries.
@@ -152,7 +152,7 @@ def list_client_galleries(
 def create_client_gallery(
     gallery_in: ClientGalleryCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_user)
+    current_user = Depends(require_feature("galleries"))
 ):
     """
     Create a new client gallery. (Admin only)
@@ -302,7 +302,7 @@ def update_client_gallery(
     id: uuid.UUID,
     gallery_in: ClientGalleryUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_user)
+    current_user = Depends(require_feature("galleries"))
 ):
     """
     Update client gallery settings. (Admin only)
@@ -330,7 +330,7 @@ def update_client_gallery(
 def delete_client_gallery(
     id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_user)
+    current_user = Depends(require_feature("galleries"))
 ):
     """
     Delete client gallery. (Admin only)
@@ -571,7 +571,7 @@ def share_client_gallery(
     email: str,
     plain_password: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_user)
+    current_user = Depends(require_feature("galleries"))
 ):
     """
     Dispatches direct gallery shared link and password to client via email. (Admin only)

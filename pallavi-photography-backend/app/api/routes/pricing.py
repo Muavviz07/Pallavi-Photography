@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.api.dependencies import get_db, get_current_admin_user
+from app.api.dependencies import get_db, get_current_admin_user, require_feature
 from app.models.pricing_section import PricingSection
 from app.models.user import User
 from app.schemas.pricing_section import PricingSectionUpdate, PricingSectionResponse
@@ -31,7 +31,7 @@ def update_pricing_section(
     category: str,
     pricing_in: PricingSectionUpdate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("pricing"))
 ):
     category_lower = category.lower()
     pricing = db.query(PricingSection).filter(PricingSection.category == category_lower).first()

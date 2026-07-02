@@ -43,6 +43,9 @@ async function refreshAccessToken(token: any) {
       accessToken: refreshedTokens.access_token,
       refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
       accessTokenExpires: expiresAt,
+      role: decoded?.role ?? token.role,
+      status: decoded?.status ?? token.status,
+      permissions: decoded?.permissions ?? token.permissions,
     };
   } catch (error) {
     console.error("Error refreshing access token:", error);
@@ -67,7 +70,31 @@ export const authConfig = {
       if (isOnDelqPortal || isOnDashboard) {
         if (isLoggedIn) {
           const role = (auth.user as any)?.role;
-          return role === "admin" || role === "super_admin";
+          if (role === "super_admin") return true;
+          if (role === "admin") {
+            // Check feature-level permission mapping
+            const permissions = (auth.user as any)?.permissions || [];
+            const pathParts = nextUrl.pathname.split("/"); // e.g. ["", "delq-portal", "blogs"]
+            if (pathParts.length > 2) {
+              const section = pathParts[2];
+              const featureMap: Record<string, string> = {
+                "galleries": "galleries",
+                "bookings": "bookings",
+                "pricing": "pricing",
+                "faqs": "faqs",
+                "contact": "contact",
+                "blogs": "blogs",
+                "enquiries": "enquiries",
+                "users": "users",
+                "analytics": "analytics"
+              };
+              const requiredFeature = featureMap[section];
+              if (requiredFeature && !permissions.includes(requiredFeature)) {
+                return false; // Access denied: redirect to login or show error
+              }
+            }
+            return true;
+          }
         }
         return false;
       }
@@ -88,6 +115,7 @@ export const authConfig = {
         token.refreshToken = (user as any).refreshToken;
         token.role = (user as any).role;
         token.status = (user as any).status;
+        token.permissions = (user as any).permissions || [];
         
         const decoded = decodeJwt((user as any).accessToken);
         if (decoded && decoded.exp) {
@@ -100,8 +128,19 @@ export const authConfig = {
         return token;
       }
 
-      // Access token has expired or is close to expiration, refresh it
-      return refreshAccessToken(token);
+      // Access token has expired, refresh it
+      const refreshed = await refreshAccessToken(token);
+      
+      if (refreshed.accessToken && (!refreshed.role || !refreshed.permissions)) {
+        const decoded = decodeJwt(refreshed.accessToken);
+        if (decoded) {
+          refreshed.role = decoded.role || refreshed.role;
+          refreshed.status = decoded.status || refreshed.status;
+          refreshed.permissions = decoded.permissions || refreshed.permissions;
+        }
+      }
+      
+      return refreshed;
     },
     async session({ session, token }) {
       if (token) {
@@ -110,6 +149,7 @@ export const authConfig = {
         if (session.user) {
           (session.user as any).role = token.role;
           (session.user as any).status = token.status;
+          (session.user as any).permissions = token.permissions || [];
         }
       }
       return session;

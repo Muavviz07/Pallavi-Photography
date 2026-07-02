@@ -30,35 +30,19 @@ export default async function AdminLayout({
 
   const isSuperAdmin = userRole === "super_admin";
   const isAdmin = userRole === "admin" || isSuperAdmin;
+  const permissions: string[] = (session?.user as any)?.permissions || [];
 
-  let settings: SidebarSettings = {
-    galleries: false,
-    bookings: true,
-    pricing: false,
-    faqs: false,
-    contact: false,
-    blogs: false,
-    enquiries: true,
-    users: false,
-    analytics: true
+  const settings: SidebarSettings = {
+    galleries: isSuperAdmin || permissions.includes("galleries") || userRole === "client",
+    bookings: isSuperAdmin || permissions.includes("bookings"),
+    pricing: isSuperAdmin || permissions.includes("pricing"),
+    faqs: isSuperAdmin || permissions.includes("faqs"),
+    contact: isSuperAdmin || permissions.includes("contact"),
+    blogs: isSuperAdmin || permissions.includes("blogs"),
+    enquiries: isSuperAdmin || permissions.includes("enquiries"),
+    users: isSuperAdmin || permissions.includes("users"),
+    analytics: isSuperAdmin || permissions.includes("analytics")
   };
-
-  if (userRole === "admin" && token) {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const response = await fetch(`${apiUrl}/api/admin/settings`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        next: { revalidate: 0 }
-      });
-      if (response.ok) {
-        settings = await response.json();
-      }
-    } catch (e) {
-      console.error("Failed to fetch sidebar settings in layout", e);
-    }
-  }
 
   return (
     <div className="min-h-screen flex bg-[#FCFAF7]">
@@ -70,16 +54,16 @@ export default async function AdminLayout({
               <h1 className="text-xl font-light tracking-[0.25em] text-white uppercase font-serif group-hover:text-[#C4A484] transition-colors">
                 PALLAVI
               </h1>
-              <span className="block text-[8px] tracking-[0.4em] text-stone-400 uppercase font-sans -mt-0.5">
+              <span className="block text-[8px] tracking-[0.4em] text-[#C4A484] uppercase font-sans -mt-0.5">
                 {isSuperAdmin ? "Super Admin Console" : isAdmin ? "Admin Console" : "Photographer Hub"}
               </span>
             </Link>
           </div>
 
-          <nav className="flex flex-col space-y-2 text-xs uppercase tracking-widest font-light">
+          <nav className="flex flex-col space-y-1.5 text-[10px] uppercase tracking-[0.2em] font-medium text-stone-300">
             <Link
               href="/delq-portal"
-              className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+              className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
             >
               Overview
             </Link>
@@ -88,7 +72,7 @@ export default async function AdminLayout({
             {isSuperAdmin && (
               <Link
                 href="/delq-portal/super-admin"
-                className="px-4 py-3 rounded-sm text-[#C4A484] border border-[#C4A484]/35 bg-[#C4A484]/5 font-medium transition-all hover:bg-[#C4A484]/10"
+                className="px-4 py-2.5 rounded-sm text-[#C4A484] border border-[#C4A484]/35 bg-[#C4A484]/5 font-semibold transition-all hover:bg-[#C4A484]/15"
               >
                 Super Admin Panel
               </Link>
@@ -98,7 +82,7 @@ export default async function AdminLayout({
             {(isSuperAdmin || (isAdmin && settings.galleries) || userRole === "client") && (
               <Link
                 href="/delq-portal/galleries"
-                className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
               >
                 Galleries & Clients
               </Link>
@@ -110,7 +94,7 @@ export default async function AdminLayout({
                 {(isSuperAdmin || settings.bookings) && (
                   <Link
                     href="/delq-portal/bookings"
-                    className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
                   >
                     Booking Requests
                   </Link>
@@ -120,7 +104,7 @@ export default async function AdminLayout({
                 {(isSuperAdmin || settings.pricing) && (
                   <Link
                     href="/delq-portal/pricing"
-                    className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
                   >
                     Manage Pricing
                   </Link>
@@ -130,7 +114,7 @@ export default async function AdminLayout({
                 {(isSuperAdmin || settings.faqs) && (
                   <Link
                     href="/delq-portal/faqs"
-                    className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
                   >
                     Manage FAQs
                   </Link>
@@ -140,7 +124,7 @@ export default async function AdminLayout({
                 {(isSuperAdmin || settings.contact) && (
                   <Link
                     href="/delq-portal/contact"
-                    className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
                   >
                     Manage Contact
                   </Link>
@@ -150,7 +134,7 @@ export default async function AdminLayout({
                 {(isSuperAdmin || settings.blogs) && (
                   <Link
                     href="/delq-portal/blogs"
-                    className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
                   >
                     Blog Journal
                   </Link>
@@ -160,7 +144,7 @@ export default async function AdminLayout({
                 {(isSuperAdmin || settings.enquiries) && (
                   <Link
                     href="/delq-portal/enquiries"
-                    className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
                   >
                     Enquiries Log
                   </Link>
@@ -170,7 +154,7 @@ export default async function AdminLayout({
                 {(isSuperAdmin || settings.users) && (
                   <Link
                     href="/delq-portal/users"
-                    className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
                   >
                     Users & Roles
                   </Link>
@@ -180,7 +164,7 @@ export default async function AdminLayout({
                 {(isSuperAdmin || settings.analytics) && (
                   <Link
                     href="/delq-portal/analytics"
-                    className="px-4 py-3 rounded-sm hover:bg-[#FAF8F5]/5 hover:text-[#C4A484] transition-all"
+                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
                   >
                     Analytics
                   </Link>
@@ -190,8 +174,12 @@ export default async function AdminLayout({
           </nav>
         </div>
 
-        <div className="pt-6 border-t border-stone-800 text-[10px] text-stone-500 flex flex-col gap-3">
-          <Link href="/" className="hover:text-white transition-colors">
+        <div className="pt-6 border-t border-stone-800 flex flex-col gap-4">
+          <Link 
+            href="/" 
+            className="text-[10px] text-stone-400 hover:text-[#C4A484] uppercase tracking-widest font-light transition-colors duration-200"
+            aria-label="Back to Public Website"
+          >
             ← Back to Public Site
           </Link>
           <form
@@ -202,15 +190,16 @@ export default async function AdminLayout({
           >
             <button
               type="submit"
-              className="text-stone-500 hover:text-red-400 transition-colors text-[10px] uppercase tracking-wider font-light flex items-center gap-1.5 w-full text-left"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-950/20 text-red-300 hover:bg-red-900/30 hover:text-red-200 border border-red-900/35 hover:border-red-500/30 rounded-sm text-xs uppercase tracking-widest font-semibold transition-all duration-300 shadow-sm cursor-pointer"
+              aria-label="Log Out of Admin Panel"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                strokeWidth={1.5}
+                strokeWidth={2.0}
                 stroke="currentColor"
-                className="w-3.5 h-3.5"
+                className="w-4 h-4"
               >
                 <path
                   strokeLinecap="round"
@@ -221,7 +210,9 @@ export default async function AdminLayout({
               Log Out
             </button>
           </form>
-          <p>© {new Date().getFullYear()} Pallavi Photography</p>
+          <p className="text-[9px] text-stone-600 font-light select-none">
+            © {new Date().getFullYear()} Pallavi Photography Switzerland
+          </p>
         </div>
       </aside>
 

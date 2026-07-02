@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.api.dependencies import get_db, get_current_admin_user
+from app.api.dependencies import get_db, get_current_admin_user, require_feature
 from app.models.faq import FAQ
 from app.models.user import User
 from app.schemas.faq import FAQCreate, FAQUpdate, FAQResponse
@@ -20,7 +20,7 @@ def get_all_faqs(db: Session = Depends(get_db)):
 def create_faq(
     faq_in: FAQCreate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("faqs"))
 ):
     faq = FAQ(**faq_in.dict())
     db.add(faq)
@@ -34,7 +34,7 @@ def update_faq(
     faq_id: uuid.UUID,
     faq_in: FAQUpdate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("faqs"))
 ):
     faq = db.query(FAQ).filter(FAQ.id == faq_id).first()
     if not faq:
@@ -55,7 +55,7 @@ def update_faq(
 def delete_faq(
     faq_id: uuid.UUID,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("faqs"))
 ):
     faq = db.query(FAQ).filter(FAQ.id == faq_id).first()
     if not faq:

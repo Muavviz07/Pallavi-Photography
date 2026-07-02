@@ -51,6 +51,50 @@ def seed_db():
         db.add(admin_user)
         db.commit()
         print("Superadmin and Admin users seeded successfully!")
+
+        # Seed features and permissions
+        from app.models.admin_permission import AdminFeature, AdminRolePermission
+        print("Cleaning existing features and permissions...")
+        db.query(AdminRolePermission).delete()
+        db.query(AdminFeature).delete()
+        db.commit()
+
+        features_to_create = [
+            ("galleries", "Manage client galleries", True),
+            ("bookings", "View and manage bookings", True),
+            ("pricing", "Manage pricing pages", False),
+            ("faqs", "Manage FAQ section", False),
+            ("contact", "View contact form submissions", False),
+            ("blogs", "Create and manage blog posts", False),
+            ("enquiries", "View client enquiries", True),
+            ("users", "Manage user roles and permissions", False),
+            ("analytics", "View analytics and statistics", True),
+        ]
+
+        print("Seeding available features...")
+        for name, desc, default_enabled in features_to_create:
+            feature = AdminFeature(
+                name=name,
+                description=desc,
+                default_enabled=default_enabled
+            )
+            db.add(feature)
+        db.commit()
+
+        # Seed permissions for the seeded admin user
+        print("Seeding permissions for default admin...")
+        admin = db.query(User).filter(User.email == admin_email).first()
+        if admin:
+            features = db.query(AdminFeature).all()
+            for feature in features:
+                perm = AdminRolePermission(
+                    admin_id=admin.id,
+                    feature_name=feature.name,
+                    is_enabled=feature.default_enabled
+                )
+                db.add(perm)
+            db.commit()
+            print("Permissions for default admin seeded successfully!")
             
         # Seed Hero Slides
         print("Cleaning existing hero slides...")

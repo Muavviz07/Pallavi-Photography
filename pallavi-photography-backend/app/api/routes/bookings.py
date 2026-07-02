@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from app.api.dependencies import get_db, get_current_admin_user
+from app.api.dependencies import get_db, get_current_admin_user, require_feature
 from app.models.booking import Booking, BookingStatus
 from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingUpdate, BookingResponse
@@ -60,7 +60,7 @@ def create_booking_request(booking_in: BookingCreate, db: Session = Depends(get_
 @router.get("/admin/all", response_model=List[BookingResponse])
 def admin_list_bookings(
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("bookings"))
 ):
     return db.query(Booking).order_by(Booking.date.asc(), Booking.time.asc()).all()
 
@@ -70,7 +70,7 @@ def admin_update_booking(
     booking_id: uuid.UUID,
     booking_in: BookingUpdate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("bookings"))
 ):
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
@@ -105,7 +105,7 @@ def admin_update_booking(
 def admin_delete_booking(
     booking_id: uuid.UUID,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("bookings"))
 ):
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:

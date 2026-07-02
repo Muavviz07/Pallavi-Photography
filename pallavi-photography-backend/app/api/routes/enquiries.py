@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.api.dependencies import get_db, get_current_admin_user
+from app.api.dependencies import get_db, get_current_admin_user, require_feature
 from app.models.enquiry import Enquiry, EnquiryStatus
 from app.models.user import User
 from app.schemas.enquiry import EnquiryCreate, EnquiryUpdate, EnquiryResponse
@@ -43,7 +43,7 @@ def create_enquiry(enquiry_in: EnquiryCreate, db: Session = Depends(get_db)):
 @router.get("/admin/all", response_model=List[EnquiryResponse])
 def admin_list_enquiries(
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("enquiries"))
 ):
     return db.query(Enquiry).order_by(Enquiry.created_at.desc()).all()
 
@@ -53,7 +53,7 @@ def admin_update_enquiry(
     enquiry_id: uuid.UUID,
     enquiry_in: EnquiryUpdate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("enquiries"))
 ):
     enquiry = db.query(Enquiry).filter(Enquiry.id == enquiry_id).first()
     if not enquiry:
@@ -71,7 +71,7 @@ def admin_update_enquiry(
 def admin_delete_enquiry(
     enquiry_id: uuid.UUID,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin_user)
+    admin: User = Depends(require_feature("enquiries"))
 ):
     enquiry = db.query(Enquiry).filter(Enquiry.id == enquiry_id).first()
     if not enquiry:

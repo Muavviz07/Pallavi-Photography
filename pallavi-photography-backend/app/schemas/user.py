@@ -7,6 +7,8 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
+    role: str | None = "client"
+    status: str | None = "active"
 
 class UserUpdate(BaseModel):
     email: EmailStr | None = None
@@ -22,6 +24,7 @@ class UserResponse(UserBase):
     status: str
     created_at: datetime
     updated_at: datetime
+    permissions: list[str] | None = None
 
 class LoginCredentials(BaseModel):
     email: EmailStr
@@ -35,6 +38,9 @@ class Token(BaseModel):
 class TokenPayload(BaseModel):
     sub: str | None = None
     type: str | None = None
+    role: str | None = None
+    status: str | None = None
+    permissions: list[str] | None = None
 
 class ChangePassword(BaseModel):
     current_password: str
