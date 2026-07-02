@@ -20,7 +20,7 @@ export default function SettingsPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   const handleLogout = async () => {
-    await signOut({ redirectTo: "/auth/login" });
+    await signOut({ redirectTo: "/login" });
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -97,7 +97,7 @@ export default function SettingsPage() {
           <p className="text-xs text-[#6E635F] font-light">
             Please log in to manage your settings.
           </p>
-          <Link href="/auth/login" className="text-xs uppercase tracking-widest text-[#C4A484] font-medium underline">
+          <Link href="/login" className="text-xs uppercase tracking-widest text-[#C4A484] font-medium underline">
             Go to Login
           </Link>
         </div>

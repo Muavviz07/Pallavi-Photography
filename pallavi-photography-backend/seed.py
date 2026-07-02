@@ -6,6 +6,7 @@ from app.models.about_section import AboutSection
 from app.models.pricing_section import PricingSection
 from app.models.faq import FAQ
 from app.models.contact_section import ContactSection
+from app.models.system_setting import SystemSetting
 import json
 from app.core import security
 
@@ -15,43 +16,41 @@ def seed_db():
     
     db = SessionLocal()
     try:
-        # Check if any admin exists
+        # Clean system settings
+        print("Cleaning system settings...")
+        db.query(SystemSetting).delete()
+        db.commit()
+
+        # Clean existing users
+        print("Cleaning existing users...")
+        db.query(User).delete()
+        db.commit()
+
+        # Seed superadmin
+        superadmin_email = "superadmin@pallaviphotography.com"
+        print(f"Creating default superadmin user: {superadmin_email} ...")
+        hashed_superadmin_password = security.get_password_hash("superadminpassword123")
+        superadmin_user = User(
+            email=superadmin_email,
+            password_hash=hashed_superadmin_password,
+            role=UserRole.SUPER_ADMIN.value,
+            status=UserStatus.ACTIVE.value
+        )
+        db.add(superadmin_user)
+
+        # Seed admin
         admin_email = "admin@pallaviphotography.com"
-        admin = db.query(User).filter(User.email == admin_email).first()
-        
-        if not admin:
-            print(f"Creating default admin user: {admin_email} ...")
-            hashed_password = security.get_password_hash("adminpassword123")
-            admin_user = User(
-                email=admin_email,
-                password_hash=hashed_password,
-                role=UserRole.ADMIN.value,
-                status=UserStatus.ACTIVE.value
-            )
-            db.add(admin_user)
-            db.commit()
-            print("Admin user seeded successfully!")
-        else:
-            print(f"Admin user '{admin_email}' already exists.")
-            
-        # Check if any client exists
-        client_email = "client@example.com"
-        client = db.query(User).filter(User.email == client_email).first()
-        
-        if not client:
-            print(f"Creating default client user: {client_email} ...")
-            hashed_password = security.get_password_hash("clientpassword123")
-            client_user = User(
-                email=client_email,
-                password_hash=hashed_password,
-                role=UserRole.CLIENT.value,
-                status=UserStatus.ACTIVE.value
-            )
-            db.add(client_user)
-            db.commit()
-            print("Client user seeded successfully!")
-        else:
-            print(f"Client user '{client_email}' already exists.")
+        print(f"Creating default admin user: {admin_email} ...")
+        hashed_admin_password = security.get_password_hash("adminpassword123")
+        admin_user = User(
+            email=admin_email,
+            password_hash=hashed_admin_password,
+            role=UserRole.ADMIN.value,
+            status=UserStatus.ACTIVE.value
+        )
+        db.add(admin_user)
+        db.commit()
+        print("Superadmin and Admin users seeded successfully!")
             
         # Seed Hero Slides
         print("Cleaning existing hero slides...")

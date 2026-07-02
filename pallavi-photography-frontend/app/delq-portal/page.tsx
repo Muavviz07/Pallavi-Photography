@@ -97,25 +97,25 @@ export default function AdminOverview() {
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-light tracking-wide text-[#6E635F]">
           <Link
-            href="/admin/galleries"
+            href="/delq-portal/galleries"
             className="p-4 border border-[#DCD0C0]/35 rounded-sm hover:border-[#C4A484] hover:bg-white text-center transition-all bg-[#FAF8F5]"
           >
             Create Client Gallery
           </Link>
           <Link
-            href="/admin/bookings"
+            href="/delq-portal/bookings"
             className="p-4 border border-[#DCD0C0]/35 rounded-sm hover:border-[#C4A484] hover:bg-white text-center transition-all bg-[#FAF8F5]"
           >
             Review Bookings
           </Link>
           <Link
-            href="/admin/blogs"
+            href="/delq-portal/blogs"
             className="p-4 border border-[#DCD0C0]/35 rounded-sm hover:border-[#C4A484] hover:bg-white text-center transition-all bg-[#FAF8F5]"
           >
             Write Blog Post
           </Link>
           <Link
-            href="/admin/users"
+            href="/delq-portal/users"
             className="p-4 border border-[#DCD0C0]/35 rounded-sm hover:border-[#C4A484] hover:bg-white text-center transition-all bg-[#FAF8F5]"
           >
             Manage User Roles

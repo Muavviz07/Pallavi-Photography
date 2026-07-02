@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 export default function LanguageSwitcher() {
+  const pathname = usePathname();
   const [lang, setLang] = useState("EN");
 
   useEffect(() => {
@@ -26,6 +28,10 @@ export default function LanguageSwitcher() {
     // Dispatch event to notify all listening components to update content instantly
     window.dispatchEvent(new Event("languagechange"));
   };
+
+  if (pathname?.startsWith("/delq-portal")) {
+    return null;
+  }
 
   return (
     <button

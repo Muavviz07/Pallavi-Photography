@@ -29,7 +29,20 @@ function LoginForm() {
       if (result?.error) {
         setError("Invalid email or password");
       } else {
-        router.push(callbackUrl);
+        const sessionRes = await fetch("/api/auth/session");
+        const sessionData = await sessionRes.json().catch(() => ({}));
+        const role = sessionData?.user?.role;
+        
+        let destination = callbackUrl;
+        if (destination === "/" || destination === "/login" || destination === "/auth/login") {
+          if (role === "admin" || role === "super_admin") {
+            destination = "/delq-portal";
+          } else if (role === "client") {
+            destination = "/client-portal";
+          }
+        }
+        
+        router.push(destination);
         router.refresh();
       }
     } catch (err: any) {

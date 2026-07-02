@@ -34,7 +34,8 @@ def get_current_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token type",
             )
-    except (JWTError, ValidationError):
+    except (JWTError, ValidationError) as e:
+        print(f"JWT validation failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
@@ -54,19 +55,30 @@ def get_current_active_user(
 def get_current_admin_user(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
-    if current_user.role != UserRole.ADMIN.value:
+    if current_user.role not in [UserRole.SUPER_ADMIN.value, UserRole.ADMIN.value]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user does not have enough privileges",
         )
     return current_user
 
+def get_current_super_admin_user(
+    current_user: User = Depends(get_current_active_user),
+) -> User:
+    if current_user.role != UserRole.SUPER_ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only super admins have access to this resource.",
+        )
+    return current_user
+
 def get_current_admin_or_client_user(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
-    if current_user.role not in [UserRole.ADMIN.value, UserRole.CLIENT.value]:
+    if current_user.role not in [UserRole.SUPER_ADMIN.value, UserRole.ADMIN.value, UserRole.CLIENT.value]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user does not have enough privileges",
         )
     return current_user
+

@@ -41,6 +41,11 @@ export async function fetchAPI(endpoint: string, options: FetchOptions = {}) {
   const response = await fetch(`${API_URL}${cleanEndpoint}`, config);
   
   if (!response.ok) {
+    if (typeof window !== "undefined" && (response.status === 401 || response.status === 403)) {
+      import("next-auth/react").then(({ signOut }) => {
+        signOut({ callbackUrl: "/login" });
+      });
+    }
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || "Something went wrong");
   }
@@ -67,6 +72,13 @@ export const api = {
     return fetchAPI(endpoint, {
       ...options,
       method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  },
+  put: <T>(endpoint: string, body?: any, options: FetchOptions = {}): Promise<T> => {
+    return fetchAPI(endpoint, {
+      ...options,
+      method: "PUT",
       body: body ? JSON.stringify(body) : undefined,
     });
   },

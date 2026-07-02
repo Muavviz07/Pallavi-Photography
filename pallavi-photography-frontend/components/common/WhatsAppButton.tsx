@@ -1,8 +1,13 @@
 "use client";
 
 import React from "react";
+import { usePathname } from "next/navigation";
 
 export default function WhatsAppButton() {
+  const pathname = usePathname();
+  if (pathname?.startsWith("/delq-portal")) {
+    return null;
+  }
   const whatsappNumber = "+41789077644";
   const defaultMessage = "Hello! I am interested in booking a photography session with you.";
 

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.database import Base
 
 class UserRole(str, Enum):
+    SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
     CLIENT = "client"
 

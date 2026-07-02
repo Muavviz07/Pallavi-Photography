@@ -3,10 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.api.dependencies import get_db, get_current_admin_user, get_current_admin_or_client_user
+from app.api.dependencies import get_db, get_current_admin_user, get_current_admin_or_client_user, get_current_super_admin_user
 from app.models.client_gallery import ClientGallery
 from app.models.client_gallery_image import ClientGalleryImage
 from app.models.user import User
+from app.models.system_setting import SystemSetting
 from app.schemas.client_gallery import ClientGalleryCreate, ClientGalleryUpdate, ClientGalleryResponse
 from app.schemas.user import UserResponse, UserUpdate
 
@@ -74,3 +75,35 @@ def get_analytics(db: Session = Depends(get_db), current_user: User = Depends(ge
         "total_images": total_images,
         "total_users": total_users,
     }
+
+DEFAULT_SIDEBAR_SETTINGS = {
+    "galleries": False,
+    "bookings": True,
+    "pricing": False,
+    "faqs": False,
+    "contact": False,
+    "blogs": False,
+    "enquiries": True,
+    "users": False,
+    "analytics": True
+}
+
+@router.get("/settings")
+def get_settings(db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_user)):
+    setting = db.query(SystemSetting).filter(SystemSetting.key == "sidebar_features").first()
+    if not setting:
+        return DEFAULT_SIDEBAR_SETTINGS
+    return setting.value
+
+@router.post("/settings")
+def save_settings(settings_data: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_super_admin_user)):
+    setting = db.query(SystemSetting).filter(SystemSetting.key == "sidebar_features").first()
+    if not setting:
+        setting = SystemSetting(key="sidebar_features", value=settings_data)
+        db.add(setting)
+    else:
+        setting.value = settings_data
+        db.add(setting)
+    db.commit()
+    db.refresh(setting)
+    return setting.value

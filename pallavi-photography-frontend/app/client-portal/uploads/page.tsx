@@ -72,7 +72,7 @@ export default function UploadsPage() {
   };
 
   const handleLogout = async () => {
-    await signOut({ redirectTo: "/auth/login" });
+    await signOut({ redirectTo: "/login" });
   };
 
   const handleUploadSuccess = () => {
@@ -107,7 +107,7 @@ export default function UploadsPage() {
           <p className="text-xs text-[#6E635F] font-light">
             Please log in to manage your uploads.
           </p>
-          <Link href="/auth/login" className="text-xs uppercase tracking-widest text-[#C4A484] font-medium underline">
+          <Link href="/login" className="text-xs uppercase tracking-widest text-[#C4A484] font-medium underline">
             Go to Login
           </Link>
         </div>

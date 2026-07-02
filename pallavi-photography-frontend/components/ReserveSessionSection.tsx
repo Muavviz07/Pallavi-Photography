@@ -24,6 +24,7 @@ export default function ReserveSessionSection() {
     if (!section) return;
 
     function handleScroll() {
+      if (!section) return;
       const rect = section.getBoundingClientRect();
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
       // Calculate scroll progress when section is entering / in viewport

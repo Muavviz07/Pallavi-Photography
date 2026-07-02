@@ -74,7 +74,7 @@ def check_gallery_access(
     user = get_current_user_optional(request, db)
     
     # Admins always bypass access restrictions
-    if user and user.role == UserRole.ADMIN.value:
+    if user and user.role in [UserRole.ADMIN.value, UserRole.SUPER_ADMIN.value]:
         return gallery
         
     # Owner of the gallery always bypasses password verification
@@ -143,7 +143,7 @@ def list_client_galleries(
     List client galleries.
     Admins see all, Client users see only their assigned galleries.
     """
-    if current_user.role == UserRole.ADMIN.value:
+    if current_user.role in [UserRole.ADMIN.value, UserRole.SUPER_ADMIN.value]:
         return db.query(ClientGallery).order_by(ClientGallery.created_at.desc()).all()
     else:
         return db.query(ClientGallery).filter(ClientGallery.user_id == current_user.id).order_by(ClientGallery.created_at.desc()).all()
@@ -235,11 +235,11 @@ def get_client_gallery_meta(
                 pass
                 
         # Admins and Owners bypass password protection requirements
-        if user and (user.role == UserRole.ADMIN.value or user.id == gallery.user_id):
+        if user and (user.role in [UserRole.ADMIN.value, UserRole.SUPER_ADMIN.value] or user.id == gallery.user_id):
             requires_password = False
 
     # Check status/expiry if user is NOT admin or owner
-    if not (user and (user.role == UserRole.ADMIN.value or user.id == gallery.user_id)):
+    if not (user and (user.role in [UserRole.ADMIN.value, UserRole.SUPER_ADMIN.value] or user.id == gallery.user_id)):
         if gallery.status == "closed":
             raise HTTPException(status_code=403, detail="This gallery is closed.")
         if gallery.expiry_date:
@@ -424,7 +424,7 @@ async def upload_client_gallery_image(
     user = get_current_user_optional(request, db)
     
     # If not admin, check if upload is allowed for client
-    if not (user and user.role == UserRole.ADMIN.value):
+    if not (user and user.role in [UserRole.ADMIN.value, UserRole.SUPER_ADMIN.value]):
         if not gallery.can_upload:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -482,7 +482,7 @@ def delete_client_gallery_image(
     user = get_current_user_optional(request, db)
     
     # If not admin, check if delete is allowed for client
-    if not (user and user.role == UserRole.ADMIN.value):
+    if not (user and user.role in [UserRole.ADMIN.value, UserRole.SUPER_ADMIN.value]):
         if not gallery.can_delete:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -547,7 +547,7 @@ def submit_gallery_selections(
     db.refresh(gallery)
     
     # Find admin email
-    admin_users = db.query(User).filter(User.role == UserRole.ADMIN.value).all()
+    admin_users = db.query(User).filter(User.role.in_([UserRole.ADMIN.value, UserRole.SUPER_ADMIN.value])).all()
     admin_emails = [a.email for a in admin_users] if admin_users else ["admin@pallaviphotography.com"]
     
     for email in admin_emails:

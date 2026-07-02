@@ -20,6 +20,24 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## TO RUN THE PROJECT
+
+Terminal 1:
+
+docker-compose up -d
+
+Terminal 2:
+
+cd pallavi-photography-backend
+venv\Scripts\activate
+python main.py
+
+Terminal 3:
+
+cd pallavi-photography-frontend
+npm run dev
+
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

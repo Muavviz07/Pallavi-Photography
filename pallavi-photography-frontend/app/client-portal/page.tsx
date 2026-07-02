@@ -62,7 +62,7 @@ export default function ClientPortalPage() {
   };
 
   const handleLogout = async () => {
-    await signOut({ redirectTo: "/auth/login" });
+    await signOut({ redirectTo: "/login" });
   };
 
   if (status === "loading" || loading) {
@@ -92,7 +92,7 @@ export default function ClientPortalPage() {
             Please log in with your client credentials to access your private photography dashboard.
           </p>
           <Link
-            href="/auth/login"
+            href="/login"
             className="inline-block text-xs uppercase tracking-widest text-[#FCFAF7] bg-[#2C2623] hover:bg-[#352F2C] px-8 py-3 rounded-sm font-medium transition-all shadow-xs"
           >
             Log In
