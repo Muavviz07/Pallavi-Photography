@@ -301,9 +301,9 @@ export default function Header() {
               </div>
 
               <Link
-                href="/client-portal"
+                href="/client-galleries"
                 className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 cursor-pointer ${
-                  pathname === "/client-portal" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
+                  pathname === "/client-galleries" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
                 }`}
               >
                 {t.clientGallery}
@@ -407,7 +407,7 @@ export default function Header() {
                 </div>
               </div>
 
-              <Link href="/client-portal" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
+              <Link href="/client-galleries" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
                 {t.clientGallery}
               </Link>
 

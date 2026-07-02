@@ -2,47 +2,54 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, X, ArrowLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ArrowLeft, Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
 
 // Curated high-res fallback imagery for visual showcase
-const FALLBACK_IMAGES: Record<string, Array<{ id: string; url: string; title: string; altText: string }>> = {
+const FALLBACK_IMAGES: Record<string, Array<{ id: string; url: string; title: string; altText: string; aspect?: string }>> = {
   newborn: [
-    { id: "1", url: "https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=800", title: "Sweet Dreamer", altText: "Sleeping newborn baby wrapped in cream blanket" },
-    { id: "2", url: "https://images.unsplash.com/photo-1544126592-807adc26cc7d?auto=format&fit=crop&q=80&w=800", title: "Tiny Hands", altText: "Close-up of newborn baby's hands holding father's finger" },
-    { id: "3", url: "https://images.unsplash.com/photo-1537673172765-a45f94de8b8f?auto=format&fit=crop&q=80&w=800", title: "Peaceful Sleep", altText: "Newborn baby sleeping soundly on woolly wrap" },
-    { id: "4", url: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=800", title: "Delicate Details", altText: "Macro shot of sleeping newborn toes" },
-    { id: "5", url: "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&q=80&w=800", title: "Newborn Smile", altText: "Newborn baby smiling faintly in sleep" }
+    { id: "1", url: "https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=800", title: "Sweet Dreamer", altText: "Sleeping newborn baby wrapped in cream blanket", aspect: "square" },
+    { id: "2", url: "https://images.unsplash.com/photo-1544126592-807adc26cc7d?auto=format&fit=crop&q=80&w=800", title: "Tiny Hands", altText: "Close-up of newborn baby's hands holding father's finger", aspect: "portrait" },
+    { id: "3", url: "https://images.unsplash.com/photo-1537673172765-a45f94de8b8f?auto=format&fit=crop&q=80&w=800", title: "Peaceful Sleep", altText: "Newborn baby sleeping soundly on woolly wrap", aspect: "square" },
+    { id: "4", url: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=800", title: "Delicate Details", altText: "Macro shot of sleeping newborn toes", aspect: "landscape" },
+    { id: "5", url: "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&q=80&w=800", title: "Newborn Smile", altText: "Newborn baby smiling faintly in sleep", aspect: "portrait" }
+  ],
+  children: [
+    { id: "1", url: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=800", title: "Pure Joy", altText: "Young child smiling in sunlit meadow", aspect: "square" },
+    { id: "2", url: "https://images.unsplash.com/photo-1471286174240-e6458e7d5a73?auto=format&fit=crop&q=80&w=800", title: "Little Explorer", altText: "Toddler looking down at flowers outdoors", aspect: "portrait" },
+    { id: "3", url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=800", title: "Childhood Wonder", altText: "Little boy playing with bubbles", aspect: "square" },
+    { id: "4", url: "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&q=80&w=800", title: "Warm Smile", altText: "Young girl portrait outdoors", aspect: "landscape" },
+    { id: "5", url: "https://images.unsplash.com/photo-1481959110741-1963ea9cc6f6?auto=format&fit=crop&q=80&w=800", title: "Carefree Days", altText: "Child running in grassy field", aspect: "portrait" }
   ],
   maternity: [
-    { id: "1", url: "https://images.unsplash.com/photo-1588666309990-d68f08e3d4a6?auto=format&fit=crop&q=80&w=800", title: "Silhouette in Light", altText: "Maternity studio silhouette portrait" },
-    { id: "2", url: "https://images.unsplash.com/photo-1517164850305-99a3e65bb47e?auto=format&fit=crop&q=80&w=800", title: "Motherly Glow", altText: "Pregnant mother smiling in outdoor meadow" },
-    { id: "3", url: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&q=80&w=800", title: "Quiet Expectation", altText: "Pregnant mother looking down tenderly holding belly" },
-    { id: "4", url: "https://images.unsplash.com/photo-1551817958-c5b51e7b9a79?auto=format&fit=crop&q=80&w=800", title: "Gown in the Breeze", altText: "Maternity portrait with flowing white dress" },
-    { id: "5", url: "https://images.unsplash.com/photo-1563804870-fb9dfc823611?auto=format&fit=crop&q=80&w=800", title: "Golden hour bump", altText: "Close-up of maternity hands in heart shape on belly" }
+    { id: "1", url: "https://images.unsplash.com/photo-1588666309990-d68f08e3d4a6?auto=format&fit=crop&q=80&w=800", title: "Silhouette in Light", altText: "Maternity studio silhouette portrait", aspect: "portrait" },
+    { id: "2", url: "https://images.unsplash.com/photo-1517164850305-99a3e65bb47e?auto=format&fit=crop&q=80&w=800", title: "Motherly Glow", altText: "Pregnant mother smiling in outdoor meadow", aspect: "square" },
+    { id: "3", url: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&q=80&w=800", title: "Quiet Expectation", altText: "Pregnant mother looking down tenderly holding belly", aspect: "portrait" },
+    { id: "4", url: "https://images.unsplash.com/photo-1551817958-c5b51e7b9a79?auto=format&fit=crop&q=80&w=800", title: "Gown in the Breeze", altText: "Maternity portrait with flowing white dress", aspect: "landscape" },
+    { id: "5", url: "https://images.unsplash.com/photo-1563804870-fb9dfc823611?auto=format&fit=crop&q=80&w=800", title: "Golden Hour Bump", altText: "Close-up of maternity hands in heart shape on belly", aspect: "square" }
   ],
   family: [
-    { id: "1", url: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=800", title: "Golden Hugs", altText: "Family group hugging outdoors in field at sunset" },
-    { id: "2", url: "https://images.unsplash.com/photo-1609234656388-0ff363383899?auto=format&fit=crop&q=80&w=800", title: "Laughter in Nature", altText: "Parents and two young daughters laughing together" },
-    { id: "3", url: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=800", title: "A Mother's Love", altText: "Mother holding daughter while father plays in background" },
-    { id: "4", url: "https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&q=80&w=800", title: "Sunset Stroll", altText: "Family walking hand-in-hand in open landscape" },
-    { id: "5", url: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=800", title: "Forehead Kiss", altText: "Mother kissing child on the forehead in bright daylight" }
+    { id: "1", url: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=800", title: "Golden Hugs", altText: "Family group hugging outdoors in field at sunset", aspect: "landscape" },
+    { id: "2", url: "https://images.unsplash.com/photo-1609234656388-0ff363383899?auto=format&fit=crop&q=80&w=800", title: "Laughter in Nature", altText: "Parents and two young daughters laughing together", aspect: "square" },
+    { id: "3", url: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=800", title: "A Mother's Love", altText: "Mother holding daughter while father plays in background", aspect: "portrait" },
+    { id: "4", url: "https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&q=80&w=800", title: "Sunset Stroll", altText: "Family walking hand-in-hand in open landscape", aspect: "landscape" },
+    { id: "5", url: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=800", title: "Forehead Kiss", altText: "Mother kissing child on the forehead in bright daylight", aspect: "portrait" }
   ],
   "fine-art": [
-    { id: "1", url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800", title: "The Portrait", altText: "Artistic close-up female portrait with soft lighting" },
-    { id: "2", url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800", title: "Classic Light", altText: "Moody studio portrait with classical warm tones" },
-    { id: "3", url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=800", title: "Reflective Gaze", altText: "Male fine art portrait looking thoughtful" },
-    { id: "4", url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=800", title: "Monochrome Study", altText: "Black and white fine art studio portrait" },
-    { id: "5", url: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=800", title: "Dreamy Textures", altText: "Soft focus portrait in natural environment" }
+    { id: "1", url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800", title: "The Portrait", altText: "Artistic close-up female portrait with soft lighting", aspect: "portrait" },
+    { id: "2", url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800", title: "Classic Light", altText: "Moody studio portrait with classical warm tones", aspect: "square" },
+    { id: "3", url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=800", title: "Reflective Gaze", altText: "Male fine art portrait looking thoughtful", aspect: "portrait" },
+    { id: "4", url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=800", title: "Monochrome Study", altText: "Black and white fine art studio portrait", aspect: "landscape" },
+    { id: "5", url: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=800", title: "Dreamy Textures", altText: "Soft focus portrait in natural environment", aspect: "square" }
   ],
   nature: [
-    { id: "1", url: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&q=80&w=800", title: "Swiss Horizons", altText: "Alpine mountain range during golden hour" },
-    { id: "2", url: "https://images.unsplash.com/photo-1472214222541-d510753a49fa?auto=format&fit=crop&q=80&w=800", title: "Serene Valleys", altText: "Lush green valley in the Swiss Alps" },
-    { id: "3", url: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=800", title: "Forest Paths", altText: "Wooden bridge inside sunlit mossy forest" },
-    { id: "4", url: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&q=80&w=800", title: "Morning Mist", altText: "Misty mountain peaks surrounded by clouds" },
-    { id: "5", url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=800", title: "Sun Beams", altText: "Sun rays piercing through giant pine trees" }
+    { id: "1", url: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&q=80&w=800", title: "Swiss Horizons", altText: "Alpine mountain range during golden hour", aspect: "landscape" },
+    { id: "2", url: "https://images.unsplash.com/photo-1472214222541-d510753a49fa?auto=format&fit=crop&q=80&w=800", title: "Serene Valleys", altText: "Lush green valley in the Swiss Alps", aspect: "square" },
+    { id: "3", url: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=800", title: "Forest Paths", altText: "Wooden bridge inside sunlit mossy forest", aspect: "landscape" },
+    { id: "4", url: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&q=80&w=800", title: "Morning Mist", altText: "Misty mountain peaks surrounded by clouds", aspect: "portrait" },
+    { id: "5", url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=800", title: "Sun Beams", altText: "Sun rays piercing through giant pine trees", aspect: "portrait" }
   ]
 };
 
@@ -51,6 +58,11 @@ const CATEGORIES_METADATA: Record<string, { title: string; subtitle: string; des
     title: "Newborn Portfolio",
     subtitle: "Purity, Soft Textures, & Fleeting Moments",
     description: "Capturing the tender first weeks of life with soft organic materials, soothing neutral tones, and detailed close-ups that document how incredibly tiny they once were."
+  },
+  children: {
+    title: "Children Portfolio",
+    subtitle: "Wonder, Playground Laughter, & Candid Portraits",
+    description: "Capturing the boundless energy and authentic wonder of childhood. Natural play sessions and high-end artistic studio portraits tailored to capture children as they truly are."
   },
   maternity: {
     title: "Maternity Portfolio",
@@ -79,6 +91,7 @@ interface GalleryImage {
   url: string;
   title: string;
   altText: string;
+  aspect?: string;
 }
 
 export default function CategoryGalleryPage({ params }: { params: Promise<{ category: string }> }) {
@@ -104,7 +117,7 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       
       try {
-        // Try fetching galleries to find the matching one
+        // Try fetching galleries to find the matching one (normalizing fine-art/fine_art category search)
         const galleriesRes = await fetch(`${apiUrl}/api/galleries?category=${categoryKey}`);
         if (galleriesRes.ok) {
           const galleries = await galleriesRes.json();
@@ -118,7 +131,8 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
                   id: img.id,
                   url: img.optimized_url || img.original_url,
                   title: img.title || "Untitled",
-                  altText: img.alt_text || "Portfolio Image"
+                  altText: img.alt_text || "Portfolio Image",
+                  aspect: img.dimensions?.aspect || "square" // Defaults to square aspect crop
                 }));
                 setImages(formattedImages);
                 setLoading(false);
@@ -179,7 +193,7 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
       
       <main className="flex-1 pt-14 pb-24 bg-[#FCFAF7]">
         {/* Gallery Intro Header */}
-        <div className="max-w-4xl mx-auto px-6 text-center space-y-6 mb-16">
+        <div className="max-w-4xl mx-auto px-6 text-center space-y-6 mb-16 animate-fade-in">
           <Link
             href="/"
             className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#C4A484] hover:text-[#2C2623] transition-colors"
@@ -196,7 +210,7 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
           <span className="block text-xs uppercase tracking-widest font-light text-[#6E635F] italic">
             {metadata.subtitle}
           </span>
-          <p className="text-[#6E635F] text-sm leading-relaxed font-light max-w-2xl mx-auto">
+          <p className="text-[#6E635F] text-sm leading-relaxed font-light max-w-2xl mx-auto text-center leading-relaxed">
             {metadata.description}
           </p>
           <div className="w-12 h-[1px] bg-[#DCD0C0] mx-auto pt-2" />
@@ -206,7 +220,7 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
         <div className="max-w-7xl mx-auto px-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
-              <div className="w-8 h-8 border-2 border-[#C4A484] border-t-transparent rounded-full animate-spin" />
+              <Loader2 className="w-8 h-8 border-2 border-[#C4A484] border-t-transparent rounded-full animate-spin text-[#C4A484]" />
               <p className="text-xs uppercase tracking-wider text-[#6E635F] font-light">Loading Portfolio...</p>
             </div>
           ) : images.length === 0 ? (
@@ -217,44 +231,47 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
               </Link>
             </div>
           ) : (
-            /* Premium Masonry Grid */
-            <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
-              {images.map((img, idx) => (
-                <div
-                  key={img.id}
-                  onClick={() => setActiveImageIndex(idx)}
-                  className="break-inside-avoid relative rounded-xs overflow-hidden cursor-pointer shadow-xs group bg-stone-150 transition-all duration-300 hover:shadow-md animate-fade-in block"
-                >
-                  <img
-                    src={img.url}
-                    alt={img.altText}
-                    className="w-full h-auto object-cover transition-transform duration-700 ease-out scale-100 group-hover:scale-103"
-                    loading="lazy"
-                  />
-                  {/* Subtle Elegant Hover Overlay */}
-                  <div className="absolute inset-0 bg-[#2C2623]/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                    <span className="text-[10px] uppercase tracking-widest text-stone-300 block mb-0.5">
-                      View Frame
-                    </span>
-                    <h4 className="text-sm font-light font-serif text-white tracking-wide">
-                      {img.title}
-                    </h4>
+            /* Premium Aspect-Aligned Grid - matching reference layout exactly */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {images.map((img, idx) => {
+                const aspectClass = img.aspect === "portrait" ? "aspect-[3/4]" : img.aspect === "landscape" ? "aspect-[3/2]" : "aspect-square";
+                return (
+                  <div
+                    key={img.id}
+                    onClick={() => setActiveImageIndex(idx)}
+                    className={`relative rounded-xs overflow-hidden cursor-pointer shadow-xs group bg-[#FAF8F5] border border-[#DCD0C0]/20 transition-all duration-300 hover:shadow-md animate-fade-in block w-full ${aspectClass}`}
+                  >
+                    <img
+                      src={img.url}
+                      alt={img.altText}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out scale-100 group-hover:scale-103"
+                      loading="lazy"
+                    />
+                    {/* Subtle Elegant Hover Overlay */}
+                    <div className="absolute inset-0 bg-[#2C2623]/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                      <span className="text-[10px] uppercase tracking-widest text-stone-300 block mb-0.5">
+                        View Frame
+                      </span>
+                      <h4 className="text-sm font-light font-serif text-white tracking-wide">
+                        {img.title}
+                      </h4>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       </main>
 
-      {/* 9. PREMIUM LIGHTBOX VIEWER */}
+      {/* PREMIUM LIGHTBOX VIEWER */}
       {activeImageIndex !== null && images.length > 0 && (
         <div className="fixed inset-0 z-[100] bg-[#2C2623]/95 backdrop-blur-md flex items-center justify-center transition-all duration-300">
           
           {/* Close Button */}
           <button
             onClick={() => setActiveImageIndex(null)}
-            className="absolute top-6 right-6 text-stone-400 hover:text-white transition-colors cursor-pointer focus:outline-hidden"
+            className="absolute top-6 right-6 text-stone-400 hover:text-white transition-colors cursor-pointer focus:outline-none"
             aria-label="Close Lightbox"
           >
             <X className="w-7 h-7" />
@@ -263,7 +280,7 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
           {/* Left Arrow Button */}
           <button
             onClick={handlePrevImage}
-            className="absolute left-4 sm:left-8 text-stone-400 hover:text-white transition-colors cursor-pointer focus:outline-hidden bg-black/20 p-2.5 rounded-full"
+            className="absolute left-4 sm:left-8 text-stone-400 hover:text-white transition-colors cursor-pointer focus:outline-none bg-black/20 p-2.5 rounded-full"
             aria-label="Previous Image"
           >
             <ChevronLeft className="w-6 h-6" />
@@ -293,7 +310,7 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
           {/* Right Arrow Button */}
           <button
             onClick={handleNextImage}
-            className="absolute right-4 sm:right-8 text-stone-400 hover:text-white transition-colors cursor-pointer focus:outline-hidden bg-black/20 p-2.5 rounded-full"
+            className="absolute right-4 sm:right-8 text-stone-400 hover:text-white transition-colors cursor-pointer focus:outline-none bg-black/20 p-2.5 rounded-full"
             aria-label="Next Image"
           >
             <ChevronRight className="w-6 h-6" />

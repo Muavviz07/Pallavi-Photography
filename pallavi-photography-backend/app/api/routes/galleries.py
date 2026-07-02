@@ -30,7 +30,8 @@ def list_galleries(
     """
     query = db.query(Gallery)
     if category:
-        query = query.filter(Gallery.category == category)
+        db_category = category.replace("-", "_")
+        query = query.filter(Gallery.category == db_category)
     
     if status:
         query = query.filter(Gallery.status == status)
@@ -163,6 +164,7 @@ async def upload_gallery_image(
     title: Optional[str] = Form(None),
     alt_text: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
+    aspect: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin_or_client_user)
 ):
@@ -185,7 +187,8 @@ async def upload_gallery_image(
             gallery_id=db_gallery.id,
             title=title,
             alt_text=alt_text,
-            description=description
+            description=description,
+            aspect=aspect
         )
         return db_image
     except ValueError as e:
@@ -218,6 +221,7 @@ def update_image_metadata(
     alt_text: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     sort_order: Optional[int] = Form(None),
+    aspect: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin_or_client_user)
 ):
@@ -239,6 +243,13 @@ def update_image_metadata(
         db_image.description = description
     if sort_order is not None:
         db_image.sort_order = sort_order
+    if aspect is not None:
+        # Merge or update the dimensions dict
+        from sqlalchemy.orm.attributes import flag_modified
+        dims = dict(db_image.dimensions) if db_image.dimensions else {}
+        dims["aspect"] = aspect
+        db_image.dimensions = dims
+        flag_modified(db_image, "dimensions")
         
     db.add(db_image)
     db.commit()

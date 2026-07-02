@@ -20,6 +20,7 @@ class ImageService:
         title: Optional[str] = None,
         alt_text: Optional[str] = None,
         description: Optional[str] = None,
+        aspect: Optional[str] = None,
     ) -> Image:
         """
         Process, optimize, thumbnail and upload an image file.
@@ -91,6 +92,8 @@ class ImageService:
 
         # Calculate database properties
         dimensions = {"width": width, "height": height}
+        if aspect:
+            dimensions["aspect"] = aspect
         
         # Save DB record
         db_image = Image(

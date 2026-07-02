@@ -3,7 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
-import { Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert } from "lucide-react";
+import { 
+  Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, 
+  Image as ImageIcon, Upload, ArrowLeft, Eye, CheckCircle2, UserCheck
+} from "lucide-react";
 
 interface UserResponse {
   id: string;
@@ -20,10 +23,27 @@ interface ClientGalleryResponse {
   status: string;
   expiry_date?: string;
   selections_submitted: boolean;
+  selections_submitted_at?: string;
   user?: UserResponse;
   user_id: string;
   can_download: boolean;
   can_submit_selections: boolean;
+  can_upload: boolean;
+  can_download_zip: boolean;
+  cover_image_id?: string;
+}
+
+interface ImageItem {
+  image_id: string;
+  selected: boolean;
+  image: {
+    id: string;
+    title: string;
+    alt_text: string;
+    original_url: string;
+    optimized_url: string;
+    thumbnail_url: string;
+  };
 }
 
 export default function AdminGalleries() {
@@ -48,9 +68,18 @@ export default function AdminGalleries() {
     status: "active",
     can_download: false,
     can_submit_selections: true,
+    can_upload: false,
+    can_download_zip: false,
   });
 
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Photos Management Pane States
+  const [selectedGalleryForPhotos, setSelectedGalleryForPhotos] = useState<ClientGalleryResponse | null>(null);
+  const [galleryImages, setGalleryImages] = useState<ImageItem[]>([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
 
   const loadData = async () => {
     if (!token) return;
@@ -59,7 +88,6 @@ export default function AdminGalleries() {
       const gallData = await fetchAPI("/api/admin/galleries", { token });
       const userData = await fetchAPI("/api/admin/users", { token });
       setGalleries(gallData);
-      // Filter out non-client users if desired, or show all
       setUsers(userData.filter((u: UserResponse) => u.role === "client"));
     } catch (err) {
       console.error("Failed to load galleries data", err);
@@ -74,6 +102,18 @@ export default function AdminGalleries() {
     }
   }, [token]);
 
+  const loadGalleryImages = async (galId: string) => {
+    setLoadingImages(true);
+    try {
+      const data = await fetchAPI(`/api/client-galleries/${galId}/images`, { token });
+      setGalleryImages(data);
+    } catch (err) {
+      console.error("Failed to fetch gallery images", err);
+    } finally {
+      setLoadingImages(false);
+    }
+  };
+
   const handleOpenCreate = () => {
     setFormMode("create");
     setSelectedGalleryId(null);
@@ -86,6 +126,8 @@ export default function AdminGalleries() {
       status: "active",
       can_download: false,
       can_submit_selections: true,
+      can_upload: false,
+      can_download_zip: false,
     });
     setErrorMsg("");
     setShowModal(true);
@@ -103,6 +145,8 @@ export default function AdminGalleries() {
       status: g.status,
       can_download: g.can_download,
       can_submit_selections: g.can_submit_selections,
+      can_upload: g.can_upload || false,
+      can_download_zip: g.can_download_zip || false,
     });
     setErrorMsg("");
     setShowModal(true);
@@ -136,7 +180,6 @@ export default function AdminGalleries() {
           body: JSON.stringify(formData),
         });
       } else {
-        // Exclude password if empty during update
         const updatePayload: any = { ...formData };
         if (!formData.password) delete updatePayload.password;
         
@@ -156,7 +199,7 @@ export default function AdminGalleries() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this gallery? This action is permanent.")) return;
+    if (!confirm("Are you sure you want to delete this gallery? This action is permanent and will delete all links.")) return;
     try {
       await fetchAPI(`/api/admin/galleries/${id}`, {
         method: "DELETE",
@@ -165,6 +208,58 @@ export default function AdminGalleries() {
       loadData();
     } catch (err) {
       console.error("Failed to delete gallery", err);
+    }
+  };
+
+  // Image upload handles multiple file selection
+  const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !selectedGalleryForPhotos) return;
+
+    setUploadingFiles(true);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadProgress(`Uploading ${i + 1}/${files.length}: ${file.name}...`);
+        
+        const dataPayload = new FormData();
+        dataPayload.append("file", file);
+        dataPayload.append("title", file.name.substring(0, file.name.lastIndexOf(".")) || file.name);
+        dataPayload.append("alt_text", `${selectedGalleryForPhotos.title} photo proof`);
+
+        const res = await fetch(`${apiUrl}/api/client-galleries/${selectedGalleryForPhotos.id}/images/upload`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          },
+          body: dataPayload
+        });
+
+        if (!res.ok) {
+          console.error(`Failed to upload ${file.name}`);
+        }
+      }
+      setUploadProgress("");
+      loadGalleryImages(selectedGalleryForPhotos.id);
+    } catch (err) {
+      console.error("Upload process encountered errors", err);
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    if (!selectedGalleryForPhotos || !confirm("Are you sure you want to delete this photo from the gallery?")) return;
+    try {
+      await fetchAPI(`/api/client-galleries/${selectedGalleryForPhotos.id}/images/${imageId}`, {
+        method: "DELETE",
+        token
+      });
+      loadGalleryImages(selectedGalleryForPhotos.id);
+    } catch (err) {
+      console.error("Failed to delete gallery photo", err);
     }
   };
 
@@ -177,6 +272,128 @@ export default function AdminGalleries() {
     );
   }
 
+  // Nested Pane: Photo management view
+  if (selectedGalleryForPhotos) {
+    return (
+      <div className="space-y-10 animate-fade-in">
+        {/* Back navigation header */}
+        <div className="flex items-center justify-between border-b border-[#DCD0C0]/25 pb-6">
+          <div className="space-y-1">
+            <button
+              onClick={() => {
+                setSelectedGalleryForPhotos(null);
+                setGalleryImages([]);
+              }}
+              className="inline-flex items-center space-x-1 text-xs uppercase tracking-widest text-[#C4A484] hover:text-[#2C2623] transition-colors mb-2 cursor-pointer font-medium"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Galleries</span>
+            </button>
+            <h1 className="text-2xl font-light font-serif text-[#2C2623]">
+              Manage Gallery Photos
+            </h1>
+            <p className="text-xs text-[#6E635F] font-light font-mono">
+              Gallery: {selectedGalleryForPhotos.title} (/{selectedGalleryForPhotos.slug})
+            </p>
+          </div>
+
+          <div className="relative">
+            <label
+              htmlFor="upload-multi-photos"
+              className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#FCFAF7] bg-[#2C2623] hover:bg-[#352F2C] px-4 py-2.5 rounded-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Upload Photos</span>
+            </label>
+            <input
+              type="file"
+              id="upload-multi-photos"
+              multiple
+              accept="image/*"
+              disabled={uploadingFiles}
+              onChange={handleImagesUpload}
+              className="hidden"
+            />
+          </div>
+        </div>
+
+        {/* Upload progress message */}
+        {uploadingFiles && (
+          <div className="bg-[#FAF8F5] border border-[#C4A484]/30 rounded-sm p-4 text-xs text-[#6E635F] flex items-center space-x-3">
+            <Loader2 className="w-4 h-4 text-[#C4A484] animate-spin" />
+            <span>{uploadProgress}</span>
+          </div>
+        )}
+
+        {/* Image Grid view with client selection status */}
+        {loadingImages ? (
+          <div className="flex flex-col items-center justify-center py-20 space-y-3">
+            <Loader2 className="w-6 h-6 text-[#C4A484] animate-spin" />
+            <p className="text-xs text-[#6E635F] font-light">Loading photos...</p>
+          </div>
+        ) : galleryImages.length === 0 ? (
+          <div className="text-center py-24 border border-dashed border-[#DCD0C0]/35 rounded-md bg-white">
+            <ImageIcon className="w-8 h-8 text-stone-300 mx-auto mb-2" />
+            <p className="text-xs text-[#6E635F] font-light">This gallery is currently empty. Upload photos to get started.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {galleryImages.map((item) => (
+              <div
+                key={item.image_id}
+                className={`relative group bg-[#FAF8F5] border border-[#DCD0C0]/25 rounded-sm overflow-hidden shadow-xs flex flex-col justify-between ${
+                  item.selected ? "ring-2 ring-[#C4A484]/65 border-transparent" : ""
+                }`}
+              >
+                {/* Thumbnail container */}
+                <div className="aspect-square w-full bg-stone-100 overflow-hidden relative">
+                  <img
+                    src={item.image.thumbnail_url || item.image.optimized_url}
+                    alt={item.image.alt_text}
+                    className="w-full h-full object-cover"
+                  />
+                  
+                  {/* Selection Overlay Badge */}
+                  {item.selected && (
+                    <div className="absolute top-2 left-2 bg-[#C4A484] text-white p-1 rounded-full shadow-xs" title="Selected by client">
+                      <UserCheck className="w-3.5 h-3.5" />
+                    </div>
+                  )}
+
+                  {/* Actions cover overlay */}
+                  <div className="absolute inset-0 bg-[#2C2623]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-3">
+                    <button
+                      onClick={() => handleDeleteImage(item.image.id)}
+                      className="p-2 bg-white/95 rounded-full text-red-600 hover:bg-white transition-colors cursor-pointer"
+                      title="Delete photo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Meta details */}
+                <div className="p-3 space-y-1">
+                  <p className="text-[10px] text-[#2C2623] truncate font-medium">{item.image.title}</p>
+                  <p className="text-[9px] uppercase tracking-wider font-semibold flex items-center gap-1">
+                    {item.selected ? (
+                      <span className="text-[#C4A484] flex items-center gap-0.5">
+                        <CheckCircle2 className="w-3 h-3" /> Selected
+                      </span>
+                    ) : (
+                      <span className="text-stone-400">Unselected</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Primary list pane
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -204,7 +421,7 @@ export default function AdminGalleries() {
           <p className="text-xs text-[#6E635F] font-light">No client galleries created yet.</p>
         </div>
       ) : (
-        <div className="bg-white border border-[#DCD0C0]/25 rounded-md overflow-hidden shadow-xs">
+        <div className="bg-white border border-[#DCD0C0]/25 rounded-md overflow-hidden shadow-xs animate-fade-in">
           <table className="w-full text-left text-xs font-light text-[#6E635F] border-collapse">
             <thead>
               <tr className="bg-[#FAF8F5] border-b border-[#DCD0C0]/20 text-[#2C2623] font-semibold uppercase tracking-wider text-[9px]">
@@ -233,7 +450,7 @@ export default function AdminGalleries() {
                   </td>
                   <td className="p-4 text-center">
                     {g.selections_submitted ? (
-                      <span className="inline-flex items-center text-green-600 font-medium gap-0.5">
+                      <span className="inline-flex items-center text-green-600 font-semibold gap-0.5" title={g.selections_submitted_at ? new Date(g.selections_submitted_at).toLocaleString() : ""}>
                         <Check className="w-3.5 h-3.5" /> Yes
                       </span>
                     ) : (
@@ -242,22 +459,32 @@ export default function AdminGalleries() {
                   </td>
                   <td className="p-4 text-center">
                     {g.can_download ? (
-                      <span className="text-green-600">Enabled</span>
+                      <span className="text-green-600 font-medium">Enabled</span>
                     ) : (
                       <span className="text-stone-400">Locked</span>
                     )}
                   </td>
                   <td className="p-4 text-right space-x-2">
                     <button
+                      onClick={() => {
+                        setSelectedGalleryForPhotos(g);
+                        loadGalleryImages(g.id);
+                      }}
+                      className="p-1 text-[#C4A484] hover:text-[#2C2623] transition-colors cursor-pointer"
+                      title="Manage Photos"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleOpenEdit(g)}
-                      className="p-1 text-stone-400 hover:text-[#2C2623] transition-colors"
-                      title="Edit Gallery"
+                      className="p-1 text-stone-400 hover:text-[#2C2623] transition-colors cursor-pointer"
+                      title="Edit Settings"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(g.id)}
-                      className="p-1 text-stone-400 hover:text-red-600 transition-colors"
+                      className="p-1 text-stone-400 hover:text-red-600 transition-colors cursor-pointer"
                       title="Delete Gallery"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -273,9 +500,9 @@ export default function AdminGalleries() {
       {/* Modal Popup */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs">
-          <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-md w-full shadow-lg space-y-6 animate-fade-in mx-4">
+          <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-md w-full shadow-lg space-y-6 animate-scale-in mx-4">
             <div className="flex items-center justify-between border-b border-[#DCD0C0]/20 pb-3">
-              <h3 className="text-sm font-serif font-semibold text-[#2C2623]">
+              <h3 className="text-sm font-serif font-semibold text-[#2C2623] uppercase tracking-wider">
                 {formMode === "create" ? "Create Client Gallery" : "Edit Client Gallery"}
               </h3>
               <button

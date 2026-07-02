@@ -78,13 +78,23 @@ export default async function AdminLayout({
               </Link>
             )}
 
-            {/* Galleries & Clients */}
+            {/* Portfolio Gallery */}
+            {(isSuperAdmin || (isAdmin && settings.galleries)) && (
+              <Link
+                href="/delq-portal/portfolio"
+                className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+              >
+                Portfolio Gallery
+              </Link>
+            )}
+
+            {/* Client Galleries */}
             {(isSuperAdmin || (isAdmin && settings.galleries) || userRole === "client") && (
               <Link
                 href="/delq-portal/galleries"
                 className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
               >
-                Galleries & Clients
+                Client Galleries
               </Link>
             )}
 

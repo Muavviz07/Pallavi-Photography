@@ -134,6 +134,37 @@ def check_gallery_access(
         
     return gallery
 
+@router.get("/public/list")
+def list_public_client_galleries(
+    db: Session = Depends(get_db)
+):
+    """
+    List all active client galleries publicly.
+    """
+    # Exclude closed and expired galleries
+    galleries = db.query(ClientGallery).filter(ClientGallery.status == "active").order_by(ClientGallery.created_at.desc()).all()
+    
+    res = []
+    for g in galleries:
+        image_count = db.query(ClientGalleryImage).filter(ClientGalleryImage.client_gallery_id == g.id).count()
+        client_name = g.user.email.split("@")[0].replace(".", " ").title() if g.user else "Client"
+        
+        cover_image_url = None
+        if g.cover_image:
+            cover_image_url = g.cover_image.optimized_url or g.cover_image.original_url
+            
+        res.append({
+            "id": str(g.id),
+            "title": g.title,
+            "slug": g.slug,
+            "description": g.description,
+            "expiry_date": g.expiry_date.isoformat() if g.expiry_date else None,
+            "cover_image_url": cover_image_url,
+            "image_count": image_count,
+            "client_name": client_name
+        })
+    return res
+
 @router.get("", response_model=List[ClientGalleryResponse])
 def list_client_galleries(
     db: Session = Depends(get_db),
