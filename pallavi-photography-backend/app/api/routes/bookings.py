@@ -16,9 +16,9 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
 # Public route to get already-booked dates (so calendar interface can block them)
 @router.get("/availability", response_model=List[str])
 def get_booked_dates(db: Session = Depends(get_db)):
-    # Get all booking dates that are approved or pending
+    # Get all booking dates that are approved
     bookings = db.query(Booking).filter(
-        Booking.status.in_([BookingStatus.APPROVED.value, BookingStatus.PENDING.value])
+        Booking.status == BookingStatus.APPROVED.value
     ).all()
     # Format dates as ISO strings
     return list(set(b.date.isoformat() for b in bookings))

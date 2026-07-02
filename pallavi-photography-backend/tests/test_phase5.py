@@ -133,8 +133,8 @@ def test_bookings_flow(client: TestClient):
     # 2. Get availability mapping
     avail_res = client.get("/api/bookings/availability")
     assert avail_res.status_code == 200
-    # Pending bookings block dates, so it should be in the list
-    assert "2026-07-15" in avail_res.json()
+    # Pending bookings do not block dates in the calendar until approved!
+    assert "2026-07-15" not in avail_res.json()
 
     # 3. Approve booking request (admin)
     app_res = client.patch(f"/api/bookings/admin/{booking_id}", headers=admin_headers, json={

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { api } from "@/lib/api";
 
 const contactTranslations = {
@@ -21,6 +21,19 @@ const contactTranslations = {
     sendBtn: "SEND",
     successTitle: "Message Sent!",
     successDesc: "Thank you for reaching out. We have received your inquiry and will respond within 24–48 hours to discuss your photography details.",
+    
+    // Calendar translation keys
+    calendarSubtitle: "RESERVATION CALENDAR",
+    calendarTitle: "BOOK A PHOTOSHOOT SLOT",
+    calendarDesc: "Select an available date and time below to submit your photoshoot session request. The studio will reach out to approve details.",
+    calendarSuccessTitle: "Request Submitted!",
+    calendarSuccessDesc: "Thank you! Your photoshoot slot request has been sent successfully. We will check availability and send you an email confirmation shortly.",
+    calendarResetBtn: "BOOK ANOTHER SLOT",
+    calendarDateLabel: "Date",
+    calendarTimeSlotsLabel: "Available Time Slots",
+    calendarMsgLabel: "Add Message (Optional)",
+    calendarCtaBtn: "Request Session Slot",
+    calendarPlaceholder: "Please select an available date from the calendar to proceed."
   },
   FR: {
     bannerTitle: "CONTACT",
@@ -35,6 +48,19 @@ const contactTranslations = {
     sendBtn: "ENVOYER",
     successTitle: "Message Envoyé !",
     successDesc: "Merci pour votre message. Nous avons bien reçu votre demande et nous vous répondrons dans les 24 à 48 heures pour discuter des détails de votre séance.",
+    
+    // Calendar translation keys
+    calendarSubtitle: "CALENDRIER DE RÉSERVATION",
+    calendarTitle: "RÉSERVER UN CRÉNEAU",
+    calendarDesc: "Sélectionnez une date et un horaire disponibles ci-dessous pour soumettre votre demande de séance photo. Le studio vous contactera pour valider les détails.",
+    calendarSuccessTitle: "Demande Envoyée !",
+    calendarSuccessDesc: "Merci ! Votre demande de créneau a bien été envoyée. Nous allons vérifier la disponibilité et vous envoyer un e-mail de confirmation très vite.",
+    calendarResetBtn: "RÉSERVER UN AUTRE CRÉNEAU",
+    calendarDateLabel: "Date",
+    calendarTimeSlotsLabel: "Créneaux Horaires Disponibles",
+    calendarMsgLabel: "Message (Optionnel)",
+    calendarCtaBtn: "Demander ce Créneau",
+    calendarPlaceholder: "Veuillez sélectionner une date disponible sur le calendrier pour continuer."
   }
 };
 
@@ -53,6 +79,7 @@ export default function ContactPage() {
     instagram: "@pallavivishk"
   });
 
+  // General Inquiry Form States
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -61,6 +88,19 @@ export default function ContactPage() {
   });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Calendar Booking States
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState("");
+  const [bookedDates, setBookedDates] = useState<string[]>([]);
+  const [bookingStatus, setBookingStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [bookingError, setBookingError] = useState("");
+  const [bookingForm, setBookingForm] = useState({
+    name: "",
+    email: "",
+    message: ""
+  });
 
   useEffect(() => {
     const stored = localStorage.getItem("lang") || "EN";
@@ -74,7 +114,7 @@ export default function ContactPage() {
     return () => window.removeEventListener("languagechange", handleLangChange);
   }, []);
 
-  // Fetch dynamic contact data
+  // Fetch dynamic contact details and blocked dates availability
   useEffect(() => {
     async function loadContactSection() {
       try {
@@ -86,7 +126,20 @@ export default function ContactPage() {
         console.warn("Failed to load contact section from backend, using fallbacks", err);
       }
     }
+
+    async function fetchAvailability() {
+      try {
+        const res = await api.get<any>("/bookings/availability");
+        if (res) {
+          setBookedDates(res);
+        }
+      } catch (err) {
+        console.error("Failed to load availability mapping", err);
+      }
+    }
+
     loadContactSection();
+    fetchAvailability();
   }, []);
 
   const t = contactTranslations[lang as "EN" | "FR"] || contactTranslations.EN;
@@ -99,6 +152,12 @@ export default function ContactPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleBookingInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setBookingForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Submit General Enquiry Form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) return;
@@ -122,6 +181,116 @@ export default function ContactPage() {
     }
   };
 
+  // Submit Calendar Booking Form
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDate || !selectedTime || !bookingForm.name || !bookingForm.email) return;
+
+    setBookingStatus("loading");
+    setBookingError("");
+
+    try {
+      const payload = {
+        name: bookingForm.name,
+        email: bookingForm.email,
+        date: selectedDate.toISOString().split("T")[0],
+        time: selectedTime,
+        message: bookingForm.message
+      };
+
+      await api.post("/bookings", payload);
+
+      setBookingStatus("success");
+      setBookingForm({ name: "", email: "", message: "" });
+      setSelectedDate(null);
+      setSelectedTime("");
+
+      // Update booked dates list to block this date locally
+      setBookedDates((prev) => [...prev, payload.date]);
+    } catch (err: any) {
+      setBookingStatus("error");
+      setBookingError(err.message || (lang === "FR" ? "Désolé, échec de la réservation." : "Failed to request session slot."));
+    }
+  };
+
+  // Calendar Math
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  const handleDateClick = (day: number) => {
+    const dateObj = new Date(year, month, day);
+    
+    // Block past dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (dateObj < today) return;
+
+    // Block already booked dates
+    const isoString = dateObj.toISOString().split("T")[0];
+    if (bookedDates.includes(isoString)) return;
+
+    setSelectedDate(dateObj);
+  };
+
+  const monthNames = lang === "FR" ? [
+    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+  ] : [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const daysGrid = [];
+  // Empty offset days
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    daysGrid.push(<div key={`empty-${i}`} className="p-3" />);
+  }
+  // Days of month
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month, d);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPast = dateObj < today;
+
+    const isoStr = dateObj.toISOString().split("T")[0];
+    const isBooked = bookedDates.includes(isoStr);
+    const isSelected = selectedDate && selectedDate.getDate() === d && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
+
+    let dayClass = "text-[#6E635F] hover:bg-[#FAF8F5]/85 hover:border-[#C4A484]/45";
+    if (isPast) {
+      dayClass = "text-stone-300 cursor-not-allowed line-through";
+    } else if (isBooked) {
+      dayClass = "text-red-300 bg-red-50/20 cursor-not-allowed line-through border border-red-100/10";
+    } else if (isSelected) {
+      dayClass = "bg-[#2C2623] text-white font-medium border-[#2C2623] shadow-xs";
+    }
+
+    daysGrid.push(
+      <button
+        key={`day-${d}`}
+        type="button"
+        disabled={isPast || isBooked}
+        onClick={() => handleDateClick(d)}
+        className={`p-3 text-center text-xs rounded-sm border border-transparent transition-all cursor-pointer ${dayClass}`}
+      >
+        {d}
+      </button>
+    );
+  }
+
+  const timeSlots = ["09:00:00", "11:00:00", "14:00:00", "16:00:00"];
+
   return (
     <>
       <Header />
@@ -139,7 +308,7 @@ export default function ContactPage() {
           
           {/* Page Main Title */}
           <div className="text-center">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif text-brand-dark uppercase tracking-[0.25em] font-light">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif text-brand-dark uppercase tracking-[0.25em] font-light animate-fade-in">
               {displayTitle}
             </h1>
           </div>
@@ -208,7 +377,7 @@ export default function ContactPage() {
           {/* Two Columns Grid: Picture & Contact Form */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-20 items-start">
             
-            {/* Left side Image (Portrait from about-me page) */}
+            {/* Left side Image */}
             <div className="col-span-1 md:col-span-6 flex justify-center">
               <div className="w-full max-w-[480px] aspect-[3/4] overflow-hidden bg-stone-50 border border-stone-200/50 shadow-xs">
                 <img
@@ -235,7 +404,7 @@ export default function ContactPage() {
               {/* Form implementation */}
               <div className="w-full">
                 {status === "success" ? (
-                  <div className="text-center py-12 space-y-4 border border-stone-200/60 p-8 bg-[#FAF8F5]">
+                  <div className="text-center py-12 space-y-4 border border-stone-200/60 p-8 bg-[#FAF8F5] animate-fade-in">
                     <CheckCircle className="w-12 h-12 text-[#8F9288] mx-auto animate-bounce" />
                     <h4 className="text-lg font-serif font-light text-brand-dark uppercase">
                       {t.successTitle}
@@ -263,7 +432,7 @@ export default function ContactPage() {
                         value={formData.name}
                         onChange={handleChange}
                         disabled={status === "loading"}
-                        className="w-full bg-transparent border-b border-stone-200 py-2 text-sm text-stone-800 outline-hidden focus:border-[#8F9288] transition-colors duration-300 disabled:opacity-60"
+                        className="w-full bg-transparent border-b border-stone-200 py-2 text-sm text-stone-800 outline-none focus:border-[#8F9288] transition-colors duration-300 disabled:opacity-60"
                       />
                     </div>
 
@@ -283,7 +452,7 @@ export default function ContactPage() {
                         value={formData.email}
                         onChange={handleChange}
                         disabled={status === "loading"}
-                        className="w-full bg-transparent border-b border-stone-200 py-2 text-sm text-stone-800 outline-hidden focus:border-[#8F9288] transition-colors duration-300 disabled:opacity-60"
+                        className="w-full bg-transparent border-b border-stone-200 py-2 text-sm text-stone-800 outline-none focus:border-[#8F9288] transition-colors duration-300 disabled:opacity-60"
                       />
                     </div>
 
@@ -303,7 +472,7 @@ export default function ContactPage() {
                         value={formData.tentative_date}
                         onChange={handleChange}
                         disabled={status === "loading"}
-                        className="w-full bg-transparent border-b border-stone-200 py-2 text-sm text-stone-800 placeholder-stone-300 outline-hidden focus:border-[#8F9288] transition-colors duration-300 disabled:opacity-60"
+                        className="w-full bg-transparent border-b border-stone-200 py-2 text-sm text-stone-800 placeholder-stone-300 outline-none focus:border-[#8F9288] transition-colors duration-300 disabled:opacity-60"
                       />
                     </div>
 
@@ -323,12 +492,12 @@ export default function ContactPage() {
                         value={formData.message}
                         onChange={handleChange}
                         disabled={status === "loading"}
-                        className="w-full bg-transparent border-b border-stone-200 py-2 text-sm text-stone-800 outline-hidden focus:border-[#8F9288] transition-colors duration-300 resize-none min-h-[100px] disabled:opacity-60"
+                        className="w-full bg-transparent border-b border-stone-200 py-2 text-sm text-stone-800 outline-none focus:border-[#8F9288] transition-colors duration-300 resize-none min-h-[100px] disabled:opacity-60"
                       />
                     </div>
 
                     {status === "error" && (
-                      <p className="text-xs text-red-600 font-light">{errorMessage}</p>
+                      <p className="text-xs text-red-650 font-light">{errorMessage}</p>
                     )}
 
                     {/* Submit Button */}
@@ -351,6 +520,198 @@ export default function ContactPage() {
               </div>
 
             </div>
+          </div>
+
+          {/* Calendar Booking Section */}
+          <div className="border-t border-stone-100 pt-16 space-y-10 animate-fade-in">
+            <div className="text-center max-w-xl mx-auto space-y-3">
+              <span className="text-[10px] uppercase tracking-[0.35em] text-[#C4A484] font-semibold block">
+                {t.calendarSubtitle}
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-serif text-[#2C2623] font-light uppercase tracking-wider">
+                {t.calendarTitle}
+              </h2>
+              <p className="text-stone-500 text-xs font-light leading-relaxed">
+                {t.calendarDesc}
+              </p>
+            </div>
+
+            {bookingStatus === "success" ? (
+              <div className="max-w-md mx-auto text-center bg-[#FAF8F5] border border-[#DCD0C0]/35 rounded-md p-8 shadow-xs space-y-4 animate-fade-in">
+                <CheckCircle className="w-12 h-12 text-[#C4A484] mx-auto animate-bounce" />
+                <h4 className="text-lg font-light font-serif text-brand-dark uppercase">
+                  {t.calendarSuccessTitle}
+                </h4>
+                <p className="text-xs text-stone-500 font-light max-w-sm mx-auto leading-relaxed">
+                  {t.calendarSuccessDesc}
+                </p>
+                <button
+                  onClick={() => setBookingStatus("idle")}
+                  className="inline-block text-xs uppercase tracking-widest text-[#FCFAF7] bg-[#2C2623] hover:bg-[#352F2C] px-6 py-2.5 rounded-sm font-medium transition-all duration-300 cursor-pointer"
+                >
+                  {t.calendarResetBtn}
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+                
+                {/* Left Calendar Selection */}
+                <div className="lg:col-span-7 bg-[#FAF8F5] border border-[#DCD0C0]/30 rounded-md p-6 shadow-xs space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-serif font-light text-[#2C2623]">
+                      {monthNames[month]} {year}
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handlePrevMonth}
+                        type="button"
+                        className="p-1.5 rounded-sm border border-[#DCD0C0]/40 text-[#6E635F] hover:text-[#2C2623] hover:bg-[#FCFAF7] transition-all cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={handleNextMonth}
+                        type="button"
+                        className="p-1.5 rounded-sm border border-[#DCD0C0]/40 text-[#6E635F] hover:text-[#2C2623] hover:bg-[#FCFAF7] transition-all cursor-pointer"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Calendar Grid */}
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wider text-stone-400 font-semibold mb-2">
+                      <span>Su</span>
+                      <span>Mo</span>
+                      <span>Tu</span>
+                      <span>We</span>
+                      <span>Th</span>
+                      <span>Fr</span>
+                      <span>Sa</span>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {daysGrid}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center space-x-6 text-[10px] text-[#6E635F] pt-4 border-t border-[#DCD0C0]/20 font-light">
+                    <span className="flex items-center space-x-1.5">
+                      <span className="w-2.5 h-2.5 rounded-sm bg-[#2C2623]" />
+                      <span>Selected</span>
+                    </span>
+                    <span className="flex items-center space-x-1.5">
+                      <span className="w-2.5 h-2.5 rounded-sm bg-red-50/50 border border-red-200" />
+                      <span>Booked / Out</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right Booking Details & Form */}
+                <div className="lg:col-span-5 bg-[#FAF8F5] border border-[#DCD0C0]/30 rounded-md p-6 shadow-xs space-y-6">
+                  <h3 className="text-xs uppercase tracking-widest font-semibold text-[#2C2623] border-b border-[#DCD0C0]/25 pb-3">
+                    Session Details
+                  </h3>
+
+                  {selectedDate ? (
+                    <form onSubmit={handleBookingSubmit} className="space-y-4 text-xs">
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase text-stone-400 font-semibold">{t.calendarDateLabel}</span>
+                        <p className="text-xs text-[#2C2623] font-medium flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-[#C4A484]" />
+                          {selectedDate.toLocaleDateString(lang === "FR" ? "fr-CH" : "en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <span className="text-[10px] uppercase text-stone-400 font-semibold block">{t.calendarTimeSlotsLabel}</span>
+                        <div className="grid grid-cols-4 gap-2">
+                          {timeSlots.map((slot) => (
+                            <button
+                              key={slot}
+                              type="button"
+                              onClick={() => setSelectedTime(slot)}
+                              className={`py-2 text-[10px] font-semibold border rounded-sm transition-all cursor-pointer text-center ${
+                                selectedTime === slot
+                                  ? "bg-[#2C2623] text-white border-[#2C2623]"
+                                  : "bg-[#FCFAF7] border-[#DCD0C0]/40 text-[#6E635F] hover:border-[#C4A484]/40"
+                              }`}
+                            >
+                              {slot.slice(0, 5)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 pt-2">
+                        <div>
+                          <label htmlFor="booking-name" className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium">{t.nameFormLabel}</label>
+                          <input
+                            type="text"
+                            id="booking-name"
+                            name="name"
+                            value={bookingForm.name}
+                            onChange={handleBookingInputChange}
+                            required
+                            disabled={bookingStatus === "loading"}
+                            className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2 text-xs outline-none focus:border-[#C4A484] transition-colors"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="booking-email" className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium">{t.emailFormLabel}</label>
+                          <input
+                            type="email"
+                            id="booking-email"
+                            name="email"
+                            value={bookingForm.email}
+                            onChange={handleBookingInputChange}
+                            required
+                            disabled={bookingStatus === "loading"}
+                            className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2 text-xs outline-none focus:border-[#C4A484] transition-colors"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="booking-message" className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium">{t.calendarMsgLabel}</label>
+                          <textarea
+                            id="booking-message"
+                            name="message"
+                            rows={3}
+                            value={bookingForm.message}
+                            onChange={handleBookingInputChange}
+                            disabled={bookingStatus === "loading"}
+                            className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2 text-xs outline-none focus:border-[#C4A484] transition-colors resize-none font-light"
+                          />
+                        </div>
+                      </div>
+
+                      {bookingStatus === "error" && (
+                        <p className="text-xs text-red-650 font-light">{bookingError}</p>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={bookingStatus === "loading" || !selectedTime}
+                        className="w-full inline-flex items-center justify-center space-x-2 text-[10px] uppercase tracking-widest text-[#FCFAF7] bg-[#2C2623] hover:bg-[#352F2C] py-3 rounded-sm font-semibold transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                      >
+                        {bookingStatus === "loading" ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <span>{t.calendarCtaBtn}</span>
+                        )}
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="text-center py-12 space-y-2 text-[#6E635F]/60">
+                      <Calendar className="w-8 h-8 text-[#DCD0C0]/60 mx-auto" />
+                      <p className="text-xs font-light">{t.calendarPlaceholder}</p>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
           </div>
 
         </div>
