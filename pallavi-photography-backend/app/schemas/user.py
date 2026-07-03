@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 class UserBase(BaseModel):
-    email: EmailStr
+    email: str
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
@@ -11,7 +11,7 @@ class UserCreate(UserBase):
     status: str | None = "active"
 
 class UserUpdate(BaseModel):
-    email: EmailStr | None = None
+    email: str | None = None
     password: str | None = Field(None, min_length=8)
     role: str | None = None
     status: str | None = None
@@ -26,8 +26,19 @@ class UserResponse(UserBase):
     updated_at: datetime
     permissions: list[str] | None = None
 
+class UserAdminResponse(UserResponse):
+    password_hash: str | None = None
+
+    @field_validator("password_hash", mode="before")
+    @classmethod
+    def decrypt_db_password(cls, v: str | None) -> str | None:
+        if v:
+            from app.core.security import decrypt_password
+            return decrypt_password(v)
+        return v
+
 class LoginCredentials(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 class Token(BaseModel):

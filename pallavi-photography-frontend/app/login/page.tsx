@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -13,6 +14,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,44 +81,52 @@ function LoginForm() {
                 htmlFor="email"
                 className="block text-xs font-semibold uppercase tracking-wider text-stone-600"
               >
-                Email address
+                Email / Username
               </label>
               <div className="mt-2">
                 <input
                   id="email"
                   name="email"
-                  type="email"
-                  autoComplete="email"
+                  type="text"
+                  autoComplete="username"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   className="block w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-stone-900 shadow-sm focus:border-stone-950 focus:outline-none focus:ring-1 focus:ring-stone-950 sm:text-sm placeholder-stone-400 disabled:opacity-50"
-                  placeholder="name@example.com"
+                  placeholder="Username or Email"
                 />
               </div>
             </div>
 
-            <div>
+             <div>
               <label
                 htmlFor="password"
                 className="block text-xs font-semibold uppercase tracking-wider text-stone-600"
               >
                 Password
               </label>
-              <div className="mt-2">
+              <div className="mt-2 relative">
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
-                  className="block w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-stone-900 shadow-sm focus:border-stone-950 focus:outline-none focus:ring-1 focus:ring-stone-950 sm:text-sm placeholder-stone-400 disabled:opacity-50"
+                  className="block w-full rounded-md border border-stone-300 bg-transparent pl-3 pr-10 py-2 text-stone-900 shadow-sm focus:border-stone-950 focus:outline-none focus:ring-1 focus:ring-stone-950 sm:text-sm placeholder-stone-400 disabled:opacity-50"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 

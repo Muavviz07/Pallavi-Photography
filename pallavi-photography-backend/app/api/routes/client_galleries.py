@@ -1,4 +1,5 @@
 import uuid
+import re
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Header, Request
@@ -58,6 +59,88 @@ def create_gallery_token(gallery_id: uuid.UUID) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=1)
     to_encode = {"exp": expire, "sub": str(gallery_id), "type": "gallery_access"}
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def slugify(text: str) -> str:
+    text = text.lower()
+    text = re.sub(r'[^a-z0-9]+', '-', text)
+    text = re.sub(r'-+', '-', text)
+    return text.strip('-')
+
+def make_slug_unique(db: Session, base_slug: str) -> str:
+    slug = base_slug
+    counter = 1
+    while db.query(ClientGallery).filter(ClientGallery.slug == slug).first():
+        counter += 1
+        slug = f"{base_slug}-{counter}"
+    return slug
+
+def process_and_create_gallery_logic(gallery_in: ClientGalleryCreate, db: Session) -> ClientGallery:
+    # 1. Resolve / generate slug
+    if not gallery_in.slug or not gallery_in.slug.strip():
+        base_slug = slugify(gallery_in.title)
+        if not base_slug:
+            base_slug = "gallery"
+        slug = make_slug_unique(db, base_slug)
+    else:
+        slug = slugify(gallery_in.slug)
+        existing = db.query(ClientGallery).filter(ClientGallery.slug == slug).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A client gallery with this slug already exists."
+            )
+
+    # 2. Resolve / create owner User using title (client name) as username
+    user_id = gallery_in.user_id
+    if not user_id:
+        username = gallery_in.title
+        # Make sure username is unique in the users table
+        email = username
+        counter = 1
+        while db.query(User).filter(User.email == email).first():
+            counter += 1
+            email = f"{username} ({counter})"
+        
+        # Create User
+        password_to_hash = gallery_in.password or "temporary_client_password"
+        db_user = User(
+            email=email,
+            password_hash=security.encrypt_password(password_to_hash),
+            role=UserRole.CLIENT.value,
+            status="active"
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        user_id = db_user.id
+
+    # 3. Store gallery passcode as encrypted in password_hash
+    password_hash = security.encrypt_password(gallery_in.password) if gallery_in.password else None
+
+    # 4. Create ClientGallery
+    db_gallery = ClientGallery(
+        user_id=user_id,
+        title=gallery_in.title,
+        slug=slug,
+        description=gallery_in.description,
+        status=gallery_in.status or "active",
+        password_hash=password_hash,
+        expiry_date=gallery_in.expiry_date,
+        can_view=gallery_in.can_view if gallery_in.can_view is not None else True,
+        can_upload=gallery_in.can_upload if gallery_in.can_upload is not None else False,
+        can_replace=gallery_in.can_replace if gallery_in.can_replace is not None else False,
+        can_delete=gallery_in.can_delete if gallery_in.can_delete is not None else False,
+        can_download=gallery_in.can_download if gallery_in.can_download is not None else True,
+        can_download_zip=gallery_in.can_download_zip if gallery_in.can_download_zip is not None else False,
+        can_edit_details=gallery_in.can_edit_details if gallery_in.can_edit_details is not None else False,
+        can_submit_selections=gallery_in.can_submit_selections if gallery_in.can_submit_selections is not None else True,
+        can_share=gallery_in.can_share if gallery_in.can_share is not None else False,
+    )
+    db.add(db_gallery)
+    db.commit()
+    db.refresh(db_gallery)
+    return db_gallery
+
 
 def check_gallery_access(
     id_or_slug: str,
@@ -188,48 +271,7 @@ def create_client_gallery(
     """
     Create a new client gallery. (Admin only)
     """
-    existing = db.query(ClientGallery).filter(ClientGallery.slug == gallery_in.slug).first()
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A client gallery with this slug already exists."
-        )
-        
-    # Verify owner exists
-    owner = db.query(User).filter(User.id == gallery_in.user_id).first()
-    if not owner:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Specified client owner user not found."
-        )
-        
-    password_hash = None
-    if gallery_in.password:
-        password_hash = security.get_password_hash(gallery_in.password)
-        
-    db_gallery = ClientGallery(
-        user_id=gallery_in.user_id,
-        title=gallery_in.title,
-        slug=gallery_in.slug,
-        description=gallery_in.description,
-        status=gallery_in.status,
-        password_hash=password_hash,
-        expiry_date=gallery_in.expiry_date,
-        can_view=gallery_in.can_view,
-        can_upload=gallery_in.can_upload,
-        can_replace=gallery_in.can_replace,
-        can_delete=gallery_in.can_delete,
-        can_download=gallery_in.can_download,
-        can_download_zip=gallery_in.can_download_zip,
-        can_edit_details=gallery_in.can_edit_details,
-        can_submit_selections=gallery_in.can_submit_selections,
-        can_share=gallery_in.can_share,
-    )
-    
-    db.add(db_gallery)
-    db.commit()
-    db.refresh(db_gallery)
-    return db_gallery
+    return process_and_create_gallery_logic(gallery_in, db)
 
 @router.get("/{id_or_slug}")
 def get_client_gallery_meta(
@@ -319,7 +361,17 @@ def unlock_client_gallery(
     if not gallery.password_hash:
         return {"unlocked": True, "token": None}
         
-    if not security.verify_password(access_in.password, gallery.password_hash):
+    password_correct = False
+    decrypted_pw = security.decrypt_password(gallery.password_hash)
+    if decrypted_pw == access_in.password:
+        password_correct = True
+    else:
+        try:
+            password_correct = security.verify_password(access_in.password, gallery.password_hash)
+        except Exception:
+            pass
+            
+    if not password_correct:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect password."
@@ -346,9 +398,19 @@ def update_client_gallery(
         )
         
     update_data = gallery_in.model_dump(exclude_unset=True)
+    if "slug" in update_data and update_data["slug"]:
+        slug = slugify(update_data["slug"])
+        existing = db.query(ClientGallery).filter(ClientGallery.slug == slug, ClientGallery.id != id).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A client gallery with this slug already exists."
+            )
+        update_data["slug"] = slug
+
     for field, value in update_data.items():
         if field == "password" and value is not None:
-            db_gallery.password_hash = security.get_password_hash(value)
+            db_gallery.password_hash = security.encrypt_password(value)
         elif value is not None:
             setattr(db_gallery, field, value)
             

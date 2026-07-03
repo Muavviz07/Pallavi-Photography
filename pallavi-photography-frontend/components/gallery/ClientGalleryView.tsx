@@ -217,10 +217,17 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
       if (e.key === "Escape") setLightboxIndex(null);
       if (e.key === "ArrowRight") setLightboxIndex((prev) => (prev !== null && prev < images.length - 1 ? prev + 1 : 0));
       if (e.key === "ArrowLeft") setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : images.length - 1));
+      if (e.key === " ") {
+        e.preventDefault();
+        const currentImg = images[lightboxIndex];
+        if (currentImg && meta.can_submit_selections && !meta.selections_submitted) {
+          toggleSelection(currentImg.image_id, currentImg.selected);
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [lightboxIndex, images]);
+  }, [lightboxIndex, images, meta]);
 
   return (
     <div className="bg-[#FCFAF7] min-h-screen">
@@ -346,15 +353,39 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
                 >
                   {/* Image Frame */}
                   <div
-                    onClick={() => setLightboxIndex(idx)}
-                    className="relative aspect-square w-full overflow-hidden cursor-pointer bg-stone-200"
+                    className="relative aspect-square w-full overflow-hidden bg-stone-200 group/image cursor-pointer"
                   >
                     <img
+                      onClick={() => setLightboxIndex(idx)}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelection(image_id, selected);
+                      }}
                       src={image.thumbnail_url || image.optimized_url}
                       alt={image.alt_text}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
                       loading="lazy"
+                      title="Click to view full, Double-click to select/deselect"
                     />
+                    
+                    {/* Floating check button directly on image card - permanently visible for ease of use on mobile */}
+                    {meta.can_submit_selections && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelection(image_id, selected);
+                        }}
+                        disabled={meta.selections_submitted}
+                        className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-350 shadow-md z-10 ${
+                          selected
+                            ? "bg-[#C4A484] border-[#C4A484] text-white opacity-100 scale-100"
+                            : "border-stone-300 bg-white/90 text-stone-600 opacity-85 hover:opacity-100 hover:bg-white hover:text-[#C4A484] hover:scale-105"
+                        } disabled:opacity-40`}
+                        title={selected ? "Deselect image" : "Select image"}
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Info and Selection Toggles */}
@@ -448,8 +479,20 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
             <img
               src={images[lightboxIndex].image.optimized_url || images[lightboxIndex].image.original_url}
               alt={images[lightboxIndex].image.alt_text}
-              className="max-w-full max-h-[72vh] object-contain shadow-2xl animate-fade-in"
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                if (meta.can_submit_selections && !meta.selections_submitted) {
+                  toggleSelection(images[lightboxIndex].image_id, images[lightboxIndex].selected);
+                }
+              }}
+              className="max-w-full max-h-[72vh] object-contain shadow-2xl animate-fade-in cursor-pointer"
+              title="Double-click to select/deselect frame"
             />
+            {meta.can_submit_selections && !meta.selections_submitted && (
+              <span className="text-[9px] text-stone-400 mt-1 font-light tracking-wide uppercase">
+                Tip: Double-click / double-tap image to select/deselect
+              </span>
+            )}
             
             {/* Control Panel Below Lightbox */}
             <div className="mt-4 text-center space-y-2">

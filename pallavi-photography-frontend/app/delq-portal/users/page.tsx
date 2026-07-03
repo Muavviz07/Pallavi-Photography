@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
-import { Loader2, ShieldCheck, ShieldAlert, Shield, Edit, Trash2, Plus, X, AlertCircle } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, Shield, Edit, Trash2, Plus, X, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 interface UserResponse {
   id: string;
@@ -12,6 +12,7 @@ interface UserResponse {
   role: string;
   status: string;
   created_at: string;
+  password_hash?: string;
 }
 
 export default function AdminUsers() {
@@ -33,6 +34,15 @@ export default function AdminUsers() {
   });
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+
+  const togglePasswordVisibility = (userId: string) => {
+    setVisiblePasswords((prev) => ({
+      ...prev,
+      [userId]: !prev[userId],
+    }));
+  };
 
   const loadUsers = async () => {
     if (!token) return;
@@ -62,6 +72,7 @@ export default function AdminUsers() {
       status: "active",
     });
     setFormError("");
+    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -69,11 +80,12 @@ export default function AdminUsers() {
     setEditingUser(user);
     setFormData({
       email: user.email,
-      password: "", // Optional during edit
+      password: "", // Keep empty to keep existing password unless changed
       role: user.role,
       status: user.status,
     });
     setFormError("");
+    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -205,9 +217,10 @@ export default function AdminUsers() {
           <table className="w-full text-left text-xs font-light text-[#6E635F] border-collapse">
             <thead>
               <tr className="bg-[#FAF8F5] border-b border-[#DCD0C0]/20 text-[#2C2623] font-semibold uppercase tracking-wider text-[9px]">
-                <th className="p-4">Registered Email</th>
+                <th className="p-4">Email / Username</th>
                 <th className="p-4">Access Role</th>
                 <th className="p-4">Account Status</th>
+                <th className="p-4">Password</th>
                 <th className="p-4">Date Joined</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
@@ -242,6 +255,22 @@ export default function AdminUsers() {
                       }`}>
                         {u.status}
                       </span>
+                    </td>
+                    <td className="p-4 font-mono text-xs">
+                      {u.password_hash ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono">{visiblePasswords[u.id] ? u.password_hash : "••••••••"}</span>
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility(u.id)}
+                            className="text-stone-400 hover:text-[#2C2623] cursor-pointer"
+                          >
+                            {visiblePasswords[u.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-stone-300 italic">None</span>
+                      )}
                     </td>
                     <td className="p-4 text-stone-400">{dateStr}</td>
                     <td className="p-4 text-right space-x-3">
@@ -317,15 +346,15 @@ export default function AdminUsers() {
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               <div className="space-y-1">
                 <label className="text-[10px] uppercase tracking-wider text-stone-500 font-medium block">
-                  Email Address
+                  Email / Username
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-3 py-2 border border-stone-200 rounded-sm focus:outline-none focus:border-[#C4A484]"
-                  placeholder="user@example.com"
+                  placeholder="e.g. John Doe or user@example.com"
                 />
               </div>
 
@@ -333,15 +362,26 @@ export default function AdminUsers() {
                 <label className="text-[10px] uppercase tracking-wider text-stone-500 font-medium block">
                   {editingUser ? "New Password (leave empty to keep current)" : "Password"}
                 </label>
-                <input
-                  type="password"
-                  required={!editingUser}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-sm focus:outline-none focus:border-[#C4A484]"
-                  placeholder={editingUser ? "••••••••" : "At least 8 characters"}
-                  minLength={8}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required={!editingUser}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    autoComplete="new-password"
+                    className="w-full pl-3 pr-10 py-2 border border-stone-200 rounded-sm focus:outline-none focus:border-[#C4A484]"
+                    placeholder={editingUser ? "••••••••" : "At least 8 characters"}
+                    minLength={8}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#2C2623] cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

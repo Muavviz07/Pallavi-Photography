@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
 import { 
   Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, 
-  Image as ImageIcon, Upload, ArrowLeft, Eye, CheckCircle2, UserCheck
+  Image as ImageIcon, Upload, ArrowLeft, Eye, EyeOff, CheckCircle2, UserCheck, Star
 } from "lucide-react";
 
 interface UserResponse {
@@ -31,6 +31,12 @@ interface ClientGalleryResponse {
   can_upload: boolean;
   can_download_zip: boolean;
   cover_image_id?: string;
+  cover_image?: {
+    id: string;
+    original_url: string;
+    optimized_url: string;
+    thumbnail_url: string;
+  };
 }
 
 interface ImageItem {
@@ -73,6 +79,7 @@ export default function AdminGalleries() {
   });
 
   const [errorMsg, setErrorMsg] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Photos Management Pane States
   const [selectedGalleryForPhotos, setSelectedGalleryForPhotos] = useState<ClientGalleryResponse | null>(null);
@@ -80,6 +87,7 @@ export default function AdminGalleries() {
   const [loadingImages, setLoadingImages] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
+  const [customCoverUrlInput, setCustomCoverUrlInput] = useState("");
 
   const loadData = async () => {
     if (!token) return;
@@ -124,12 +132,13 @@ export default function AdminGalleries() {
       user_id: users[0]?.id || "",
       password: "",
       status: "active",
-      can_download: false,
+      can_download: true,
       can_submit_selections: true,
       can_upload: false,
       can_download_zip: false,
     });
     setErrorMsg("");
+    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -141,7 +150,7 @@ export default function AdminGalleries() {
       slug: g.slug,
       description: g.description || "",
       user_id: g.user_id,
-      password: "", // Hide/keep same password unless set
+      password: g.password_hash || "",
       status: g.status,
       can_download: g.can_download,
       can_submit_selections: g.can_submit_selections,
@@ -149,6 +158,7 @@ export default function AdminGalleries() {
       can_download_zip: g.can_download_zip || false,
     });
     setErrorMsg("");
+    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -164,9 +174,17 @@ export default function AdminGalleries() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.slug || !formData.user_id) {
-      setErrorMsg("Please fill out required fields.");
-      return;
+    
+    if (formMode === "create") {
+      if (!formData.title || !formData.password) {
+        setErrorMsg("Please fill out Client Name and Password.");
+        return;
+      }
+    } else {
+      if (!formData.title) {
+        setErrorMsg("Please fill out Client Name.");
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -174,19 +192,39 @@ export default function AdminGalleries() {
 
     try {
       if (formMode === "create") {
+        const payload: any = {
+          title: formData.title,
+          password: formData.password,
+        };
+        if (formData.slug && formData.slug.trim()) {
+          payload.slug = formData.slug.trim();
+        }
         await fetchAPI("/api/admin/galleries", {
           method: "POST",
           token,
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         });
       } else {
-        const updatePayload: any = { ...formData };
-        if (!formData.password) delete updatePayload.password;
+        const payload: any = {
+          title: formData.title,
+          description: formData.description,
+          status: formData.status,
+          can_download: formData.can_download,
+          can_submit_selections: formData.can_submit_selections,
+          can_upload: formData.can_upload,
+          can_download_zip: formData.can_download_zip,
+        };
+        if (formData.slug && formData.slug.trim()) {
+          payload.slug = formData.slug.trim();
+        }
+        if (formData.password) {
+          payload.password = formData.password;
+        }
         
         await fetchAPI(`/api/admin/galleries/${selectedGalleryId}`, {
           method: "PUT",
           token,
-          body: JSON.stringify(updatePayload),
+          body: JSON.stringify(payload),
         });
       }
       setShowModal(false);
@@ -263,6 +301,118 @@ export default function AdminGalleries() {
     }
   };
 
+  const handleSetCoverImage = async (imageId: string) => {
+    if (!selectedGalleryForPhotos || !token) return;
+    try {
+      const updated = await fetchAPI(`/api/client-galleries/${selectedGalleryForPhotos.id}`, {
+        method: "PUT",
+        token,
+        body: JSON.stringify({ cover_image_id: imageId })
+      });
+      setSelectedGalleryForPhotos(updated);
+      setGalleries((prev) =>
+        prev.map((g) => (g.id === updated.id ? updated : g))
+      );
+    } catch (err) {
+      console.error("Failed to set cover image", err);
+    }
+  };
+
+  const handleCustomCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedGalleryForPhotos || !token) return;
+    
+    setUploadingFiles(true);
+    setUploadProgress("Uploading custom cover image...");
+    
+    const formDataObj = new FormData();
+    formDataObj.append("file", file);
+    
+    try {
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/admin/galleries/${selectedGalleryForPhotos.id}/upload-cover`, {
+        method: "POST",
+        headers,
+        body: formDataObj
+      });
+      
+      if (!res.ok) {
+        throw new Error("Upload cover failed");
+      }
+      
+      const updated = await res.json();
+      setSelectedGalleryForPhotos(updated);
+      setGalleries((prev) =>
+        prev.map((g) => (g.id === updated.id ? updated : g))
+      );
+      setUploadProgress("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload custom cover image");
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
+
+  const handleCustomCoverUrlSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customCoverUrlInput.trim() || !selectedGalleryForPhotos || !token) return;
+    
+    setUploadingFiles(true);
+    setUploadProgress("Setting custom cover image URL...");
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/admin/galleries/${selectedGalleryForPhotos.id}/cover-url`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ url: customCoverUrlInput.trim() })
+      });
+      
+      if (!res.ok) {
+        throw new Error("Setting cover URL failed");
+      }
+      
+      const updated = await res.json();
+      setSelectedGalleryForPhotos(updated);
+      setGalleries((prev) =>
+        prev.map((g) => (g.id === updated.id ? updated : g))
+      );
+      setCustomCoverUrlInput("");
+      setUploadProgress("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to set cover image URL");
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
+
+  const handleClearCoverImage = async () => {
+    if (!selectedGalleryForPhotos || !token) return;
+    if (!confirm("Are you sure you want to remove the cover image?")) return;
+    
+    try {
+      const updated = await fetchAPI(`/api/client-galleries/${selectedGalleryForPhotos.id}`, {
+        method: "PUT",
+        token,
+        body: JSON.stringify({ cover_image_id: null })
+      });
+      setSelectedGalleryForPhotos(updated);
+      setGalleries((prev) =>
+        prev.map((g) => (g.id === updated.id ? updated : g))
+      );
+    } catch (err) {
+      console.error("Failed to clear cover image", err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-4">
@@ -325,6 +475,98 @@ export default function AdminGalleries() {
           </div>
         )}
 
+        {/* Custom Cover / Thumbnail Section */}
+        {(() => {
+          const selectedCoverUrl = selectedGalleryForPhotos.cover_image 
+            ? (selectedGalleryForPhotos.cover_image.thumbnail_url || selectedGalleryForPhotos.cover_image.optimized_url || selectedGalleryForPhotos.cover_image.original_url)
+            : "";
+          
+          return (
+            <div className="bg-white border border-[#DCD0C0]/25 rounded-md p-6 space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-1.5">
+                  <h3 className="text-sm font-medium text-[#2C2623] uppercase tracking-wider font-serif">
+                    Gallery Cover / Thumbnail
+                  </h3>
+                  <p className="text-xs text-[#6E635F] font-light">
+                    Specify a cover image that represents this gallery. This can be selected from the images below, uploaded as a custom file, or set via an external URL.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Upload Custom Cover Button */}
+                  <label
+                    htmlFor="upload-custom-cover"
+                    className="inline-flex items-center space-x-1.5 text-xs uppercase tracking-widest text-[#2C2623] border border-[#2C2623] hover:bg-[#2C2623] hover:text-white px-3.5 py-2 rounded-sm font-semibold transition-all cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload Custom Cover</span>
+                  </label>
+                  <input
+                    type="file"
+                    id="upload-custom-cover"
+                    accept="image/*"
+                    onChange={handleCustomCoverUpload}
+                    className="hidden"
+                  />
+
+                  {/* Clear Cover Button */}
+                  {selectedGalleryForPhotos.cover_image_id && (
+                    <button
+                      onClick={handleClearCoverImage}
+                      className="inline-flex items-center space-x-1.5 text-xs uppercase tracking-widest text-red-600 border border-red-200 hover:bg-red-50 px-3.5 py-2 rounded-sm font-semibold transition-all cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Remove Cover</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start pt-4 border-t border-[#DCD0C0]/15">
+                {/* Preview */}
+                <div className="md:col-span-1">
+                  <span className="text-[10px] uppercase tracking-wider text-stone-500 font-medium block mb-2">Current Cover Preview</span>
+                  <div className="aspect-video w-full rounded-sm bg-stone-100 border border-[#DCD0C0]/20 overflow-hidden relative flex items-center justify-center">
+                    {selectedCoverUrl ? (
+                      <img
+                        src={selectedCoverUrl}
+                        alt="Gallery cover thumbnail"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center p-4">
+                        <ImageIcon className="w-6 h-6 text-stone-300 mx-auto mb-1.5" />
+                        <span className="text-[10px] text-stone-400 block font-light">No cover set</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Set via URL Form */}
+                <div className="md:col-span-3 space-y-4">
+                  <span className="text-[10px] uppercase tracking-wider text-stone-500 font-medium block">Set Cover from External URL</span>
+                  <form onSubmit={handleCustomCoverUrlSubmit} className="flex gap-2 max-w-xl">
+                    <input
+                      type="url"
+                      placeholder="https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format..."
+                      value={customCoverUrlInput}
+                      onChange={(e) => setCustomCoverUrlInput(e.target.value)}
+                      className="flex-1 px-3 py-2 text-xs border border-stone-200 rounded-sm focus:outline-none focus:border-[#C4A484]"
+                      required
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-[#2C2623] hover:bg-[#C4A484] text-white text-xs uppercase tracking-widest font-semibold rounded-sm transition-colors cursor-pointer"
+                    >
+                      Set URL
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Image Grid view with client selection status */}
         {loadingImages ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-3">
@@ -360,8 +602,26 @@ export default function AdminGalleries() {
                     </div>
                   )}
 
+                  {/* Cover image indicator badge */}
+                  {selectedGalleryForPhotos.cover_image_id === item.image.id && (
+                    <div className="absolute top-2 right-2 bg-[#2C2623] text-[#C4A484] p-1.5 rounded-full shadow-xs" title="Gallery Thumbnail / Cover Image">
+                      <Star className="w-3.5 h-3.5 fill-[#C4A484]" />
+                    </div>
+                  )}
+
                   {/* Actions cover overlay */}
                   <div className="absolute inset-0 bg-[#2C2623]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-3">
+                    <button
+                      onClick={() => handleSetCoverImage(item.image.id)}
+                      className={`p-2 rounded-full transition-colors cursor-pointer ${
+                        selectedGalleryForPhotos.cover_image_id === item.image.id
+                          ? "bg-[#C4A484] text-white hover:bg-[#C4A484]/90"
+                          : "bg-white/95 text-stone-700 hover:bg-white hover:text-[#C4A484]"
+                      }`}
+                      title="Set as gallery cover/thumbnail"
+                    >
+                      <Star className={`w-4 h-4 ${selectedGalleryForPhotos.cover_image_id === item.image.id ? 'fill-white' : ''}`} />
+                    </button>
                     <button
                       onClick={() => handleDeleteImage(item.image.id)}
                       className="p-2 bg-white/95 rounded-full text-red-600 hover:bg-white transition-colors cursor-pointer"
@@ -426,7 +686,7 @@ export default function AdminGalleries() {
             <thead>
               <tr className="bg-[#FAF8F5] border-b border-[#DCD0C0]/20 text-[#2C2623] font-semibold uppercase tracking-wider text-[9px]">
                 <th className="p-4">Title & Slug</th>
-                <th className="p-4">Client User</th>
+                <th className="p-4">Client Username</th>
                 <th className="p-4">Status</th>
                 <th className="p-4 text-center">Selections</th>
                 <th className="p-4 text-center">Downloads</th>
@@ -435,7 +695,14 @@ export default function AdminGalleries() {
             </thead>
             <tbody>
               {galleries.map((g) => (
-                <tr key={g.id} className="border-b border-[#DCD0C0]/15 hover:bg-[#FAF8F5]/30 transition-colors">
+                <tr 
+                  key={g.id} 
+                  onClick={() => {
+                    setSelectedGalleryForPhotos(g);
+                    loadGalleryImages(g.id);
+                  }}
+                  className="border-b border-[#DCD0C0]/15 hover:bg-[#FAF8F5]/30 transition-colors cursor-pointer"
+                >
                   <td className="p-4 space-y-0.5">
                     <p className="font-semibold text-[#2C2623]">{g.title}</p>
                     <p className="text-[10px] text-stone-400 font-mono">/{g.slug}</p>
@@ -464,7 +731,7 @@ export default function AdminGalleries() {
                       <span className="text-stone-400">Locked</span>
                     )}
                   </td>
-                  <td className="p-4 text-right space-x-2">
+                  <td className="p-4 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => {
                         setSelectedGalleryForPhotos(g);
@@ -515,7 +782,9 @@ export default function AdminGalleries() {
 
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block text-[10px] uppercase text-stone-400 font-semibold mb-1">Gallery Title *</label>
+                <label className="block text-[10px] uppercase text-stone-400 font-semibold mb-1">
+                  {formMode === "create" ? "Client Name *" : "Client Name / Gallery Title *"}
+                </label>
                 <input
                   type="text"
                   name="title"
@@ -528,59 +797,72 @@ export default function AdminGalleries() {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-stone-400 font-semibold mb-1">Slug Route (URL suffix) *</label>
+                <label className="block text-[10px] uppercase text-stone-400 font-semibold mb-1">
+                  Slug Route (URL suffix) {formMode === "create" ? "(Optional)" : "*"}
+                </label>
                 <input
                   type="text"
                   name="slug"
                   value={formData.slug}
                   onChange={handleInputChange}
-                  required
-                  placeholder="e.g. smith-newborn"
+                  required={formMode === "edit"}
+                  placeholder={formMode === "create" ? "Auto-generated if left empty" : "e.g. smith-newborn"}
                   className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden font-mono"
                 />
+                <p className="text-[10px] text-stone-400 mt-1 leading-normal font-light">
+                  This determines the URL structure (e.g., /client-galleries/slug). If left empty, it will be automatically generated from the Client Name.
+                </p>
               </div>
 
-              <div>
-                <label className="block text-[10px] uppercase text-stone-400 font-semibold mb-1">Description</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={2}
-                  className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden resize-none font-light"
-                />
-              </div>
+              {formMode === "edit" && (
+                <>
+                  <div>
+                    <label className="block text-[10px] uppercase text-stone-400 font-semibold mb-1">Description</label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      rows={2}
+                      className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden resize-none font-light"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-[10px] uppercase text-stone-400 font-semibold mb-1">Associate Client User *</label>
-                <select
-                  name="user_id"
-                  value={formData.user_id}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
-                >
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.email}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div>
+                    <label className="block text-[10px] uppercase text-stone-400 font-semibold mb-1">Associated Client</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={galleries.find((g) => g.id === selectedGalleryId)?.user?.email || "No client user associated"}
+                      className="w-full bg-[#FAF8F5] border border-[#DCD0C0]/25 text-stone-500 rounded-sm px-3 py-2 text-xs outline-hidden cursor-not-allowed font-medium"
+                    />
+                  </div>
+                </>
+              )}
 
               <div>
                 <label className="block text-[10px] uppercase text-stone-400 font-semibold mb-1">
-                  Access Password {formMode === "edit" && "(Leave blank to keep current)"}
+                  Access Password *
                 </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required={formMode === "create"}
-                  placeholder="Private gallery unlock key"
-                  className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                    autoComplete="new-password"
+                    placeholder="Private gallery unlock key"
+                    className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm pl-3 pr-10 py-2 text-xs outline-hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#2C2623] cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* Permissions & Status Toggles */}

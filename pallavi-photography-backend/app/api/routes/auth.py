@@ -21,7 +21,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
             detail="The user with this email already exists in the system.",
         )
     
-    hashed_password = security.get_password_hash(user_in.password)
+    hashed_password = security.encrypt_password(user_in.password)
     
     # Auto-seed the first registered user as Admin
     first_user = db.query(User).first()
@@ -45,7 +45,21 @@ def login(
     _rate_limit = Depends(login_limiter)
 ):
     user = db.query(User).filter(User.email == credentials.email).first()
-    if not user or not security.verify_password(credentials.password, user.password_hash):
+    password_correct = False
+    if user:
+        if user.password_hash == credentials.password:
+            password_correct = True
+        else:
+            decrypted = security.decrypt_password(user.password_hash)
+            if decrypted == credentials.password:
+                password_correct = True
+            else:
+                try:
+                    password_correct = security.verify_password(credentials.password, user.password_hash)
+                except Exception:
+                    pass
+            
+    if not user or not password_correct:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect email or password"
@@ -145,12 +159,25 @@ def change_password(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    if not security.verify_password(password_in.current_password, current_user.password_hash):
+    password_correct = False
+    if current_user.password_hash == password_in.current_password:
+        password_correct = True
+    else:
+        decrypted = security.decrypt_password(current_user.password_hash)
+        if decrypted == password_in.current_password:
+            password_correct = True
+        else:
+            try:
+                password_correct = security.verify_password(password_in.current_password, current_user.password_hash)
+            except Exception:
+                pass
+            
+    if not password_correct:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect current password"
         )
-    current_user.password_hash = security.get_password_hash(password_in.new_password)
+    current_user.password_hash = security.encrypt_password(password_in.new_password)
     db.add(current_user)
     db.commit()
     return {"message": "Password changed successfully"}

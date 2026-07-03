@@ -118,11 +118,7 @@ export default function ClientGalleryPage({ params }: { params: Promise<{ slug: 
   // If password check is required, show the Password Unlock challenge page
   if (meta && meta.requires_password) {
     return (
-      <>
-        <Header />
-        <ClientGalleryUnlock slug={slug} onUnlock={handleUnlock} />
-        <Footer />
-      </>
+      <ClientGalleryUnlock slug={slug} onUnlock={handleUnlock} />
     );
   }
 

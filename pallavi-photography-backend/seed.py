@@ -29,7 +29,7 @@ def seed_db():
         # Seed superadmin
         superadmin_email = "superadmin@pallaviphotography.com"
         print(f"Creating default superadmin user: {superadmin_email} ...")
-        hashed_superadmin_password = security.get_password_hash("superadminpassword123")
+        hashed_superadmin_password = security.encrypt_password("superadminpassword123")
         superadmin_user = User(
             email=superadmin_email,
             password_hash=hashed_superadmin_password,
@@ -41,7 +41,7 @@ def seed_db():
         # Seed admin
         admin_email = "admin@pallaviphotography.com"
         print(f"Creating default admin user: {admin_email} ...")
-        hashed_admin_password = security.get_password_hash("adminpassword123")
+        hashed_admin_password = security.encrypt_password("adminpassword123")
         admin_user = User(
             email=admin_email,
             password_hash=hashed_admin_password,

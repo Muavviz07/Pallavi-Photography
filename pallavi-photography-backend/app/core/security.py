@@ -2,7 +2,32 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Union
 from jose import jwt
 import bcrypt
+import base64
+import hashlib
+from cryptography.fernet import Fernet
 from app.core.config import settings
+
+# Derive urlsafe base64 32-byte key from settings.SECRET_KEY
+key_bytes = hashlib.sha256(settings.SECRET_KEY.encode()).digest()
+fernet_key = base64.urlsafe_b64encode(key_bytes)
+fernet = Fernet(fernet_key)
+
+def encrypt_password(plain_password: str) -> str:
+    if not plain_password:
+        return ""
+    encrypted = fernet.encrypt(plain_password.encode()).decode()
+    return f"enc:{encrypted}"
+
+def decrypt_password(encrypted_password: str) -> str:
+    if not encrypted_password:
+        return ""
+    if encrypted_password.startswith("enc:"):
+        try:
+            token = encrypted_password[4:]
+            return fernet.decrypt(token.encode()).decode()
+        except Exception:
+            return encrypted_password
+    return encrypted_password
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:

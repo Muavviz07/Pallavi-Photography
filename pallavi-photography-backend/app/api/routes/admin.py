@@ -16,7 +16,10 @@ from app.models.client_gallery_image import ClientGalleryImage
 from app.models.user import User, UserRole
 from app.models.system_setting import SystemSetting
 from app.schemas.client_gallery import ClientGalleryCreate, ClientGalleryUpdate, ClientGalleryResponse
-from app.schemas.user import UserResponse, UserUpdate
+from app.schemas.user import UserResponse, UserUpdate, UserAdminResponse
+
+from app.api.routes.client_galleries import process_and_create_gallery_logic, slugify
+from app.core import security
 
 router = APIRouter(tags=["admin"])
 
@@ -27,19 +30,35 @@ def list_galleries(db: Session = Depends(get_db), current_user: User = Depends(g
 
 @router.post("/galleries", response_model=ClientGalleryResponse, status_code=status.HTTP_201_CREATED)
 def create_gallery(gallery_in: ClientGalleryCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_or_client_user_with_feature("galleries"))):
-    db_gallery = ClientGallery(**gallery_in.dict())
-    db.add(db_gallery)
-    db.commit()
-    db.refresh(db_gallery)
-    return db_gallery
+    return process_and_create_gallery_logic(gallery_in, db)
 
 @router.put("/galleries/{gallery_id}", response_model=ClientGalleryResponse)
 def update_gallery(gallery_id: uuid.UUID, gallery_in: ClientGalleryUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_or_client_user_with_feature("galleries"))):
     gallery = db.query(ClientGallery).filter(ClientGallery.id == gallery_id).first()
     if not gallery:
         raise HTTPException(status_code=404, detail="Gallery not found")
-    for field, value in gallery_in.dict(exclude_unset=True).items():
-        setattr(gallery, field, value)
+    
+    update_data = gallery_in.model_dump(exclude_unset=True)
+    if "slug" in update_data and update_data["slug"]:
+        slug = slugify(update_data["slug"])
+        existing = db.query(ClientGallery).filter(ClientGallery.slug == slug, ClientGallery.id != gallery_id).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A client gallery with this slug already exists."
+            )
+        update_data["slug"] = slug
+
+    for field, value in update_data.items():
+        if field == "password" and value is not None:
+            from app.core.security import encrypt_password
+            gallery.password_hash = encrypt_password(value)
+        elif field == "cover_image_id":
+            # Allow clearing/setting cover_image_id to None/null
+            gallery.cover_image_id = value
+        elif value is not None:
+            setattr(gallery, field, value)
+            
     db.commit()
     db.refresh(gallery)
     return gallery
@@ -53,15 +72,91 @@ def delete_gallery(gallery_id: uuid.UUID, db: Session = Depends(get_db), current
     db.commit()
     return
 
-from app.core.security import get_password_hash
+from fastapi import UploadFile, File
+from pydantic import BaseModel
+
+class CoverUrlInput(BaseModel):
+    url: str
+
+@router.post("/galleries/{gallery_id}/upload-cover", response_model=ClientGalleryResponse)
+async def upload_custom_cover_image(
+    gallery_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_or_client_user_with_feature("galleries"))
+):
+    gallery = db.query(ClientGallery).filter(ClientGallery.id == gallery_id).first()
+    if not gallery:
+        raise HTTPException(status_code=404, detail="Gallery not found")
+        
+    file_data = await file.read()
+    try:
+        from app.services.image_service import ImageService
+        image_service = ImageService()
+        db_image = image_service.process_and_upload_image(
+            db=db,
+            file_data=file_data,
+            original_filename=file.filename,
+            gallery_id=None,
+            title=f"Cover - {gallery.title}",
+            alt_text=f"Cover image for {gallery.title}"
+        )
+        
+        gallery.cover_image_id = db_image.id
+        db.commit()
+        db.refresh(gallery)
+        return gallery
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Image upload failed: {str(e)}"
+        )
+
+@router.post("/galleries/{gallery_id}/cover-url", response_model=ClientGalleryResponse)
+def set_custom_cover_url(
+    gallery_id: uuid.UUID,
+    cover_in: CoverUrlInput,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_or_client_user_with_feature("galleries"))
+):
+    gallery = db.query(ClientGallery).filter(ClientGallery.id == gallery_id).first()
+    if not gallery:
+        raise HTTPException(status_code=404, detail="Gallery not found")
+        
+    try:
+        from app.models.image import Image
+        db_image = Image(
+            original_url=cover_in.url,
+            optimized_url=cover_in.url,
+            thumbnail_url=cover_in.url,
+            title=f"Custom Cover - {gallery.title}",
+            alt_text=f"Custom Cover image for {gallery.title}",
+            width=800,
+            height=600,
+            file_size=0
+        )
+        db.add(db_image)
+        db.flush()
+        
+        gallery.cover_image_id = db_image.id
+        db.commit()
+        db.refresh(gallery)
+        return gallery
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Setting cover URL failed: {str(e)}"
+        )
+
+from app.core.security import encrypt_password
 from app.schemas.user import UserCreate
 
 # Users CRUD (Full)
-@router.get("/users", response_model=List[UserResponse])
-def list_users(db: Session = Depends(get_db), current_user: User = Depends(require_feature("users"))):
+@router.get("/users", response_model=List[UserAdminResponse])
+def list_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_user)):
     return db.query(User).all()
 
-@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/users", response_model=UserAdminResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user_in: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(require_feature("users"))):
     existing = db.query(User).filter(User.email == user_in.email).first()
     if existing:
@@ -69,7 +164,7 @@ def create_user(user_in: UserCreate, db: Session = Depends(get_db), current_user
     
     db_user = User(
         email=user_in.email,
-        password_hash=get_password_hash(user_in.password),
+        password_hash=encrypt_password(user_in.password),
         role=user_in.role or "client",
         status=user_in.status or "active"
     )
@@ -78,7 +173,7 @@ def create_user(user_in: UserCreate, db: Session = Depends(get_db), current_user
     db.refresh(db_user)
     return db_user
 
-@router.patch("/users/{user_id}", response_model=UserResponse)
+@router.patch("/users/{user_id}", response_model=UserAdminResponse)
 def update_user(user_id: uuid.UUID, user_in: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_feature("users"))):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -91,7 +186,7 @@ def update_user(user_id: uuid.UUID, user_in: UserUpdate, db: Session = Depends(g
         user.email = user_in.email
         
     if user_in.password:
-        user.password_hash = get_password_hash(user_in.password)
+        user.password_hash = encrypt_password(user_in.password)
         
     if user_in.role:
         user.role = user_in.role

@@ -25,7 +25,7 @@ export default async function AdminLayout({
   const token = (session as any)?.accessToken;
   
   if (!session?.user || (userRole !== "admin" && userRole !== "super_admin" && userRole !== "client")) {
-    redirect("/");
+    redirect("/login");
   }
 
   const isSuperAdmin = userRole === "super_admin";

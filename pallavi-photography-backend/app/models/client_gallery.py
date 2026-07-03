@@ -21,7 +21,7 @@ class ClientGallery(Base):
     can_upload: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     can_replace: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     can_delete: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    can_download: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    can_download: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     can_download_zip: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     can_edit_details: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     can_submit_selections: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

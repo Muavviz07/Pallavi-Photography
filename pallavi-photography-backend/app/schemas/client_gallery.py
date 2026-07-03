@@ -1,13 +1,13 @@
 import uuid
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from app.schemas.user import UserResponse
 from app.schemas.image import ImageResponse
 
 class ClientGalleryBase(BaseModel):
     title: str
-    slug: str
+    slug: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = "active"
     expiry_date: Optional[datetime] = None
@@ -17,14 +17,14 @@ class ClientGalleryBase(BaseModel):
     can_upload: Optional[bool] = False
     can_replace: Optional[bool] = False
     can_delete: Optional[bool] = False
-    can_download: Optional[bool] = False
+    can_download: Optional[bool] = True
     can_download_zip: Optional[bool] = False
     can_edit_details: Optional[bool] = False
     can_submit_selections: Optional[bool] = True
     can_share: Optional[bool] = False
 
 class ClientGalleryCreate(ClientGalleryBase):
-    user_id: uuid.UUID
+    user_id: Optional[uuid.UUID] = None
     password: Optional[str] = None
 
 class ClientGalleryUpdate(BaseModel):
@@ -58,6 +58,15 @@ class ClientGalleryResponse(ClientGalleryBase):
     selections_submitted_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    password_hash: Optional[str] = None
+
+    @field_validator("password_hash", mode="before")
+    @classmethod
+    def decrypt_db_password(cls, v: str | None) -> str | None:
+        if v:
+            from app.core.security import decrypt_password
+            return decrypt_password(v)
+        return v
     
     # Nested relations
     cover_image: Optional[ImageResponse] = None

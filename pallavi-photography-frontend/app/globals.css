@@ -51,3 +51,9 @@ h1, h2, h3, h4, h5, h6, .font-serif {
 ::-webkit-scrollbar-thumb:hover {
   background: #C4A484;
 }
+
+/* Hide browser default password reveal and clear buttons (mainly MS Edge/IE) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
