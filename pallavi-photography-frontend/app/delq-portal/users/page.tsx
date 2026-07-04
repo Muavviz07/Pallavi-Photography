@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
 import { Loader2, ShieldCheck, ShieldAlert, Shield, Edit, Trash2, Plus, X, AlertCircle, Eye, EyeOff } from "lucide-react";
+import AccessDenied from "@/components/common/AccessDenied";
 
 interface UserResponse {
   id: string;
@@ -16,7 +17,7 @@ interface UserResponse {
 }
 
 export default function AdminUsers() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const token = (session as any)?.accessToken;
 
   const [users, setUsers] = useState<UserResponse[]>([]);
@@ -162,7 +163,12 @@ export default function AdminUsers() {
     }
   };
 
-  if (loading) {
+  const role = (session?.user as any)?.role;
+  const permissions: string[] = (session?.user as any)?.permissions || [];
+  const isSuperAdmin = role === "super_admin";
+  const hasPermission = isSuperAdmin || permissions.includes("users");
+
+  if (status === "loading" || (loading && hasPermission)) {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-4">
         <Loader2 className="w-8 h-8 text-[#C4A484] animate-spin" />
@@ -171,17 +177,8 @@ export default function AdminUsers() {
     );
   }
 
-  const role = (session?.user as any)?.role;
-  if (session && role !== "admin" && role !== "super_admin") {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 space-y-4">
-        <ShieldAlert className="w-12 h-12 text-red-500" />
-        <h2 className="text-lg font-serif font-light text-brand-dark uppercase">Access Denied</h2>
-        <p className="text-xs text-brand-muted max-w-sm text-center leading-relaxed">
-          You do not have administrative privileges to manage user accounts. Please contact the administrator.
-        </p>
-      </div>
-    );
+  if (!hasPermission) {
+    return <AccessDenied message="You do not have permission to view or manage user accounts." />;
   }
 
   return (

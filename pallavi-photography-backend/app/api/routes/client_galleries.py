@@ -411,6 +411,9 @@ def update_client_gallery(
     for field, value in update_data.items():
         if field == "password" and value is not None:
             db_gallery.password_hash = security.encrypt_password(value)
+        elif field == "cover_image_id":
+            # Allow clearing/setting cover_image_id to None/null
+            db_gallery.cover_image_id = value
         elif value is not None:
             setattr(db_gallery, field, value)
             

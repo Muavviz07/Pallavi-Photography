@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
 import { Loader2, ShieldCheck, Save, AlertCircle, CheckCircle, Users, Shield } from "lucide-react";
+import AccessDenied from "@/components/common/AccessDenied";
 
 interface AdminUser {
   id: string;
@@ -31,7 +32,7 @@ const FEATURE_LABELS: Record<string, string> = {
 };
 
 export default function SuperAdminPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const token = (session as any)?.accessToken;
   const userRole = (session?.user as any)?.role;
 
@@ -126,23 +127,17 @@ export default function SuperAdminPage() {
     }
   };
 
-  if (userRole !== "super_admin") {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 space-y-4">
-        <AlertCircle className="w-12 h-12 text-red-500" />
-        <h1 className="text-xl font-serif text-[#2C2623]">Access Denied</h1>
-        <p className="text-xs text-[#6E635F] font-light">Only super admins can access this page.</p>
-      </div>
-    );
-  }
-
-  if (loadingAdmins) {
+  if (status === "loading" || (loadingAdmins && userRole === "super_admin")) {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-4">
         <Loader2 className="w-8 h-8 text-[#C4A484] animate-spin" />
         <p className="text-xs text-[#6E635F] font-light">Loading workspace settings...</p>
       </div>
     );
+  }
+
+  if (userRole !== "super_admin") {
+    return <AccessDenied message="Only super administrators can access this page." />;
   }
 
   return (

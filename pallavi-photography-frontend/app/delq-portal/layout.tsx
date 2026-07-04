@@ -1,7 +1,11 @@
+"use client";
+
 import { ReactNode } from "react";
-import { auth, signOut } from "@/auth";
-import { redirect } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { Loader2 } from "lucide-react";
+import AccessDenied from "@/components/common/AccessDenied";
 
 interface SidebarSettings {
   galleries: boolean;
@@ -15,18 +19,32 @@ interface SidebarSettings {
   analytics: boolean;
 }
 
-export default async function AdminLayout({
+export default function AdminLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const session = await auth();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FCFAF7]">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 text-[#C4A484] animate-spin mx-auto" />
+          <p className="text-xs text-[#6E635F] uppercase tracking-wider font-light">Loading Admin Panel...</p>
+        </div>
+      </div>
+    );
+  }
+
   const userRole = (session?.user as any)?.role;
-  const token = (session as any)?.accessToken;
   const hasSessionError = (session as any)?.error === "RefreshAccessTokenError";
-  
-  if (!session?.user || hasSessionError || (userRole !== "admin" && userRole !== "super_admin" && userRole !== "client")) {
-    redirect("/login");
+
+  if (status === "unauthenticated" || !session?.user || hasSessionError || (userRole !== "admin" && userRole !== "super_admin" && userRole !== "client")) {
+    router.replace("/login");
+    return null;
   }
 
   const isSuperAdmin = userRole === "super_admin";
@@ -44,6 +62,45 @@ export default async function AdminLayout({
     users: isSuperAdmin || permissions.includes("users"),
     analytics: isSuperAdmin || permissions.includes("analytics")
   };
+
+  // Centralized, route-level authorization interception
+  let isAuthorized = true;
+  let deniedMessage = "You do not have permission to access this page.";
+
+  if (pathname.startsWith("/delq-portal/super-admin")) {
+    isAuthorized = isSuperAdmin;
+    deniedMessage = "Only super administrators can access this page.";
+  } else if (pathname.startsWith("/delq-portal/users")) {
+    isAuthorized = isSuperAdmin || settings.users;
+    deniedMessage = "You do not have permission to view or manage user accounts.";
+  } else if (pathname.startsWith("/delq-portal/bookings")) {
+    isAuthorized = isSuperAdmin || settings.bookings;
+    deniedMessage = "You do not have permission to view or manage booking requests.";
+  } else if (pathname.startsWith("/delq-portal/pricing")) {
+    isAuthorized = isSuperAdmin || settings.pricing;
+    deniedMessage = "You do not have permission to view or manage pricing details.";
+  } else if (pathname.startsWith("/delq-portal/faqs")) {
+    isAuthorized = isSuperAdmin || settings.faqs;
+    deniedMessage = "You do not have permission to manage FAQs.";
+  } else if (pathname.startsWith("/delq-portal/contact")) {
+    isAuthorized = isSuperAdmin || settings.contact;
+    deniedMessage = "You do not have permission to manage contact section settings.";
+  } else if (pathname.startsWith("/delq-portal/blogs")) {
+    isAuthorized = isSuperAdmin || settings.blogs;
+    deniedMessage = "You do not have permission to create or edit blog articles.";
+  } else if (pathname.startsWith("/delq-portal/enquiries")) {
+    isAuthorized = isSuperAdmin || settings.enquiries;
+    deniedMessage = "You do not have permission to view user enquiries logs.";
+  } else if (pathname.startsWith("/delq-portal/analytics")) {
+    isAuthorized = isSuperAdmin || settings.analytics;
+    deniedMessage = "You do not have permission to view website analytics.";
+  } else if (pathname.startsWith("/delq-portal/portfolio")) {
+    isAuthorized = isSuperAdmin || settings.galleries;
+    deniedMessage = "You do not have permission to manage the portfolio gallery.";
+  } else if (pathname.startsWith("/delq-portal/galleries")) {
+    isAuthorized = isSuperAdmin || settings.galleries || userRole === "client";
+    deniedMessage = "You do not have permission to access client galleries.";
+  }
 
   return (
     <div className="min-h-screen flex bg-[#FCFAF7]">
@@ -193,34 +250,29 @@ export default async function AdminLayout({
           >
             ← Back to Public Site
           </Link>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/login" });
-            }}
+          
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-950/20 text-red-300 hover:bg-red-900/30 hover:text-red-200 border border-red-900/35 hover:border-red-500/30 rounded-sm text-xs uppercase tracking-widest font-semibold transition-all duration-300 shadow-sm cursor-pointer animate-fade-in"
+            aria-label="Log Out of Admin Panel"
           >
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-950/20 text-red-300 hover:bg-red-900/30 hover:text-red-200 border border-red-900/35 hover:border-red-500/30 rounded-sm text-xs uppercase tracking-widest font-semibold transition-all duration-300 shadow-sm cursor-pointer"
-              aria-label="Log Out of Admin Panel"
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2.0}
+              stroke="currentColor"
+              className="w-4 h-4"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2.0}
-                stroke="currentColor"
-                className="w-4 h-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
-                />
-              </svg>
-              Log Out
-            </button>
-          </form>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
+              />
+            </svg>
+            Log Out
+          </button>
+          
           <p className="text-[9px] text-stone-600 font-light select-none">
             © {new Date().getFullYear()} Pallavi Photography Switzerland
           </p>
@@ -229,7 +281,7 @@ export default async function AdminLayout({
 
       {/* Main Content Area */}
       <main className="flex-1 p-10 overflow-y-auto max-w-6xl mx-auto">
-        {children}
+        {isAuthorized ? children : <AccessDenied message={deniedMessage} />}
       </main>
     </div>
   );
