@@ -7,6 +7,7 @@ from app.models.pricing_section import PricingSection
 from app.models.faq import FAQ
 from app.models.contact_section import ContactSection
 from app.models.system_setting import SystemSetting
+from app.models.gallery import Gallery, GalleryStatus
 import json
 from app.core import security
 
@@ -173,6 +174,67 @@ def seed_db():
             db.commit()
             print("About section seeded successfully!")
             
+        # Seed/Update Galleries (Portfolio metadata)
+        print("Cleaning/Upserting Galleries...")
+        galleries_data = [
+            {
+                "category": "newborn",
+                "title": "Newborn Photographer in Vevey, Vaud",
+                "slug": "newborn",
+                "description": "Welcome to the Newborn Photography Gallery — a collection of gentle, timeless portraits capturing the very first days of life. Each photo captures your baby's tiny details, sweet moments in a calm, comfortable, and thoughtfully styled session. Families from Vevey, Lausanne, Montreux, Morges and the surrounding Vaud region are warmly welcomed to experience professional newborn photography sessions designed with comfort, safety, and artistry in mind. If you would like to learn more about newborn session packages and pricing, visit the Newborn Photography Services Page."
+            },
+            {
+                "category": "children",
+                "title": "Children Photographer in Vevey, Vaud",
+                "slug": "children",
+                "description": "Welcome to the Children Photography Gallery — a place to see the joy, curiosity, and personality of little ones at every stage. Each image captures genuine smiles, playful moments, and the unique spark that makes every child special, all in a relaxed and fun session designed to let their natural energy shine. Families from Vevey, Lausanne, Montreux, Morges, and the surrounding Vaud region are warmly welcomed to enjoy a child-friendly photography experience. If you'd like to learn more about children's session packages and pricing, visit the Children Photography Services Page."
+            },
+            {
+                "category": "maternity",
+                "title": "Maternity Photographer in Vevey, Vaud",
+                "slug": "maternity",
+                "description": "Welcome to the Maternity Photography Gallery — celebrating the beauty, anticipation, and emotion of pregnancy. Each portrait captures the glow, connection, and love of this special time, whether alone, with a partner, or including older children, in a comfortable and thoughtfully styled session. Families from Vevey, Lausanne, Montreux, Morges, and the surrounding Vaud region are invited to create lasting memories of this extraordinary journey. If you'd like to learn more about maternity session packages and pricing, visit the Maternity Photography Services Page."
+            },
+            {
+                "category": "family",
+                "title": "Family Photographer in Vevey, Vaud",
+                "slug": "family",
+                "description": "Welcome to the Family Photography Gallery — a collection of moments that celebrate connection, joy, and togetherness. Each session captures laughter, love, and the small, everyday details that make your family unique, in a relaxed and natural setting, whether indoors or at a favorite outdoor location. Families from Vevey, Lausanne, Montreux, Morges, and the surrounding Vaud region are warmly invited to experience photography designed to feel fun, meaningful, and memorable. If you'd like to learn more about family session packages and pricing, visit the Family Photography Services Page."
+            },
+            {
+                "category": "fine_art",
+                "title": "Fine Art Photographer in Vevey, Vaud",
+                "slug": "fine-art",
+                "description": "Welcome to the Fine Art Portraits Gallery — a collection of expressive, timeless images crafted with creativity and emotion. Each portrait is a collaborative work of art, reflecting your personality and story in a unique and meaningful way. Clients from Vevey, Lausanne, Montreux, Morges, and the Vaud region are invited to explore the gallery and experience photography that goes beyond the ordinary. If you're interested in creating your own Fine Art portraits, please get in touch to discuss your vision and availability. Contact Me About Fine Art Sessions"
+            },
+            {
+                "category": "nature",
+                "title": "Nature Photographer in Vevey, Vaud",
+                "slug": "nature",
+                "description": "Welcome to the Nature Portraits Gallery — a collection of quiet moments, natural light, and the raw beauty of Swiss landscapes. Each photograph captures the serene details of the flora, mountains, and wilderness surrounding the Vaud region, showcasing the beauty of the natural world in its purest form. If you'd like to learn more about licensing my landscape photographs or booking a session in nature, visit the Nature Photography Services Page."
+            }
+        ]
+
+        for item in galleries_data:
+            existing = db.query(Gallery).filter(Gallery.category == item["category"]).first()
+            if existing:
+                existing.title = item["title"]
+                existing.description = item["description"]
+                existing.slug = item["slug"]
+                existing.status = GalleryStatus.PUBLISHED.value
+            else:
+                new_gallery = Gallery(
+                    category=item["category"],
+                    title=item["title"],
+                    description=item["description"],
+                    slug=item["slug"],
+                    status=GalleryStatus.PUBLISHED.value,
+                    sort_order=0
+                )
+                db.add(new_gallery)
+        db.commit()
+        print("Galleries seeded/updated successfully!")
+
         # Seed Pricing Sections
         print("Checking pricing sections...")
         # Seed Pricing Sections

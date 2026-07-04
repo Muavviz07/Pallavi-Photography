@@ -55,34 +55,34 @@ const FALLBACK_IMAGES: Record<string, Array<{ id: string; url: string; title: st
 
 const CATEGORIES_METADATA: Record<string, { title: string; subtitle: string; description: string }> = {
   newborn: {
-    title: "Newborn Portfolio",
+    title: "Newborn Photographer in Vevey, Vaud",
     subtitle: "Purity, Soft Textures, & Fleeting Moments",
-    description: "Capturing the tender first weeks of life with soft organic materials, soothing neutral tones, and detailed close-ups that document how incredibly tiny they once were."
+    description: "Welcome to the Newborn Photography Gallery — a collection of gentle, timeless portraits capturing the very first days of life. Each photo captures your baby's tiny details, sweet moments in a calm, comfortable, and thoughtfully styled session. Families from Vevey, Lausanne, Montreux, Morges and the surrounding Vaud region are warmly welcomed to experience professional newborn photography sessions designed with comfort, safety, and artistry in mind. If you would like to learn more about newborn session packages and pricing, visit the Newborn Photography Services Page."
   },
   children: {
-    title: "Children Portfolio",
+    title: "Children Photographer in Vevey, Vaud",
     subtitle: "Wonder, Playground Laughter, & Candid Portraits",
-    description: "Capturing the boundless energy and authentic wonder of childhood. Natural play sessions and high-end artistic studio portraits tailored to capture children as they truly are."
+    description: "Welcome to the Children Photography Gallery — a place to see the joy, curiosity, and personality of little ones at every stage. Each image captures genuine smiles, playful moments, and the unique spark that makes every child special, all in a relaxed and fun session designed to let their natural energy shine. Families from Vevey, Lausanne, Montreux, Morges, and the surrounding Vaud region are warmly welcomed to enjoy a child-friendly photography experience. If you'd like to learn more about children's session packages and pricing, visit the Children Photography Services Page."
   },
   maternity: {
-    title: "Maternity Portfolio",
+    title: "Maternity Photographer in Vevey, Vaud",
     subtitle: "Grace, Strength, & Expectant Light",
-    description: "Documenting the beautiful journey of pregnancy. From elegant silhouettes in our warm studio to sun-drenched fine art portraits in the breathtaking Swiss countryside."
+    description: "Welcome to the Maternity Photography Gallery — celebrating the beauty, anticipation, and emotion of pregnancy. Each portrait captures the glow, connection, and love of this special time, whether alone, with a partner, or including older children, in a comfortable and thoughtfully styled session. Families from Vevey, Lausanne, Montreux, Morges, and the surrounding Vaud region are invited to create lasting memories of this extraordinary journey. If you'd like to learn more about maternity session packages and pricing, visit the Maternity Photography Services Page."
   },
   family: {
-    title: "Family Portfolio",
+    title: "Family Photographer in Vevey, Vaud",
     subtitle: "Real Laughter, Warm Hugs, & Genuine Connections",
-    description: "Frame-by-frame captures of authentic family love. Outdoor sessions designed as joyful walks in the sunset, capturing clean emotional depth rather than rigid poses."
+    description: "Welcome to the Family Photography Gallery — a collection of moments that celebrate connection, joy, and togetherness. Each session captures laughter, love, and the small, everyday details that make your family unique, in a relaxed and natural setting, whether indoors or at a favorite outdoor location. Families from Vevey, Lausanne, Montreux, Morges, and the surrounding Vaud region are warmly invited to experience photography designed to feel fun, meaningful, and memorable. If you'd like to learn more about family session packages and pricing, visit the Family Photography Services Page."
   },
   "fine-art": {
-    title: "Fine Art Portfolio",
+    title: "Fine Art Photographer in Vevey, Vaud",
     subtitle: "Editorial Depth, Painterly Shading, & Timeless Portraits",
-    description: "Classical, deep-contrast portraits styled with high-end editorial textures. Designed as statement fine art prints to hang in your home for generations."
+    description: "Welcome to the Fine Art Portraits Gallery — a collection of expressive, timeless images crafted with creativity and emotion. Each portrait is a collaborative work of art, reflecting your personality and story in a unique and meaningful way. Clients from Vevey, Lausanne, Montreux, Morges, and the Vaud region are invited to explore the gallery and experience photography that goes beyond the ordinary. If you're interested in creating your own Fine Art portraits, please get in touch to discuss your vision and availability. Contact Me About Fine Art Sessions"
   },
   nature: {
-    title: "Nature & Landscapes",
+    title: "Nature Photographer in Vevey, Vaud",
     subtitle: "Swiss Landscapes & Natural Light Study",
-    description: "Exploring the raw majesty of nature and golden hour tones. Landscapes, natural flora, and wilderness captures representing our artistic environment."
+    description: "Welcome to the Nature Portraits Gallery — a collection of quiet moments, natural light, and the raw beauty of Swiss landscapes. Each photograph captures the serene details of the flora, mountains, and wilderness surrounding the Vaud region, showcasing the beauty of the natural world in its purest form. If you'd like to learn more about licensing my landscape photographs or booking a session in nature, visit the Nature Photography Services Page."
   }
 };
 
@@ -111,6 +111,8 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
   const [lang, setLang] = useState("EN");
+  const [galleryTitle, setGalleryTitle] = useState(metadata.title);
+  const [galleryDescription, setGalleryDescription] = useState(metadata.description);
 
   useEffect(() => {
     const stored = localStorage.getItem("lang") || "EN";
@@ -135,8 +137,11 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
         if (galleriesRes.ok) {
           const galleries = await galleriesRes.json();
           if (galleries && galleries.length > 0) {
+            const gal = galleries[0];
+            if (gal.title) setGalleryTitle(gal.title);
+            if (gal.description) setGalleryDescription(gal.description);
             // Find images for this gallery
-            const imagesRes = await fetch(`${apiUrl}/api/galleries/${galleries[0].id}/images`);
+            const imagesRes = await fetch(`${apiUrl}/api/galleries/${gal.id}/images`);
             if (imagesRes.ok) {
               const data = await imagesRes.json();
               if (data && data.length > 0) {
@@ -208,15 +213,20 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
         {/* Gallery Intro Header */}
         <div className="max-w-7xl mx-auto px-6 md:px-10 mb-16 text-left space-y-6 animate-fade-in">
           <h2 className="text-xl sm:text-2xl md:text-[28px] tracking-[0.2em] font-serif text-brand-dark uppercase font-light leading-snug">
-            {metadata.title.toUpperCase()}
+            {galleryTitle.toUpperCase()}
           </h2>
           
           <div className="w-12 h-[1.5px] bg-[#A3A69C] opacity-60"></div>
           
           <div className="space-y-5 text-sm text-stone-500 font-sans font-light leading-relaxed tracking-wide text-justify">
-            <p className="text-stone-600 font-normal text-base leading-relaxed">
-              {metadata.description}
-            </p>
+            {galleryDescription.split("\n\n").map((para, idx) => {
+              const isLead = idx === 0;
+              return (
+                <p key={idx} className={isLead ? "text-stone-600 font-normal text-base leading-relaxed" : ""}>
+                  {para}
+                </p>
+              );
+            })}
           </div>
 
           <div className="pt-4 flex items-center">
