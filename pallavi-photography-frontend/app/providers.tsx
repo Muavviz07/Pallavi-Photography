@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
@@ -13,6 +15,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       },
     },
   }));
+
+  useEffect(() => {
+    if (session && (session as any).error === "RefreshAccessTokenError") {
+      signOut({ callbackUrl: "/login?error=SessionExpired" });
+    }
+  }, [session]);
 
   return (
     <QueryClientProvider client={queryClient}>

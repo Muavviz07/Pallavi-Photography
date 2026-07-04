@@ -123,6 +123,11 @@ export const authConfig = {
         }
       }
 
+      // If there was previously a refresh error, don't attempt to refresh again
+      if (token.error === "RefreshAccessTokenError") {
+        return token;
+      }
+
       // Return previous token if the access token has not expired yet
       if (token.accessTokenExpires && Date.now() < (token.accessTokenExpires as number)) {
         return token;

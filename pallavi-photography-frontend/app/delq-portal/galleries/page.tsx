@@ -31,6 +31,7 @@ interface ClientGalleryResponse {
   can_upload: boolean;
   can_download_zip: boolean;
   cover_image_id?: string;
+  password_hash?: string;
   cover_image?: {
     id: string;
     original_url: string;

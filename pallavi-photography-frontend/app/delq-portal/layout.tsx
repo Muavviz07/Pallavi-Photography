@@ -23,8 +23,9 @@ export default async function AdminLayout({
   const session = await auth();
   const userRole = (session?.user as any)?.role;
   const token = (session as any)?.accessToken;
+  const hasSessionError = (session as any)?.error === "RefreshAccessTokenError";
   
-  if (!session?.user || (userRole !== "admin" && userRole !== "super_admin" && userRole !== "client")) {
+  if (!session?.user || hasSessionError || (userRole !== "admin" && userRole !== "super_admin" && userRole !== "client")) {
     redirect("/login");
   }
 
