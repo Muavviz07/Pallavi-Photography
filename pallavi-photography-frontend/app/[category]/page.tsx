@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useParams, notFound } from "next/navigation";
-import PricingCategoryPage from "../pricing/[category]/page";
+import PricingCategoryPage from "@/components/PricingCategoryPage";
 
 const VALID_CATEGORIES = ["newborn", "children", "family", "maternity", "fine-art", "nature"];
 

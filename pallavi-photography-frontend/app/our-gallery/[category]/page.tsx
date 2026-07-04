@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, X, ArrowLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
@@ -110,6 +110,19 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
+  const [lang, setLang] = useState("EN");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("lang") || "EN";
+    setLang(stored);
+
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("lang") || "EN");
+    };
+
+    window.addEventListener("languagechange", handleLangChange);
+    return () => window.removeEventListener("languagechange", handleLangChange);
+  }, []);
 
   useEffect(() => {
     async function fetchImages() {
@@ -193,31 +206,32 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
       
       <main className="flex-1 pt-14 pb-24 bg-[#FCFAF7]">
         {/* Gallery Intro Header */}
-        <div className="max-w-4xl mx-auto px-6 text-center space-y-6 mb-16 animate-fade-in">
-          <Link
-            href="/"
-            className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#C4A484] hover:text-[#2C2623] transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Home</span>
-          </Link>
-          <span className="text-[10px] uppercase tracking-[0.35em] text-[#C4A484] font-semibold block pt-2">
-            Fine Art Collection
-          </span>
-          <h2 className="text-3xl sm:text-5xl font-light tracking-wide font-serif text-[#2C2623] uppercase">
-            {metadata.title}
+        <div className="max-w-7xl mx-auto px-6 md:px-10 mb-16 text-left space-y-6 animate-fade-in">
+          <h2 className="text-xl sm:text-2xl md:text-[28px] tracking-[0.2em] font-serif text-brand-dark uppercase font-light leading-snug">
+            {metadata.title.toUpperCase()}
           </h2>
-          <span className="block text-xs uppercase tracking-widest font-light text-[#6E635F] italic">
-            {metadata.subtitle}
-          </span>
-          <p className="text-[#6E635F] text-sm leading-relaxed font-light max-w-2xl mx-auto text-center leading-relaxed">
-            {metadata.description}
-          </p>
-          <div className="w-12 h-[1px] bg-[#DCD0C0] mx-auto pt-2" />
+          
+          <div className="w-12 h-[1.5px] bg-[#A3A69C] opacity-60"></div>
+          
+          <div className="space-y-5 text-sm text-stone-500 font-sans font-light leading-relaxed tracking-wide text-justify">
+            <p className="text-stone-600 font-normal text-base leading-relaxed">
+              {metadata.description}
+            </p>
+          </div>
+
+          <div className="pt-4 flex items-center">
+            <Link
+              href={`/${categoryKey}`}
+              className="inline-flex items-center space-x-2 text-[11px] font-sans uppercase tracking-[0.25em] text-[#8F9288] hover:text-[#7D8076] border-b border-[#8F9288]/40 hover:border-[#7D8076] pb-1 transition-all duration-300 cursor-pointer"
+            >
+              <span>{lang === "FR" ? `Voir les tarifs ${categoryKey}` : `View ${categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1)} Pricing`}</span>
+              <span className="text-xs">→</span>
+            </Link>
+          </div>
         </div>
 
         {/* Gallery Image Grid */}
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-6 md:px-10">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
               <Loader2 className="w-8 h-8 border-2 border-[#C4A484] border-t-transparent rounded-full animate-spin text-[#C4A484]" />
