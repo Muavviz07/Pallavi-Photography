@@ -17,63 +17,63 @@ const FALLBACK_SLIDES = [
   {
     id: "fb-1",
     title: "New Beginnings",
-    image_url: "https://images.unsplash.com/photo-1583086762675-5a88bcc72548?w=1600&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200",
     order: 1,
     is_active: true
   },
   {
     id: "fb-2",
     title: "Timeless Childhood",
-    image_url: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=1600&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fENoaWxkcmVuJTIwcGhvdG9zaG9vdHxlbnwwfHwwfHx8MA%3D%3D",
     order: 2,
     is_active: true
   },
   {
     id: "fb-3",
     title: "Family Connections",
-    image_url: "https://plus.unsplash.com/premium_photo-1671114205636-b64b9ec631ee?w=1600&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=1200",
     order: 3,
     is_active: true
   },
   {
     id: "fb-4",
     title: "Maternity Grace",
-    image_url: "https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=1600&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8TWF0ZXJuaXR5JTIwcGhvdG9zaG9vdHxlbnwwfHwwfHx8MA%3D%3D",
     order: 4,
     is_active: true
   },
   {
     id: "fb-5",
     title: "Fine Art Portraits",
-    image_url: "https://images.unsplash.com/photo-1637511844674-d2c52d5f29b5?w=1600&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1637511844674-d2c52d5f29b5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8RmluZWFydCUyMHBob3Rvc2hvb3R8ZW58MHx8MHx8fDA%3D",
     order: 5,
     is_active: true
   },
   {
     id: "fb-6",
     title: "Nature Scenery",
-    image_url: "https://images.unsplash.com/photo-1698758966922-857c726739d5?w=1600&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=1200",
     order: 6,
     is_active: true
   },
   {
     id: "fb-7",
     title: "Newborn Details",
-    image_url: "https://images.unsplash.com/photo-1583086762675-5a88bcc72548?w=1600&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200",
     order: 7,
     is_active: true
   },
   {
     id: "fb-8",
     title: "Milestone Moments",
-    image_url: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=1600&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fENoaWxkcmVuJTIwcGhvdG9zaG9vdHxlbnwwfHwwfHx8MA%3D%3D",
     order: 8,
     is_active: true
   },
   {
     id: "fb-9",
     title: "Maternity Elegance",
-    image_url: "https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=1600&auto=format&fit=crop&q=80",
+    image_url: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=1200",
     order: 9,
     is_active: true
   }
