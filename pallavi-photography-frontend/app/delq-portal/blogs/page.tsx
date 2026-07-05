@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
-import { Loader2, Plus, Edit2, Trash2, X, ShieldAlert } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, X, ShieldAlert, Image as ImageIcon } from "lucide-react";
+import MediaPicker from "@/components/media/MediaPicker";
+import { MediaItem } from "@/lib/media";
 
 interface BlogPostResponse {
   id: string;
@@ -44,6 +46,15 @@ export default function AdminBlogs() {
   });
 
   const [errorMsg, setErrorMsg] = useState("");
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
+
+  const handleSelectCover = (media: MediaItem) => {
+    setFormData((prev) => ({
+      ...prev,
+      cover_image_url: media.file_url || media.optimized_url || media.original_url,
+    }));
+    setShowCoverPicker(false);
+  };
 
   const loadPosts = async () => {
     if (!token) return;
@@ -327,16 +338,35 @@ export default function AdminBlogs() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[10px] uppercase text-stone-400 font-semibold mb-1">Cover Image URL</label>
-                  <input
-                    type="text"
-                    name="cover_image_url"
-                    value={formData.cover_image_url}
-                    onChange={handleInputChange}
-                    placeholder="Unsplash / S3 address"
-                    className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
-                  />
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-[10px] uppercase text-stone-400 font-semibold">Featured Cover Image</label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCoverPicker(true)}
+                      className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#2C2623] border border-[#2C2623] hover:bg-[#2C2623] hover:text-white px-3 py-2 rounded-sm font-semibold transition-all"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      Select from Library
+                    </button>
+                    <input
+                      type="text"
+                      name="cover_image_url"
+                      value={formData.cover_image_url}
+                      onChange={handleInputChange}
+                      placeholder="Or paste image URL"
+                      className="flex-1 min-w-[200px] bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
+                    />
+                  </div>
+                  {formData.cover_image_url && (
+                    <div className="w-32 aspect-video rounded-sm overflow-hidden border border-[#DCD0C0]/30 bg-stone-100">
+                      <img
+                        src={formData.cover_image_url}
+                        alt="Cover preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -402,6 +432,20 @@ export default function AdminBlogs() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showCoverPicker && token && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-4xl w-full shadow-lg space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#DCD0C0]/20 pb-3">
+              <h3 className="text-sm font-serif font-semibold text-[#2C2623]">Select Cover Image</h3>
+              <button onClick={() => setShowCoverPicker(false)} className="text-[#6E635F] hover:text-[#2C2623]">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <MediaPicker token={token} onSelect={handleSelectCover} />
           </div>
         </div>
       )}

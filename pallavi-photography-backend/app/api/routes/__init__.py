@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.routes import auth, health, galleries, client_galleries, admin, blogs, bookings, enquiries, newsletter, testimonials, hero_sliders, about, pricing, faqs, contact
+from app.api.routes import auth, health, galleries, client_galleries, admin, blogs, bookings, enquiries, newsletter, testimonials, hero_sliders, about, pricing, faqs, contact, media
 
 api_router = APIRouter()
 
@@ -18,5 +18,6 @@ api_router.include_router(about.router, tags=["about"])
 api_router.include_router(pricing.router, tags=["pricing"])
 api_router.include_router(faqs.router, tags=["faqs"])
 api_router.include_router(contact.router, tags=["contact"])
+api_router.include_router(media.router, prefix="/media", tags=["media"])
 
 

@@ -7,7 +7,9 @@ from app.models.gallery import Gallery, GalleryStatus
 from app.models.image import Image
 from app.schemas.gallery import GalleryCreate, GalleryUpdate, GalleryResponse
 from app.schemas.image import ImageResponse
+from app.schemas.media import AddMediaToGalleryRequest
 from app.services.image_service import image_service
+from app.services.media_service import refresh_usage_count, can_delete_media
 
 router = APIRouter()
 
@@ -206,6 +208,13 @@ def delete_image(
     """
     Delete an image record and remove it from storage. (Admin only)
     """
+    deletable, usage = can_delete_media(db, image_id)
+    if not deletable:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete. This image is used in {usage} place(s). Remove from galleries first.",
+        )
+
     success = image_service.delete_image_record(db, image_id)
     if not success:
         raise HTTPException(
@@ -254,4 +263,48 @@ def update_image_metadata(
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
+    return db_image
+
+@router.post("/{id}/images", response_model=ImageResponse)
+def add_image_from_media_library(
+    id: uuid.UUID,
+    body: AddMediaToGalleryRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_or_client_user),
+):
+    """
+    Add an existing media library image to a portfolio gallery.
+    """
+    db_gallery = db.query(Gallery).filter(Gallery.id == id).first()
+    if not db_gallery:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Gallery not found.",
+        )
+
+    db_image = db.query(Image).filter(Image.id == body.image_id).first()
+    if not db_image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Media not found.",
+        )
+
+    if db_image.gallery_id is not None and db_image.gallery_id != id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This image is already assigned to another portfolio gallery.",
+        )
+
+    db_image.gallery_id = id
+    if body.sort_order is not None:
+        db_image.sort_order = body.sort_order
+
+    if not db_gallery.cover_image_id:
+        db_gallery.cover_image_id = db_image.id
+
+    db.add(db_image)
+    db.add(db_gallery)
+    db.commit()
+    db.refresh(db_image)
+    refresh_usage_count(db, db_image.id)
     return db_image

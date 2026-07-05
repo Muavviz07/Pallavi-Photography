@@ -97,6 +97,9 @@ export default function AdminLayout({
   } else if (pathname.startsWith("/delq-portal/portfolio")) {
     isAuthorized = isSuperAdmin || settings.galleries;
     deniedMessage = "You do not have permission to manage the portfolio gallery.";
+  } else if (pathname.startsWith("/delq-portal/media")) {
+    isAuthorized = isSuperAdmin || settings.galleries;
+    deniedMessage = "You do not have permission to manage the media library.";
   } else if (pathname.startsWith("/delq-portal/galleries")) {
     isAuthorized = isSuperAdmin || settings.galleries || userRole === "client";
     deniedMessage = "You do not have permission to access client galleries.";
@@ -143,6 +146,15 @@ export default function AdminLayout({
                 className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
               >
                 Portfolio Gallery
+              </Link>
+            )}
+
+            {(isSuperAdmin || (isAdmin && settings.galleries)) && (
+              <Link
+                href="/delq-portal/media"
+                className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+              >
+                Media Library
               </Link>
             )}
 

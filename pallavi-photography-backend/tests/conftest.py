@@ -15,11 +15,10 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
-    # Create all tables on the test database
+    # Recreate schema so model changes are reflected in the test database
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     yield
-    # We can drop tables if we want clean teardown, but keeping them is fine.
-    # Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture(scope="function")
 def db():

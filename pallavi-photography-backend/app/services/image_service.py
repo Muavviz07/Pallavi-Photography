@@ -4,6 +4,7 @@ import logging
 from typing import Optional
 from PIL import Image as PILImage, ImageOps
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.models.image import Image
 from app.models.gallery import Gallery
 from app.services.s3_service import s3_service
@@ -21,6 +22,8 @@ class ImageService:
         alt_text: Optional[str] = None,
         description: Optional[str] = None,
         aspect: Optional[str] = None,
+        uploaded_by_id: Optional[uuid.UUID] = None,
+        category: Optional[str] = None,
     ) -> Image:
         """
         Process, optimize, thumbnail and upload an image file.
@@ -98,9 +101,11 @@ class ImageService:
         # Save DB record
         db_image = Image(
             gallery_id=gallery_id,
+            uploaded_by_id=uploaded_by_id,
             title=title or original_filename.rsplit(".", 1)[0],
             alt_text=alt_text or title or "Portfolio photo",
             description=description,
+            category=category,
             original_filename=original_filename,
             original_url=original_url,
             optimized_url=optimized_url,
@@ -109,6 +114,7 @@ class ImageService:
             dimensions=dimensions,
             format="webp",
             sort_order=0,  # Default, can be ordered later
+            usage_count=1 if gallery_id else 0,
         )
         
         db.add(db_image)

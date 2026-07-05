@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), ".."
 from app.core.config import settings
 from app.db.database import Base
 from app.models import User  # Import models to ensure they are added to Base.metadata
+from app.models import Image  # noqa: F401 — ensure media library columns are tracked
 
 config = context.config
 

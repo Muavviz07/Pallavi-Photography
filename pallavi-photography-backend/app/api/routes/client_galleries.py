@@ -21,8 +21,10 @@ from app.schemas.client_gallery import (
     ClientGalleryImageResponse,
 )
 from app.schemas.image import ImageResponse
+from app.schemas.media import AddMediaToGalleryRequest
 from app.services.image_service import image_service
 from app.services.email_service import email_service
+from app.services.media_service import refresh_usage_count, can_delete_media
 
 router = APIRouter()
 
@@ -502,6 +504,62 @@ def select_gallery_image(
     db.refresh(db_cg_image)
     return db_cg_image
 
+@router.post("/{id_or_slug}/images", response_model=ClientGalleryImageResponse)
+def add_image_from_media_library(
+    id_or_slug: str,
+    body: AddMediaToGalleryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Add an existing media library image to a client gallery. (Admin only)
+    """
+    gallery = get_gallery_by_id_or_slug(db, id_or_slug)
+    if not gallery:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client gallery not found.",
+        )
+
+    db_image = db.query(Image).filter(Image.id == body.image_id).first()
+    if not db_image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Media not found.",
+        )
+
+    if db_image.gallery_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This image is assigned to a portfolio gallery and cannot be added here.",
+        )
+
+    existing = db.query(ClientGalleryImage).filter(
+        ClientGalleryImage.client_gallery_id == gallery.id,
+        ClientGalleryImage.image_id == body.image_id,
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This image is already in the gallery.",
+        )
+
+    db_cg_image = ClientGalleryImage(
+        client_gallery_id=gallery.id,
+        image_id=db_image.id,
+        selected=False,
+    )
+    db.add(db_cg_image)
+
+    if not gallery.cover_image_id:
+        gallery.cover_image_id = db_image.id
+        db.add(gallery)
+
+    db.commit()
+    db.refresh(db_cg_image)
+    refresh_usage_count(db, db_image.id)
+    return db_cg_image
+
 @router.post("/{id_or_slug}/images/upload", response_model=ClientGalleryImageResponse)
 async def upload_client_gallery_image(
     id_or_slug: str,
@@ -555,6 +613,7 @@ async def upload_client_gallery_image(
             
         db.commit()
         db.refresh(db_cg_image)
+        refresh_usage_count(db, db_image.id)
         return db_cg_image
         
     except ValueError as e:
@@ -596,10 +655,19 @@ def delete_client_gallery_image(
             detail="Image link not found in this client gallery."
         )
         
-    # Use image service to clean up actual S3 files and the main image record
+    # Remove junction; delete storage only if image is no longer referenced
+    if gallery.cover_image_id == image_id:
+        gallery.cover_image_id = None
+        db.add(gallery)
+
     db.delete(db_cg_image)
-    image_service.delete_image_record(db, image_id)
     db.commit()
+    refresh_usage_count(db, image_id)
+
+    deletable, _ = can_delete_media(db, image_id)
+    if deletable:
+        image_service.delete_image_record(db, image_id)
+
     return None
 
 @router.post("/{id_or_slug}/submit-selections")

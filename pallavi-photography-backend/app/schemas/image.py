@@ -17,6 +17,8 @@ class ImageResponse(ImageBase):
 
     id: uuid.UUID
     gallery_id: Optional[uuid.UUID] = None
+    uploaded_by_id: Optional[uuid.UUID] = None
+    category: Optional[str] = None
     original_filename: Optional[str] = None
     original_url: str
     optimized_url: Optional[str] = None
@@ -24,5 +26,6 @@ class ImageResponse(ImageBase):
     file_size: Optional[int] = None
     dimensions: Optional[Dict[str, Any]] = None
     format: Optional[str] = None
+    usage_count: int = 0
     created_at: datetime
     updated_at: datetime

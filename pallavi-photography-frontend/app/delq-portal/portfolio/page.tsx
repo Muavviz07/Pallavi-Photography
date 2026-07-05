@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
-import { Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, Image as ImageIcon, Sliders, ZoomIn, Move } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, Image as ImageIcon, Sliders, ZoomIn, Move, Library } from "lucide-react";
+import MediaPicker from "@/components/media/MediaPicker";
+import { MediaItem } from "@/lib/media";
 
 interface GalleryResponse {
   id: string;
@@ -67,6 +69,10 @@ export default function PortfolioAdmin() {
   const [imageAlt, setImageAlt] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+
+  // Media library picker
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [addingFromLibrary, setAddingFromLibrary] = useState(false);
 
   // Edit Image Metadata Modal States
   const [showEditImageModal, setShowEditImageModal] = useState(false);
@@ -354,6 +360,24 @@ export default function PortfolioAdmin() {
     }
   };
 
+  const handleAddFromLibrary = async (media: MediaItem) => {
+    if (!gallery || !token) return;
+    setAddingFromLibrary(true);
+    try {
+      await fetchAPI(`/api/galleries/${gallery.id}/images`, {
+        method: "POST",
+        token,
+        body: JSON.stringify({ image_id: media.id }),
+      });
+      setShowMediaPicker(false);
+      loadGalleryAndImages(activeCategory);
+    } catch (err: any) {
+      alert(err.message || "Failed to add image from library.");
+    } finally {
+      setAddingFromLibrary(false);
+    }
+  };
+
   const handleDeleteImage = async (imgId: string) => {
     if (!confirm("Are you sure you want to remove this image from the portfolio? This will delete the files permanently.")) return;
     setUpdatingId(imgId);
@@ -382,20 +406,30 @@ export default function PortfolioAdmin() {
             Manage public portfolio works for each photography category. Apply cropping layouts for visual consistency.
           </p>
         </div>
-        <button
-          onClick={() => {
-            setSelectedFile(null);
-            setImageSrc("");
-            setImageTitle("");
-            setImageAlt("");
-            setShowUploadModal(true);
-          }}
-          disabled={!gallery}
-          className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#FCFAF7] bg-[#2C2623] hover:bg-[#352F2C] px-4 py-2.5 rounded-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Upload Image</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMediaPicker(true)}
+            disabled={!gallery || addingFromLibrary}
+            className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#2C2623] border border-[#2C2623] hover:bg-[#2C2623] hover:text-white px-4 py-2.5 rounded-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
+          >
+            <Library className="w-4 h-4" />
+            <span>From Library</span>
+          </button>
+          <button
+            onClick={() => {
+              setSelectedFile(null);
+              setImageSrc("");
+              setImageTitle("");
+              setImageAlt("");
+              setShowUploadModal(true);
+            }}
+            disabled={!gallery}
+            className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#FCFAF7] bg-[#2C2623] hover:bg-[#352F2C] px-4 py-2.5 rounded-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Upload Image</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -827,6 +861,27 @@ export default function PortfolioAdmin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showMediaPicker && token && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-4xl w-full shadow-lg space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#DCD0C0]/20 pb-3">
+              <h3 className="text-sm font-serif font-semibold text-[#2C2623]">Select from Media Library</h3>
+              <button onClick={() => setShowMediaPicker(false)} className="text-[#6E635F] hover:text-[#2C2623]">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {addingFromLibrary ? (
+              <div className="flex items-center justify-center py-12 text-xs text-[#6E635F]">
+                <Loader2 className="w-4 h-4 animate-spin mr-2 text-[#C4A484]" />
+                Adding image to portfolio...
+              </div>
+            ) : (
+              <MediaPicker token={token} category={activeCategory} onSelect={handleAddFromLibrary} />
+            )}
           </div>
         </div>
       )}
