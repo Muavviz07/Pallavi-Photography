@@ -303,6 +303,34 @@ export default function PortfolioAdmin() {
     }
   };
 
+  /** Called when user picks a library image with NO crop changes — link the existing image directly. */
+  const handleUseOriginalFromLibrary = async () => {
+    if (!gallery || !token || !libraryMedia) return;
+    setAddingFromLibrary(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/galleries/${gallery.id}/images`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ image_id: libraryMedia.id }),
+        }
+      );
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Failed to add image.");
+      }
+      setShowLibraryCropper(false);
+      setLibraryMedia(null);
+      setLibraryCropperSrc("");
+      loadGalleryAndImages(activeCategory);
+    } catch (err: any) {
+      alert(err.message || "Failed to add image from library.");
+    } finally {
+      setAddingFromLibrary(false);
+    }
+  };
+
   const handleDeleteImage = async (imgId: string) => {
     if (!confirm("Remove this image from the portfolio gallery? The file will remain in the media library.")) return;
     setUpdatingId(imgId);
@@ -598,6 +626,7 @@ export default function PortfolioAdmin() {
             setLibraryCropperSrc("");
           }}
           onConfirm={handleLibraryCropConfirm}
+          onUseOriginal={handleUseOriginalFromLibrary}
           defaultTitle={libraryMedia?.title || ""}
           defaultAltText={activeCategory.replace("_", " ") + " portfolio photograph"}
           confirmLabel={addingFromLibrary ? "Adding..." : "Crop & Add"}

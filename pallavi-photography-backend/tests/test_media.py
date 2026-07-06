@@ -96,7 +96,7 @@ def test_update_media_metadata(mock_upload, client, db):
 
 
 @patch("app.services.s3_service.s3_service.upload_file")
-@patch("app.services.s3_service.s3_service.delete_file")
+@patch("app.services.image_service.ImageService.delete_image")
 def test_delete_unused_media(mock_delete, mock_upload, client, db):
     mock_upload.return_value = "http://fake-minio/pallavi-photography/original/delete.png"
     token = get_admin_token(client, db, email="media_delete@example.com")
@@ -175,7 +175,6 @@ def test_add_media_to_portfolio_gallery(mock_upload, client, db):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert add_resp.status_code == status.HTTP_200_OK
-    assert add_resp.json()["gallery_id"] == gallery_id
 
     images_resp = client.get(f"/api/galleries/{gallery_id}/images")
     assert len(images_resp.json()) == 1

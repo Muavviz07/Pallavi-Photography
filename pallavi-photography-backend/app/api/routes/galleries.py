@@ -203,6 +203,9 @@ async def upload_gallery_image(
         )
         gi = GalleryImage(gallery_id=db_gallery.id, image_id=db_image.id)
         db.add(gi)
+        if not db_gallery.cover_image_id:
+            db_gallery.cover_image_id = db_image.id
+            db.add(db_gallery)
         db.commit()
         refresh_usage_count(db, db_image.id)
         db.refresh(db_image)

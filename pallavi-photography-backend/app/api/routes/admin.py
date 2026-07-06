@@ -148,6 +148,37 @@ def set_custom_cover_url(
             detail=f"Setting cover URL failed: {str(e)}"
         )
 
+class SetCoverFromLibraryInput(BaseModel):
+    image_id: uuid.UUID
+
+
+@router.post("/galleries/{gallery_id}/set-cover-from-library", response_model=ClientGalleryResponse)
+def set_cover_from_library(
+    gallery_id: uuid.UUID,
+    body: SetCoverFromLibraryInput,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_or_client_user_with_feature("galleries")),
+):
+    """Set an existing media library image as gallery cover without creating a duplicate."""
+    gallery = db.query(ClientGallery).filter(ClientGallery.id == gallery_id).first()
+    if not gallery:
+        raise HTTPException(status_code=404, detail="Gallery not found")
+
+    from app.models.image import Image
+    db_image = db.query(Image).filter(Image.id == body.image_id).first()
+    if not db_image:
+        raise HTTPException(status_code=404, detail="Media not found")
+
+    gallery.cover_image_id = db_image.id
+    db.commit()
+    db.refresh(gallery)
+
+    from app.services.media_service import refresh_usage_count
+    refresh_usage_count(db, db_image.id)
+
+    return gallery
+
+
 from app.core.security import encrypt_password
 from app.schemas.user import UserCreate
 

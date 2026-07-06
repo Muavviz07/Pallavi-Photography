@@ -379,6 +379,60 @@ export default function AdminGalleries() {
     }
   };
 
+  const handleUseOriginalFromLibrary = async () => {
+    if (!selectedGalleryForPhotos || !token || !libraryMedia) return;
+    setAddingFromLibrary(true);
+    try {
+      if (isCoverCrop) {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/admin/galleries/${selectedGalleryForPhotos.id}/set-cover-from-library`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ image_id: libraryMedia.id }),
+          }
+        );
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || "Failed to set cover image.");
+        }
+        const updated = await res.json();
+        setSelectedGalleryForPhotos(updated);
+        setGalleries((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
+      } else {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/client-galleries/${selectedGalleryForPhotos.id}/images`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ image_id: libraryMedia.id }),
+          }
+        );
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || "Failed to add image.");
+        }
+        loadGalleryImages(selectedGalleryForPhotos.id);
+      }
+
+      setShowLibraryCropper(false);
+      setLibraryMedia(null);
+      setLibraryCropperSrc("");
+      setIsCoverCrop(false);
+    } catch (err: any) {
+      alert(err.message || "Failed to add image from library.");
+    } finally {
+      setAddingFromLibrary(false);
+    }
+  };
+
+
   const handleDeleteImage = async (imageId: string) => {
     if (!selectedGalleryForPhotos || !confirm("Remove this photo from the gallery? The file will remain in the media library.")) return;
     try {
@@ -838,6 +892,7 @@ export default function AdminGalleries() {
             setIsCoverCrop(false);
           }}
           onConfirm={isCoverCrop ? handleCoverCropConfirm : handleLibraryCropConfirm}
+          onUseOriginal={handleUseOriginalFromLibrary}
           defaultTitle={libraryMedia?.title || ""}
           defaultAltText={libraryMedia?.alt_text || `${selectedGalleryForPhotos?.title || ""} photo proof`}
           confirmLabel={isCoverCrop ? "Crop & Set Cover" : "Crop & Add"}

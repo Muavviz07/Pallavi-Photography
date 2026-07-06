@@ -115,6 +115,23 @@ def list_media(
         .all()
     )
 
+    # Batch compute exact usage counts and self-heal any out-of-sync db records
+    from app.services.media_service import bulk_compute_usage_counts
+    computed_counts = bulk_compute_usage_counts(db, media_list)
+    
+    db_updated = False
+    for m in media_list:
+        actual_count = computed_counts.get(m.id, 0)
+        if m.usage_count != actual_count:
+            m.usage_count = actual_count
+            db.add(m)
+            db_updated = True
+            
+    if db_updated:
+        db.commit()
+        for m in media_list:
+            db.refresh(m)
+
     return MediaListResponse(
         items=[_to_media_response(m) for m in media_list],
         total=total,
@@ -135,6 +152,16 @@ def get_media(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Media not found."
         )
+
+    # Self-heal single queried image
+    from app.services.media_service import compute_usage_count
+    actual_count = compute_usage_count(db, db_image.id)
+    if db_image.usage_count != actual_count:
+        db_image.usage_count = actual_count
+        db.add(db_image)
+        db.commit()
+        db.refresh(db_image)
+
     return _to_media_response(db_image)
 
 
@@ -168,38 +195,8 @@ def delete_media(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
-    """Delete media from the library. Unlinks from all references first."""
-    db.query(GalleryImage).filter(GalleryImage.image_id == media_id).delete()
-    db.query(ClientGalleryImage).filter(
-        ClientGalleryImage.image_id == media_id
-    ).delete()
-    db.query(Gallery).filter(Gallery.cover_image_id == media_id).update(
-        {"cover_image_id": None}
-    )
-    db.query(ClientGallery).filter(ClientGallery.cover_image_id == media_id).update(
-        {"cover_image_id": None}
-    )
-
-    db_image = db.query(Image).filter(Image.id == media_id).first()
-    if db_image:
-        urls = [db_image.original_url]
-        if db_image.optimized_url:
-            urls.append(db_image.optimized_url)
-        if db_image.thumbnail_url:
-            urls.append(db_image.thumbnail_url)
-        db.query(BlogPost).filter(BlogPost.cover_image_url.in_(urls)).update(
-            {"cover_image_url": None}, synchronize_session=False
-        )
-        db.query(HeroSlide).filter(HeroSlide.image_url.in_(urls)).update(
-            {"image_url": None}, synchronize_session=False
-        )
-        db.query(AboutSection).filter(AboutSection.image_url.in_(urls)).update(
-            {"image_url": None}, synchronize_session=False
-        )
-
-    db.commit()
-    refresh_usage_count(db, media_id)
-
+    """Delete media from the library. Only if not in use."""
+    # Check if deletable first
     deletable, usage = can_delete_media(db, media_id)
     if not deletable:
         raise HTTPException(
@@ -207,12 +204,30 @@ def delete_media(
             detail=f"Cannot delete. This media is used in {usage} place(s). It may be set as a cover image or referenced elsewhere.",
         )
 
-    # Retrieve the image record
     db_image = db.query(Image).filter(Image.id == media_id).first()
     if not db_image:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Media not found."
         )
+
+    # Clean up Blog, Hero, and About section references if any (since they are safe to clear)
+    urls = [db_image.original_url]
+    if db_image.optimized_url:
+        urls.append(db_image.optimized_url)
+    if db_image.thumbnail_url:
+        urls.append(db_image.thumbnail_url)
+
+    db.query(BlogPost).filter(BlogPost.cover_image_url.in_(urls)).update(
+        {"cover_image_url": None}, synchronize_session=False
+    )
+    db.query(HeroSlide).filter(HeroSlide.image_url.in_(urls)).update(
+        {"image_url": None}, synchronize_session=False
+    )
+    db.query(AboutSection).filter(AboutSection.image_url.in_(urls)).update(
+        {"image_url": None}, synchronize_session=False
+    )
+    db.commit()
+
 
     # Extract filename from stored URL
     filename = db_image.original_url.split("/")[-1]

@@ -10,6 +10,9 @@ interface ImageCropperProps {
   imageSrc: string;
   onCancel: () => void;
   onConfirm: (croppedBlob: Blob, title: string, altText: string) => Promise<void>;
+  /** Called instead of onConfirm when the user has not actually cropped or rotated the image.
+   *  Use this to link the original media directly rather than creating a duplicate. */
+  onUseOriginal?: () => void;
   defaultTitle?: string;
   defaultAltText?: string;
   showMetadata?: boolean;
@@ -94,6 +97,7 @@ export default function ImageCropper({
   imageSrc,
   onCancel,
   onConfirm,
+  onUseOriginal,
   defaultTitle = "",
   defaultAltText = "",
   showMetadata = true,
@@ -129,9 +133,30 @@ export default function ImageCropper({
     setCrop(fullCrop);
   }, []);
 
+  /** Returns true when the current crop+rotation has NOT actually modified the image. */
+  const isUnchanged = (): boolean => {
+    if (rotation !== 0) return false;
+    if (!completedCrop || !imgRef.current) return true; // no crop started = unchanged
+    const img = imgRef.current;
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+    const naturalCropW = Math.round(completedCrop.width * scaleX);
+    const naturalCropH = Math.round(completedCrop.height * scaleY);
+    const tolerance = 4; // px tolerance for floating-point differences
+    return (
+      Math.abs(naturalCropW - img.naturalWidth) <= tolerance &&
+      Math.abs(naturalCropH - img.naturalHeight) <= tolerance
+    );
+  };
+
   const handleConfirm = async () => {
+    // If image was not actually cropped or rotated AND caller provided onUseOriginal, use it
+    if (onUseOriginal && isUnchanged()) {
+      onUseOriginal();
+      return;
+    }
+
     if (!completedCrop || !imgRef.current) return;
-    // If crop width/height is 0, treat as full image
     const px = completedCrop;
     if (px.width === 0 || px.height === 0) return;
 
@@ -306,6 +331,8 @@ export default function ImageCropper({
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>Processing...</span>
                   </>
+                ) : onUseOriginal && isUnchanged() ? (
+                  "Use Original"
                 ) : (
                   confirmLabel
                 )}
