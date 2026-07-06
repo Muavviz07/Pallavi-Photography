@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.db.database import Base
 from app.models import User  # Import models to ensure they are added to Base.metadata
 from app.models import Image  # noqa: F401 — ensure media library columns are tracked
+from app.models import GalleryImage  # noqa: F401 — ensure gallery_images junction table is tracked
 
 config = context.config
 
@@ -21,6 +22,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
+
 
 def run_migrations_offline() -> None:
     url = settings.DATABASE_URL
@@ -34,6 +36,7 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
+
 def run_migrations_online() -> None:
     configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = settings.DATABASE_URL
@@ -44,12 +47,11 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

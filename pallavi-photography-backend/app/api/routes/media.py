@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.orm import Session
 from app.api.dependencies import get_db, get_current_admin_user
 from app.models.image import Image
+from app.models.gallery_image import GalleryImage
 from app.models.user import User
 from app.schemas.media import MediaResponse, MediaListResponse, MediaUpdate
 from app.services.image_service import image_service
@@ -13,8 +14,12 @@ from app.services.media_service import refresh_usage_count, can_delete_media
 router = APIRouter()
 
 ALLOWED_TYPES = {
-    "image/jpeg", "image/png", "image/webp", "image/jpg",
-    "application/zip", "application/x-zip-compressed",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/jpg",
+    "application/zip",
+    "application/x-zip-compressed",
     "application/octet-stream",  # some browsers send zip as this
 }
 
@@ -121,7 +126,9 @@ def get_media(
     """Get a single media item by ID."""
     db_image = db.query(Image).filter(Image.id == media_id).first()
     if not db_image:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Media not found."
+        )
     return _to_media_response(db_image)
 
 
@@ -135,7 +142,9 @@ def update_media(
     """Update media metadata (not the file itself)."""
     db_image = db.query(Image).filter(Image.id == media_id).first()
     if not db_image:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Media not found."
+        )
 
     update_data = media_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -153,21 +162,27 @@ def delete_media(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
-    """Delete media from the library. Blocked if still referenced anywhere."""
+    """Delete media from the library. Unlinks from all galleries first."""
+    db.query(GalleryImage).filter(GalleryImage.image_id == media_id).delete()
+    db.commit()
+    refresh_usage_count(db, media_id)
+
     deletable, usage = can_delete_media(db, media_id)
     if not deletable:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot delete. This media is used in {usage} place(s). Remove from galleries first.",
+            detail=f"Cannot delete. This media is used in {usage} place(s). It may be set as a cover image or referenced elsewhere.",
         )
 
     # Retrieve the image record
     db_image = db.query(Image).filter(Image.id == media_id).first()
     if not db_image:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Media not found."
+        )
 
     # Extract filename from stored URL
-    filename = db_image.original_url.split('/')[-1]
+    filename = db_image.original_url.split("/")[-1]
     # Delete the file from disk
     file_deleted = image_service.delete_image(filename)
     if not file_deleted:

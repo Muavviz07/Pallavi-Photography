@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.image import Image
 from app.models.gallery import Gallery
+from app.models.gallery_image import GalleryImage
 from app.models.client_gallery import ClientGallery
 from app.models.client_gallery_image import ClientGalleryImage
 from app.models.blog import BlogPost
@@ -27,15 +28,18 @@ def compute_usage_count(db: Session, image_id: uuid.UUID) -> int:
 
     count = 0
 
-    if db_image.gallery_id is not None:
-        count += 1
+    count += db.query(GalleryImage).filter(GalleryImage.image_id == image_id).count()
 
-    count += db.query(ClientGalleryImage).filter(
-        ClientGalleryImage.image_id == image_id
-    ).count()
+    count += (
+        db.query(ClientGalleryImage)
+        .filter(ClientGalleryImage.image_id == image_id)
+        .count()
+    )
 
     count += db.query(Gallery).filter(Gallery.cover_image_id == image_id).count()
-    count += db.query(ClientGallery).filter(ClientGallery.cover_image_id == image_id).count()
+    count += (
+        db.query(ClientGallery).filter(ClientGallery.cover_image_id == image_id).count()
+    )
 
     urls = _image_urls(db_image)
     count += db.query(BlogPost).filter(BlogPost.cover_image_url.in_(urls)).count()

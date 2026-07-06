@@ -281,13 +281,16 @@ export default function AdminGalleries() {
         });
 
         if (!res.ok) {
-          console.error(`Failed to upload ${file.name}`);
+          const errData = await res.json().catch(() => ({}));
+          setUploadProgress(errData.detail || `Failed to upload ${file.name}`);
+          setUploadingFiles(false);
+          return;
         }
       }
       setUploadProgress("");
       loadGalleryImages(selectedGalleryForPhotos.id);
     } catch (err) {
-      console.error("Upload process encountered errors", err);
+      setUploadProgress("Upload failed due to a network error.");
     } finally {
       setUploadingFiles(false);
     }
@@ -312,7 +315,7 @@ export default function AdminGalleries() {
   };
 
   const handleDeleteImage = async (imageId: string) => {
-    if (!selectedGalleryForPhotos || !confirm("Are you sure you want to delete this photo from the gallery?")) return;
+    if (!selectedGalleryForPhotos || !confirm("Remove this photo from the gallery? The file will remain in the media library.")) return;
     try {
       await fetchAPI(`/api/client-galleries/${selectedGalleryForPhotos.id}/images/${imageId}`, {
         method: "DELETE",

@@ -99,7 +99,7 @@ export default function PortfolioAdmin() {
       if (data && data.length > 0) {
         const gal = data[0];
         setGallery(gal);
-        setGalleryTitle(gal.title);
+        setGalleryTitle(gal.title || "");
         setGalleryDesc(gal.description || "");
         setGalleryStatus(gal.status);
         
@@ -322,7 +322,7 @@ export default function PortfolioAdmin() {
     setEditImageTitle(img.title || "");
     setEditImageAlt(img.alt_text || "");
     setEditImageAspect((img.dimensions?.aspect as any) || "square");
-    setEditImageSort(img.sort_order);
+    setEditImageSort(img.sort_order ?? 0);
     setShowEditImageModal(true);
   };
 
@@ -379,7 +379,7 @@ export default function PortfolioAdmin() {
   };
 
   const handleDeleteImage = async (imgId: string) => {
-    if (!confirm("Are you sure you want to remove this image from the portfolio? This will delete the files permanently.")) return;
+    if (!confirm("Remove this image from the portfolio gallery? The file will remain in the media library.")) return;
     setUpdatingId(imgId);
     try {
       await fetchAPI(`/api/galleries/images/${imgId}`, {

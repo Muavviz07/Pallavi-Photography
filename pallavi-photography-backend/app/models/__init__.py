@@ -13,8 +13,7 @@ from app.models.about_section import AboutSection
 from app.models.pricing_section import PricingSection
 from app.models.faq import FAQ
 from app.models.contact_section import ContactSection
+from app.models.gallery_image import GalleryImage
 from app.models.system_setting import SystemSetting
 from app.models.admin_permission import AdminFeature, AdminRolePermission
 from app.models.audit_log import AuditLog
-
-
