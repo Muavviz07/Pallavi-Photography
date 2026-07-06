@@ -57,3 +57,25 @@ input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none;
 }
+
+/* ---- react-image-crop style overrides ---- */
+.ReactCrop__crop-selection {
+  border: 2px solid rgba(196, 164, 132, 0.9) !important;
+  box-shadow: 0 0 0 9999em rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Corner and edge handles — bigger, easier to grab */
+.ReactCrop__drag-handle {
+  width: 16px !important;
+  height: 16px !important;
+  background-color: #C4A484 !important;
+  border: 2px solid #fff !important;
+  border-radius: 2px !important;
+  opacity: 1 !important;
+}
+
+/* Rule-of-thirds grid lines */
+.ReactCrop__rule-of-thirds-vt,
+.ReactCrop__rule-of-thirds-hz {
+  opacity: 0.35 !important;
+}

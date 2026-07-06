@@ -8,6 +8,7 @@ import {
   Image as ImageIcon, ArrowLeft, Eye, EyeOff, CheckCircle2, UserCheck, Star, Library, Upload
 } from "lucide-react";
 import MediaPicker from "@/components/media/MediaPicker";
+import ImageCropper from "@/components/cropper/ImageCropper";
 import { MediaItem } from "@/lib/media";
 
 interface UserResponse {
@@ -93,6 +94,15 @@ export default function AdminGalleries() {
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [addingFromLibrary, setAddingFromLibrary] = useState(false);
+  const [customCoverUrlInput, setCustomCoverUrlInput] = useState("");
+  const [showCropper, setShowCropper] = useState(false);
+  const [cropQueue, setCropQueue] = useState<File[]>([]);
+  const [cropQueueIndex, setCropQueueIndex] = useState(0);
+  const [cropperImageSrc, setCropperImageSrc] = useState("");
+  // Crop-from-library state
+  const [libraryMedia, setLibraryMedia] = useState<MediaItem | null>(null);
+  const [showLibraryCropper, setShowLibraryCropper] = useState(false);
+  const [libraryCropperSrc, setLibraryCropperSrc] = useState("");
 
   const loadData = async () => {
     if (!token) return;
@@ -254,61 +264,113 @@ export default function AdminGalleries() {
     }
   };
 
-  // Image upload handles multiple file selection
-  const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image upload handles multiple file selection with sequential cropping
+  const handleImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !selectedGalleryForPhotos) return;
 
-    setUploadingFiles(true);
+    const fileArray = Array.from(files);
+    setCropQueue(fileArray);
+    setCropQueueIndex(0);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperImageSrc(reader.result as string);
+      setShowCropper(true);
+    };
+    reader.readAsDataURL(fileArray[0]);
+
+    setUploadProgress(`Cropping 1/${fileArray.length}...`);
+  };
+
+  const uploadSingleCropped = async (blob: Blob, title: string, altText: string): Promise<void> => {
+    if (!selectedGalleryForPhotos || !token) return;
+
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const dataPayload = new FormData();
+    dataPayload.append("file", blob);
+    dataPayload.append("title", title);
+    dataPayload.append("alt_text", altText);
 
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        setUploadProgress(`Uploading ${i + 1}/${files.length}: ${file.name}...`);
-        
-        const dataPayload = new FormData();
-        dataPayload.append("file", file);
-        dataPayload.append("title", file.name.substring(0, file.name.lastIndexOf(".")) || file.name);
-        dataPayload.append("alt_text", `${selectedGalleryForPhotos.title} photo proof`);
+    const res = await fetch(`${apiUrl}/api/client-galleries/${selectedGalleryForPhotos.id}/images/upload`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}` },
+      body: dataPayload,
+    });
 
-        const res = await fetch(`${apiUrl}/api/client-galleries/${selectedGalleryForPhotos.id}/images/upload`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          },
-          body: dataPayload
-        });
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          setUploadProgress(errData.detail || `Failed to upload ${file.name}`);
-          setUploadingFiles(false);
-          return;
-        }
-      }
-      setUploadProgress("");
-      loadGalleryImages(selectedGalleryForPhotos.id);
-    } catch (err) {
-      setUploadProgress("Upload failed due to a network error.");
-    } finally {
-      setUploadingFiles(false);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || `Failed to upload ${title}`);
     }
   };
 
-  const handleAddFromLibrary = async (media: MediaItem) => {
-    if (!selectedGalleryForPhotos || !token) return;
+  const handleCroppedUpload = async (blob: Blob, title: string, altText: string) => {
+    if (!selectedGalleryForPhotos) return;
+
+    try {
+      await uploadSingleCropped(blob, title, altText);
+
+      const nextIndex = cropQueueIndex + 1;
+      if (nextIndex < cropQueue.length) {
+        setCropQueueIndex(nextIndex);
+        setUploadProgress(`Cropping ${nextIndex + 1}/${cropQueue.length}...`);
+        const nextFile = cropQueue[nextIndex];
+        const reader = new FileReader();
+        reader.onload = () => {
+          setCropperImageSrc(reader.result as string);
+        };
+        reader.readAsDataURL(nextFile);
+      } else {
+        setShowCropper(false);
+        setCropQueue([]);
+        setCropQueueIndex(0);
+        setCropperImageSrc("");
+        setUploadProgress("");
+        loadGalleryImages(selectedGalleryForPhotos.id);
+      }
+    } catch (err: any) {
+      throw new Error(err.message || "Upload failed.");
+    }
+  };
+
+  const handleAddFromLibrary = (media: MediaItem) => {
+    // Open cropper first instead of adding directly
+    setLibraryMedia(media);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const src = media.optimized_url || media.original_url || "";
+    const fullSrc = src.startsWith("http") ? src : `${apiUrl}${src}`;
+    setLibraryCropperSrc(fullSrc);
+    setShowMediaPicker(false);
+    setShowLibraryCropper(true);
+  };
+
+  const handleLibraryCropConfirm = async (blob: Blob, title: string, altText: string) => {
+    if (!selectedGalleryForPhotos || !token || !libraryMedia) return;
     setAddingFromLibrary(true);
     try {
-      await fetchAPI(`/api/client-galleries/${selectedGalleryForPhotos.id}/images`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const formDataPayload = new FormData();
+      formDataPayload.append("file", blob, `${libraryMedia.id}_cropped.jpg`);
+      formDataPayload.append("title", title);
+      formDataPayload.append("alt_text", altText);
+
+      const res = await fetch(`${apiUrl}/api/client-galleries/${selectedGalleryForPhotos.id}/images/upload`, {
         method: "POST",
-        token,
-        body: JSON.stringify({ image_id: media.id }),
+        headers: { Authorization: `Bearer ${token}` },
+        body: formDataPayload,
       });
-      setShowMediaPicker(false);
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Upload failed.");
+      }
+
+      setShowLibraryCropper(false);
+      setLibraryMedia(null);
+      setLibraryCropperSrc("");
       loadGalleryImages(selectedGalleryForPhotos.id);
     } catch (err: any) {
-      alert(err.message || "Failed to add image from library.");
+      throw new Error(err.message || "Failed to add image from library.");
     } finally {
       setAddingFromLibrary(false);
     }
@@ -707,6 +769,42 @@ export default function AdminGalleries() {
             <MediaPicker token={token} onSelect={handleSetCoverFromLibrary} />
           </div>
         </div>
+      )}
+
+      {/* Free crop modal for sequential cropping */}
+      {showCropper && cropperImageSrc && (
+        <ImageCropper
+          open={showCropper}
+          imageSrc={cropperImageSrc}
+          onCancel={() => {
+            setShowCropper(false);
+            setCropQueue([]);
+            setCropQueueIndex(0);
+            setCropperImageSrc("");
+            setUploadProgress("");
+          }}
+          onConfirm={handleCroppedUpload}
+          defaultTitle={cropQueue[cropQueueIndex]?.name?.substring(0, cropQueue[cropQueueIndex].name.lastIndexOf(".")) || ""}
+          defaultAltText={`${selectedGalleryForPhotos?.title || ""} photo proof`}
+          confirmLabel="Crop & Upload"
+        />
+      )}
+
+      {/* FREE CROP MODAL — from library */}
+      {showLibraryCropper && libraryCropperSrc && (
+        <ImageCropper
+          open={showLibraryCropper}
+          imageSrc={libraryCropperSrc}
+          onCancel={() => {
+            setShowLibraryCropper(false);
+            setLibraryMedia(null);
+            setLibraryCropperSrc("");
+          }}
+          onConfirm={handleLibraryCropConfirm}
+          defaultTitle={libraryMedia?.title || ""}
+          defaultAltText={`${selectedGalleryForPhotos?.title || ""} photo proof`}
+          confirmLabel={addingFromLibrary ? "Adding..." : "Crop & Add"}
+        />
       )}
       </>
     );

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
-import { Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, Image as ImageIcon, Sliders, ZoomIn, Move, Library } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, Image as ImageIcon, Library } from "lucide-react";
 import MediaPicker from "@/components/media/MediaPicker";
+import ImageCropper from "@/components/cropper/ImageCropper";
 import { MediaItem } from "@/lib/media";
 
 interface GalleryResponse {
@@ -59,20 +60,19 @@ export default function PortfolioAdmin() {
 
   // Upload & Cropper Modal States
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imageSrc, setImageSrc] = useState<string>("");
-  const [cropAspect, setCropAspect] = useState<"square" | "portrait" | "landscape">("square");
-  const [zoom, setZoom] = useState(1);
-  const [panX, setPanX] = useState(0);
-  const [panY, setPanY] = useState(0);
-  const [imageTitle, setImageTitle] = useState("");
-  const [imageAlt, setImageAlt] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
   // Media library picker
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [addingFromLibrary, setAddingFromLibrary] = useState(false);
+  // Crop-from-library state
+  const [libraryMedia, setLibraryMedia] = useState<MediaItem | null>(null);
+  const [showLibraryCropper, setShowLibraryCropper] = useState(false);
+  const [libraryCropperSrc, setLibraryCropperSrc] = useState("");
 
   // Edit Image Metadata Modal States
   const [showEditImageModal, setShowEditImageModal] = useState(false);
@@ -82,12 +82,6 @@ export default function PortfolioAdmin() {
   const [editImageAspect, setEditImageAspect] = useState<"square" | "portrait" | "landscape">("square");
   const [editImageSort, setEditImageSort] = useState(0);
   const [savingImage, setSavingImage] = useState(false);
-
-  // Mouse Drag Panning Refs
-  const isDragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0 });
-  const previewRef = useRef<HTMLDivElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
 
   const loadGalleryAndImages = async (categoryKey: string) => {
     if (!token) return;
@@ -173,146 +167,51 @@ export default function PortfolioAdmin() {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setImageTitle(file.name.substring(0, file.name.lastIndexOf(".")) || file.name);
-      setImageAlt(activeCategory.replace("_", " ") + " portfolio photograph");
-      setZoom(1);
-      setPanX(0);
-      setPanY(0);
       setUploadError("");
       
       const reader = new FileReader();
       reader.onload = () => {
         setImageSrc(reader.result as string);
+        setShowUploadModal(false);
+        setShowCropper(true);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Drag Panning Event Handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!selectedFile) return;
-    isDragging.current = true;
-    dragStart.current = { x: e.clientX - panX, y: e.clientY - panY };
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging.current) return;
-    const newX = e.clientX - dragStart.current.x;
-    const newY = e.clientY - dragStart.current.y;
-    setPanX(newX);
-    setPanY(newY);
-  };
-
-  const handleMouseUpOrLeave = () => {
-    isDragging.current = false;
-  };
-
-  const handleCropAndUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!gallery || !selectedFile || !imgRef.current) return;
+  const handleCropAndUpload = async (blob: Blob, title: string, altText: string) => {
+    if (!gallery || !selectedFile) return;
     setUploading(true);
     setUploadError("");
 
     try {
-      const sourceImg = imgRef.current;
-      
-      // Determine canvas aspect crop dimensions
-      let cw = 1200;
-      let ch = 1200;
-      let targetRatio = 1;
-      if (cropAspect === "portrait") {
-        cw = 1080;
-        ch = 1440;
-        targetRatio = 0.75;
-      } else if (cropAspect === "landscape") {
-        cw = 1440;
-        ch = 960;
-        targetRatio = 1.5;
+      const formDataPayload = new FormData();
+      formDataPayload.append("file", blob, selectedFile.name);
+      formDataPayload.append("title", title);
+      formDataPayload.append("alt_text", altText);
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/galleries/${gallery.id}/upload`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: formDataPayload
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Upload request failed.");
       }
 
-      const canvas = document.createElement("canvas");
-      canvas.width = cw;
-      canvas.height = ch;
-      const ctx = canvas.getContext("2d");
-
-      if (!ctx) throw new Error("Could not construct 2D context");
-
-      // White fill
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, cw, ch);
-
-      // Compute visual fit matching CSS object-cover
-      const imageRatio = sourceImg.naturalWidth / sourceImg.naturalHeight;
+      setShowCropper(false);
+      setSelectedFile(null);
+      setImageSrc("");
       
-      let drawWidth = cw;
-      let drawHeight = ch;
-      if (imageRatio > targetRatio) {
-        drawWidth = ch * imageRatio;
-      } else {
-        drawHeight = cw / imageRatio;
-      }
-
-      // Apply zoom
-      drawWidth *= zoom;
-      drawHeight *= zoom;
-
-      // Map scale offset translation from preview element size to canvas scale
-      const previewWidth = previewRef.current?.offsetWidth || 350;
-      const scaleFactor = drawWidth / (previewWidth * zoom);
-      
-      const translateX = panX * scaleFactor;
-      const translateY = panY * scaleFactor;
-
-      const x = (cw - drawWidth) / 2 + translateX;
-      const y = (ch - drawHeight) / 2 + translateY;
-
-      // Draw onto canvas
-      ctx.drawImage(sourceImg, x, y, drawWidth, drawHeight);
-
-      // Extract blob
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          setUploadError("Failed to extract cropped image.");
-          setUploading(false);
-          return;
-        }
-
-        try {
-          const formDataPayload = new FormData();
-          formDataPayload.append("file", blob, selectedFile.name);
-          formDataPayload.append("title", imageTitle);
-          formDataPayload.append("alt_text", imageAlt);
-          formDataPayload.append("aspect", cropAspect);
-
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-          const res = await fetch(`${apiUrl}/api/galleries/${gallery.id}/upload`, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${token}`
-            },
-            body: formDataPayload
-          });
-
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || "Upload request failed.");
-          }
-
-          setShowUploadModal(false);
-          setSelectedFile(null);
-          setImageSrc("");
-          
-          // Reload images
-          loadGalleryAndImages(activeCategory);
-        } catch (err: any) {
-          setUploadError(err.message || "Failed to upload image.");
-        } finally {
-          setUploading(false);
-        }
-      }, "image/jpeg", 0.9);
-
+      loadGalleryAndImages(activeCategory);
     } catch (err: any) {
-      setUploadError(err.message || "Failed to process crop operations.");
+      throw new Error(err.message || "Failed to upload image.");
+    } finally {
       setUploading(false);
     }
   };
@@ -360,19 +259,45 @@ export default function PortfolioAdmin() {
     }
   };
 
-  const handleAddFromLibrary = async (media: MediaItem) => {
-    if (!gallery || !token) return;
+  const handleAddFromLibrary = (media: MediaItem) => {
+    // Instead of adding directly, open the cropper first
+    setLibraryMedia(media);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const src = media.optimized_url || media.original_url || "";
+    // Build absolute URL if relative
+    const fullSrc = src.startsWith("http") ? src : `${apiUrl}${src}`;
+    setLibraryCropperSrc(fullSrc);
+    setShowMediaPicker(false);
+    setShowLibraryCropper(true);
+  };
+
+  const handleLibraryCropConfirm = async (blob: Blob, title: string, altText: string) => {
+    if (!gallery || !token || !libraryMedia) return;
     setAddingFromLibrary(true);
     try {
-      await fetchAPI(`/api/galleries/${gallery.id}/images`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const formDataPayload = new FormData();
+      formDataPayload.append("file", blob, `${libraryMedia.id}_cropped.jpg`);
+      formDataPayload.append("title", title);
+      formDataPayload.append("alt_text", altText);
+
+      const res = await fetch(`${apiUrl}/api/galleries/${gallery.id}/upload`, {
         method: "POST",
-        token,
-        body: JSON.stringify({ image_id: media.id }),
+        headers: { Authorization: `Bearer ${token}` },
+        body: formDataPayload,
       });
-      setShowMediaPicker(false);
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Upload failed.");
+      }
+
+      setShowLibraryCropper(false);
+      setLibraryMedia(null);
+      setLibraryCropperSrc("");
       loadGalleryAndImages(activeCategory);
     } catch (err: any) {
-      alert(err.message || "Failed to add image from library.");
+      throw new Error(err.message || "Failed to add image from library.");
     } finally {
       setAddingFromLibrary(false);
     }
@@ -419,8 +344,6 @@ export default function PortfolioAdmin() {
             onClick={() => {
               setSelectedFile(null);
               setImageSrc("");
-              setImageTitle("");
-              setImageAlt("");
               setShowUploadModal(true);
             }}
             disabled={!gallery}
@@ -604,181 +527,81 @@ export default function PortfolioAdmin() {
         </div>
       )}
 
-      {/* CROPPER / UPLOADER MODAL */}
+      {/* FILE SELECTION MODAL */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-xl w-full shadow-lg space-y-6 animate-scale-in my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-md w-full shadow-lg space-y-6 animate-scale-in">
             <div className="flex items-center justify-between border-b border-[#DCD0C0]/20 pb-3">
               <h3 className="text-sm font-serif font-semibold text-[#2C2623] uppercase tracking-wider">
-                Upload & Crop Image
+                Select Image to Upload
               </h3>
               <button
                 onClick={() => setShowUploadModal(false)}
-                className="text-[#6E635F] hover:text-[#2C2623]"
+                className="text-[#6E635F] hover:text-[#2C2623] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCropAndUpload} className="space-y-5 text-xs">
-              {/* File input selector */}
-              {!selectedFile ? (
-                <div className="border border-dashed border-[#DCD0C0] rounded-sm p-12 text-center bg-[#FAF8F5] hover:bg-white transition-all">
-                  <ImageIcon className="w-10 h-10 text-stone-300 mx-auto mb-3" />
-                  <label htmlFor="portfolio-file" className="cursor-pointer font-semibold text-[#C4A484] hover:underline uppercase tracking-widest text-[10px] block">
-                    Choose Image File
-                  </label>
-                  <input
-                    type="file"
-                    id="portfolio-file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <p className="text-[10px] text-stone-400 font-light mt-1">High resolution JPEGs, PNGs, or WebPs supported.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                  {/* Left Side: Drag Panner and Crop box */}
-                  <div className="md:col-span-7 flex flex-col items-center space-y-4">
-                    <span className="text-[9px] uppercase tracking-wider font-semibold text-stone-400 block self-start">
-                      Crop Frame & Alignment (Drag to Pan)
-                    </span>
-                    
-                    {/* Aspect Crop Box Element */}
-                    <div
-                      ref={previewRef}
-                      onMouseDown={handleMouseDown}
-                      onMouseMove={handleMouseMove}
-                      onMouseUp={handleMouseUpOrLeave}
-                      onMouseLeave={handleMouseUpOrLeave}
-                      className={`relative w-full max-w-[320px] bg-stone-100 border border-stone-200 overflow-hidden cursor-move select-none ${
-                        cropAspect === "portrait" ? "aspect-[3/4]" : cropAspect === "landscape" ? "aspect-[3/2]" : "aspect-square"
-                      }`}
-                    >
-                      {imageSrc && (
-                        <img
-                          ref={imgRef}
-                          src={imageSrc}
-                          alt="Crop Source"
-                          draggable={false}
-                          style={{
-                            transform: `scale(${zoom}) translate(${panX}px, ${panY}px)`,
-                            transformOrigin: "center center",
-                          }}
-                          className="w-full h-full object-cover pointer-events-none"
-                        />
-                      )}
-                      
-                      {/* Grid lines overlay for aesthetic */}
-                      <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none opacity-20 border border-[#2C2623]/30">
-                        <div className="border-r border-b border-[#2C2623]/30" />
-                        <div className="border-r border-b border-[#2C2623]/30" />
-                        <div className="border-b border-[#2C2623]/30" />
-                        <div className="border-r border-b border-[#2C2623]/30" />
-                        <div className="border-r border-b border-[#2C2623]/30" />
-                        <div className="border-b border-[#2C2623]/30" />
-                        <div className="border-r border-[#2C2623]/30" />
-                        <div className="border-r border-[#2C2623]/30" />
-                        <div />
-                      </div>
-                    </div>
+            <div className="border border-dashed border-[#DCD0C0] rounded-sm p-12 text-center bg-[#FAF8F5] hover:bg-white transition-all">
+              <ImageIcon className="w-10 h-10 text-stone-300 mx-auto mb-3" />
+              <label htmlFor="portfolio-file" className="cursor-pointer font-semibold text-[#C4A484] hover:underline uppercase tracking-widest text-[10px] block">
+                Choose Image File
+              </label>
+              <input
+                type="file"
+                id="portfolio-file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <p className="text-[10px] text-stone-400 font-light mt-1">High resolution JPEGs, PNGs, or WebPs supported.</p>
+            </div>
 
-                    {/* Scale slider */}
-                    <div className="w-full max-w-[320px] space-y-1 pt-2">
-                      <div className="flex items-center justify-between text-[10px] text-stone-500">
-                        <span className="flex items-center gap-1"><Sliders className="w-3.5 h-3.5" /> Scale Zoom</span>
-                        <span>{Math.round(zoom * 100)}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="1"
-                        max="3"
-                        step="0.05"
-                        value={zoom}
-                        onChange={(e) => setZoom(parseFloat(e.target.value))}
-                        className="w-full accent-[#C4A484]"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Right Side Settings */}
-                  <div className="md:col-span-5 space-y-4">
-                    {/* Dimension Selection */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] uppercase text-stone-400 font-semibold">Aspect Crop Ratio</label>
-                      <div className="grid grid-cols-3 gap-1">
-                        {(["square", "portrait", "landscape"] as const).map((ratio) => (
-                          <button
-                            key={ratio}
-                            type="button"
-                            onClick={() => {
-                              setCropAspect(ratio);
-                              setPanX(0);
-                              setPanY(0);
-                            }}
-                            className={`py-1.5 border text-[9px] uppercase tracking-wider font-semibold text-center rounded-sm transition-all cursor-pointer ${
-                              cropAspect === ratio
-                                ? "bg-[#2C2623] text-white border-[#2C2623]"
-                                : "bg-[#FAF8F5] text-stone-500 hover:border-[#C4A484]/40"
-                            }`}
-                          >
-                            {ratio}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-[10px] uppercase text-stone-400 font-semibold">Image Title</label>
-                      <input
-                        type="text"
-                        required
-                        value={imageTitle}
-                        onChange={(e) => setImageTitle(e.target.value)}
-                        className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-[10px] uppercase text-stone-400 font-semibold">Alt / Caption description</label>
-                      <textarea
-                        value={imageAlt}
-                        onChange={(e) => setImageAlt(e.target.value)}
-                        rows={2}
-                        className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden resize-none font-light"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {uploadError && (
-                <p className="text-[10px] text-red-600 font-light bg-red-50 p-2 rounded-sm border border-red-100 flex items-center gap-1.5">
-                  <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                  <span>{uploadError}</span>
-                </p>
-              )}
-
-              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-[#DCD0C0]/25">
-                <button
-                  type="button"
-                  onClick={() => setShowUploadModal(false)}
-                  className="px-4 py-2 border border-[#DCD0C0]/40 text-[#6E635F] hover:text-[#2C2623] rounded-sm transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={uploading || !selectedFile}
-                  className="inline-flex items-center justify-center bg-[#2C2623] hover:bg-[#352F2C] text-[#FCFAF7] px-5 py-2 rounded-sm font-semibold transition-all disabled:opacity-50 min-w-[80px]"
-                >
-                  {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Crop & Upload"}
-                </button>
-              </div>
-            </form>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="px-4 py-2 border border-[#DCD0C0]/40 text-[#6E635F] hover:text-[#2C2623] rounded-sm transition-all"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* FREE CROP MODAL — file upload */}
+      {showCropper && imageSrc && (
+        <ImageCropper
+          open={showCropper}
+          imageSrc={imageSrc}
+          onCancel={() => {
+            setShowCropper(false);
+            setSelectedFile(null);
+            setImageSrc("");
+          }}
+          onConfirm={handleCropAndUpload}
+          defaultTitle={selectedFile?.name?.substring(0, selectedFile.name.lastIndexOf(".")) || ""}
+          defaultAltText={activeCategory.replace("_", " ") + " portfolio photograph"}
+          confirmLabel={uploading ? "Uploading..." : "Crop & Upload"}
+        />
+      )}
+
+      {/* FREE CROP MODAL — from library */}
+      {showLibraryCropper && libraryCropperSrc && (
+        <ImageCropper
+          open={showLibraryCropper}
+          imageSrc={libraryCropperSrc}
+          onCancel={() => {
+            setShowLibraryCropper(false);
+            setLibraryMedia(null);
+            setLibraryCropperSrc("");
+          }}
+          onConfirm={handleLibraryCropConfirm}
+          defaultTitle={libraryMedia?.title || ""}
+          defaultAltText={activeCategory.replace("_", " ") + " portfolio photograph"}
+          confirmLabel={addingFromLibrary ? "Adding..." : "Crop & Add"}
+        />
       )}
 
       {/* EDIT IMAGE METADATA MODAL */}
