@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
 import { 
   Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, 
-  Image as ImageIcon, ArrowLeft, Eye, EyeOff, CheckCircle2, UserCheck, Star, Library
+  Image as ImageIcon, ArrowLeft, Eye, EyeOff, CheckCircle2, UserCheck, Star, Library, Upload
 } from "lucide-react";
 import MediaPicker from "@/components/media/MediaPicker";
 import { MediaItem } from "@/lib/media";
