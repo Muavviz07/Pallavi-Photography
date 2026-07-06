@@ -102,6 +102,8 @@ export default function AdminGalleries() {
   // Crop-from-library state
   const [libraryMedia, setLibraryMedia] = useState<MediaItem | null>(null);
   const [showLibraryCropper, setShowLibraryCropper] = useState(false);
+  // Flag to distinguish cover cropping vs adding image from library
+  const [isCoverCrop, setIsCoverCrop] = useState(false);
   const [libraryCropperSrc, setLibraryCropperSrc] = useState("");
 
   const loadData = async () => {
@@ -334,7 +336,8 @@ export default function AdminGalleries() {
   };
 
   const handleAddFromLibrary = (media: MediaItem) => {
-    // Open cropper first instead of adding directly
+    // Open cropper to add image to gallery (not cover)
+    setIsCoverCrop(false);
     setLibraryMedia(media);
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     const src = media.optimized_url || media.original_url || "";
@@ -482,21 +485,54 @@ export default function AdminGalleries() {
     }
   };
 
+  // Open cropper for cover image selection from library
   const handleSetCoverFromLibrary = async (media: MediaItem) => {
     if (!selectedGalleryForPhotos || !token) return;
+    // Prepare cropper for cover image
+    setIsCoverCrop(true);
+    setLibraryMedia(media);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const src = media.optimized_url || media.original_url || "";
+    const fullSrc = src.startsWith("http") ? src : `${apiUrl}${src}`;
+    setLibraryCropperSrc(fullSrc);
     setShowCoverPicker(false);
+    setShowLibraryCropper(true);
+  };
+
+  // After cropping, upload the cropped image as gallery cover
+  const handleCoverCropConfirm = async (blob: Blob, title: string, altText: string) => {
+    if (!selectedGalleryForPhotos || !token) return;
+    setUploadingFiles(true);
     try {
-      const updated = await fetchAPI(`/api/client-galleries/${selectedGalleryForPhotos.id}`, {
-        method: "PUT",
-        token,
-        body: JSON.stringify({ cover_image_id: media.id })
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const formDataPayload = new FormData();
+      formDataPayload.append("file", blob, `${selectedGalleryForPhotos.id}_cover.jpg`);
+      // Optional: include title/alt if backend uses it; otherwise just upload file
+      if (title) formDataPayload.append("title", title);
+      if (altText) formDataPayload.append("alt_text", altText);
+
+      const res = await fetch(`${apiUrl}/api/admin/galleries/${selectedGalleryForPhotos.id}/upload-cover`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formDataPayload,
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Upload cover failed");
+      }
+
+      const updated = await res.json();
       setSelectedGalleryForPhotos(updated);
-      setGalleries((prev) =>
-        prev.map((g) => (g.id === updated.id ? updated : g))
-      );
-    } catch (err) {
-      console.error("Failed to set cover from library", err);
+      setGalleries((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to set cover image after cropping");
+    } finally {
+      setUploadingFiles(false);
+      setShowLibraryCropper(false);
+      setLibraryMedia(null);
+      setLibraryCropperSrc("");
     }
   };
 
@@ -799,11 +835,12 @@ export default function AdminGalleries() {
             setShowLibraryCropper(false);
             setLibraryMedia(null);
             setLibraryCropperSrc("");
+            setIsCoverCrop(false);
           }}
-          onConfirm={handleLibraryCropConfirm}
+          onConfirm={isCoverCrop ? handleCoverCropConfirm : handleLibraryCropConfirm}
           defaultTitle={libraryMedia?.title || ""}
-          defaultAltText={`${selectedGalleryForPhotos?.title || ""} photo proof`}
-          confirmLabel={addingFromLibrary ? "Adding..." : "Crop & Add"}
+          defaultAltText={libraryMedia?.alt_text || `${selectedGalleryForPhotos?.title || ""} photo proof`}
+          confirmLabel={isCoverCrop ? "Crop & Set Cover" : "Crop & Add"}
         />
       )}
       </>
