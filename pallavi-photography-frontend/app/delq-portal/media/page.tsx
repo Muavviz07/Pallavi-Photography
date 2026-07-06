@@ -19,7 +19,9 @@ import {
   X,
   ExternalLink,
   FileArchive,
+  Image as ImageIcon,
 } from "lucide-react";
+import ImageCropper from "@/components/cropper/ImageCropper";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -36,6 +38,9 @@ export default function MediaManagementPage() {
   const [description, setDescription] = useState("");
   const [altText, setAltText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  const [showCropper, setShowCropper] = useState(false);
+  const [cropperImageSrc, setCropperImageSrc] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -97,6 +102,47 @@ export default function MediaManagementPage() {
       setSuccess("File uploaded to media library.");
     } catch (err: any) {
       setError(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCroppedUpload = async (blob: Blob, cropTitle: string, cropAltText: string) => {
+    if (!token) return;
+    setUploading(true);
+    setError("");
+    setSuccess("");
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const formData = new FormData();
+      formData.append("file", blob, selectedFile?.name || "cropped.jpg");
+      if (cropTitle) formData.append("title", cropTitle);
+      if (description) formData.append("description", description);
+      if (cropAltText) formData.append("alt_text", cropAltText);
+
+      const response = await fetch(`${apiUrl}/api/media`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Upload failed");
+      }
+
+      const newMedia = await response.json();
+      setMediaList((prev) => [newMedia, ...prev]);
+      setTotal((prev) => prev + 1);
+      setShowCropper(false);
+      setSelectedFile(null);
+      setCropperImageSrc("");
+      setTitle("");
+      setDescription("");
+      setAltText("");
+      setSuccess("Image cropped and uploaded to media library.");
+    } catch (err: any) {
+      throw new Error(err.message || "Upload failed");
     } finally {
       setUploading(false);
     }
@@ -184,7 +230,18 @@ export default function MediaManagementPage() {
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp,application/zip,.zip"
-              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setSelectedFile(file);
+                if (file && !file.name.endsWith(".zip")) {
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    setCropperImageSrc(reader.result as string);
+                    setShowCropper(true);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
               className="hidden"
               id="media-file-input"
             />
@@ -447,6 +504,23 @@ export default function MediaManagementPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Free crop modal for image files */}
+      {showCropper && cropperImageSrc && (
+        <ImageCropper
+          open={showCropper}
+          imageSrc={cropperImageSrc}
+          onCancel={() => {
+            setShowCropper(false);
+            setSelectedFile(null);
+            setCropperImageSrc("");
+          }}
+          onConfirm={handleCroppedUpload}
+          defaultTitle={selectedFile?.name?.substring(0, selectedFile.name.lastIndexOf(".")) || ""}
+          defaultAltText=""
+          confirmLabel="Crop & Upload to Library"
+        />
       )}
     </div>
   );

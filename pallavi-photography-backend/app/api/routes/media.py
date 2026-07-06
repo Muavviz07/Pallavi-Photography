@@ -6,6 +6,12 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_db, get_current_admin_user
 from app.models.image import Image
 from app.models.gallery_image import GalleryImage
+from app.models.client_gallery_image import ClientGalleryImage
+from app.models.gallery import Gallery
+from app.models.client_gallery import ClientGallery
+from app.models.blog import BlogPost
+from app.models.hero_slide import HeroSlide
+from app.models.about_section import AboutSection
 from app.models.user import User
 from app.schemas.media import MediaResponse, MediaListResponse, MediaUpdate
 from app.services.image_service import image_service
@@ -162,8 +168,35 @@ def delete_media(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
-    """Delete media from the library. Unlinks from all galleries first."""
+    """Delete media from the library. Unlinks from all references first."""
     db.query(GalleryImage).filter(GalleryImage.image_id == media_id).delete()
+    db.query(ClientGalleryImage).filter(
+        ClientGalleryImage.image_id == media_id
+    ).delete()
+    db.query(Gallery).filter(Gallery.cover_image_id == media_id).update(
+        {"cover_image_id": None}
+    )
+    db.query(ClientGallery).filter(ClientGallery.cover_image_id == media_id).update(
+        {"cover_image_id": None}
+    )
+
+    db_image = db.query(Image).filter(Image.id == media_id).first()
+    if db_image:
+        urls = [db_image.original_url]
+        if db_image.optimized_url:
+            urls.append(db_image.optimized_url)
+        if db_image.thumbnail_url:
+            urls.append(db_image.thumbnail_url)
+        db.query(BlogPost).filter(BlogPost.cover_image_url.in_(urls)).update(
+            {"cover_image_url": None}, synchronize_session=False
+        )
+        db.query(HeroSlide).filter(HeroSlide.image_url.in_(urls)).update(
+            {"image_url": None}, synchronize_session=False
+        )
+        db.query(AboutSection).filter(AboutSection.image_url.in_(urls)).update(
+            {"image_url": None}, synchronize_session=False
+        )
+
     db.commit()
     refresh_usage_count(db, media_id)
 
