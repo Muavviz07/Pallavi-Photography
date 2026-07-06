@@ -32,6 +32,7 @@ interface ClientGalleryViewProps {
     can_submit_selections: boolean;
     selections_submitted: boolean;
     selections_submitted_at: string | null;
+    download_zip_url?: string | null;
   };
 }
 
@@ -285,6 +286,19 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
                   </>
                 )}
               </button>
+            )}
+
+            {meta.download_zip_url && (
+              <a
+                href={meta.download_zip_url.startsWith("/static/") ? `${apiUrl}${meta.download_zip_url}` : meta.download_zip_url}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-1.5 text-xs text-white bg-[#C4A484] hover:bg-[#B39373] px-4 py-2.5 rounded-sm transition-all duration-300 cursor-pointer font-semibold"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download ZIP Bundle</span>
+              </a>
             )}
 
             {meta.can_submit_selections && (

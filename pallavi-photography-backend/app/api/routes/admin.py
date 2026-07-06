@@ -56,6 +56,9 @@ def update_gallery(gallery_id: uuid.UUID, gallery_in: ClientGalleryUpdate, db: S
         elif field == "cover_image_id":
             # Allow clearing/setting cover_image_id to None/null
             gallery.cover_image_id = value
+        elif field == "download_zip_url":
+            # Allow clearing/setting download_zip_url to None/null
+            gallery.download_zip_url = value
         elif value is not None:
             setattr(gallery, field, value)
             

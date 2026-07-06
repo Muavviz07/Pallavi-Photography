@@ -210,3 +210,40 @@ def test_image_selection_and_final_submission(mock_upload, client, db):
     )
     assert select_lock.status_code == status.HTTP_400_BAD_REQUEST
     assert "already been submitted" in select_lock.json()["detail"]
+
+
+def test_download_zip_url_workflow(client, db):
+    admin_token = get_admin_token(client, db, email="admin_zip_wf@example.com")
+    client.post("/api/auth/register", json={"email": "client_zip_wf@example.com", "password": "password123"})
+    client_user = db.query(User).filter(User.email == "client_zip_wf@example.com").first()
+
+    # 1. Create client gallery
+    create_resp = client.post(
+        "/api/client-galleries",
+        json={
+            "user_id": str(client_user.id),
+            "title": "ZIP Workflow Gallery",
+            "slug": "zip-wf-slug",
+            "can_download_zip": True,
+        },
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert create_resp.status_code == status.HTTP_201_CREATED
+    gallery_id = create_resp.json()["id"]
+
+    # 2. Update download_zip_url as admin
+    update_resp = client.put(
+        f"/api/admin/galleries/{gallery_id}",
+        json={
+            "download_zip_url": "http://external-storage.local/package.zip"
+        },
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert update_resp.status_code == status.HTTP_200_OK
+    assert update_resp.json()["download_zip_url"] == "http://external-storage.local/package.zip"
+
+    # 3. Read metadata publicly
+    public_resp = client.get("/api/client-galleries/zip-wf-slug")
+    assert public_resp.status_code == status.HTTP_200_OK
+    assert public_resp.json()["download_zip_url"] == "http://external-storage.local/package.zip"
+

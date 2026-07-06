@@ -424,6 +424,7 @@ def get_client_gallery_meta(
         if (gallery.cover_image and not requires_password)
         else None,
         "user_id": gallery.user_id,
+        "download_zip_url": gallery.download_zip_url if not requires_password else None,
     }
 
 

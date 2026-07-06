@@ -141,6 +141,7 @@ export default function ClientGalleryPage({ params }: { params: Promise<{ slug: 
             can_submit_selections: meta.can_submit_selections,
             selections_submitted: meta.selections_submitted,
             selections_submitted_at: meta.selections_submitted_at,
+            download_zip_url: meta.download_zip_url,
           }}
         />
       )}

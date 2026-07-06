@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
 import { 
   Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, 
-  Image as ImageIcon, ArrowLeft, Eye, EyeOff, CheckCircle2, UserCheck, Star, Library, Upload
+  Image as ImageIcon, ArrowLeft, Eye, EyeOff, CheckCircle2, UserCheck, Star, Library, Upload, FolderArchive
 } from "lucide-react";
 import MediaPicker from "@/components/media/MediaPicker";
 import ImageCropper from "@/components/cropper/ImageCropper";
@@ -34,6 +34,7 @@ interface ClientGalleryResponse {
   can_upload: boolean;
   can_download_zip: boolean;
   cover_image_id?: string;
+  download_zip_url?: string;
   password_hash?: string;
   cover_image?: {
     id: string;
@@ -105,6 +106,16 @@ export default function AdminGalleries() {
   // Flag to distinguish cover cropping vs adding image from library
   const [isCoverCrop, setIsCoverCrop] = useState(false);
   const [libraryCropperSrc, setLibraryCropperSrc] = useState("");
+
+  const [zipUrlInput, setZipUrlInput] = useState("");
+  const [showZipPicker, setShowZipPicker] = useState(false);
+  const [updatingZip, setUpdatingZip] = useState(false);
+
+  useEffect(() => {
+    if (selectedGalleryForPhotos) {
+      setZipUrlInput(selectedGalleryForPhotos.download_zip_url || "");
+    }
+  }, [selectedGalleryForPhotos]);
 
   const loadData = async () => {
     if (!token) return;
@@ -432,6 +443,26 @@ export default function AdminGalleries() {
     }
   };
 
+  const handleSaveZipUrl = async () => {
+    if (!selectedGalleryForPhotos || !token) return;
+    setUpdatingZip(true);
+    try {
+      const updated = await fetchAPI(`/api/admin/galleries/${selectedGalleryForPhotos.id}`, {
+        method: "PUT",
+        token,
+        body: JSON.stringify({ download_zip_url: zipUrlInput.trim() || null })
+      });
+      setSelectedGalleryForPhotos(updated);
+      setGalleries((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
+      alert("Gallery ZIP download URL updated successfully!");
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Failed to update ZIP URL.");
+    } finally {
+      setUpdatingZip(false);
+    }
+  };
+
 
   const handleDeleteImage = async (imageId: string) => {
     if (!selectedGalleryForPhotos || !confirm("Remove this photo from the gallery? The file will remain in the media library.")) return;
@@ -741,6 +772,75 @@ export default function AdminGalleries() {
           );
         })()}
 
+        {/* ZIP Download Settings Card */}
+        <div className="bg-white border border-[#DCD0C0]/25 rounded-md p-6 space-y-4">
+          <div className="space-y-1">
+            <h3 className="text-sm font-medium text-[#2C2623] uppercase tracking-wider font-serif">
+              ZIP Download Package
+            </h3>
+            <p className="text-xs text-[#6E635F] font-light">
+              Provide a direct ZIP download URL or select a ZIP archive from the Media Library for the client.
+            </p>
+          </div>
+
+          <div className="pt-3 border-t border-[#DCD0C0]/15 space-y-4">
+            {/* Client Selections Status */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-[#FAF8F5] p-3 border border-[#DCD0C0]/20 rounded-sm">
+              <div className="space-y-0.5">
+                <span className="font-medium text-stone-500 uppercase tracking-wider text-[9px] block">Client Selection Status</span>
+                <span className="text-[#2C2623] font-serif font-light text-sm">
+                  {selectedGalleryForPhotos.selections_submitted ? (
+                    <span className="text-green-600 font-semibold inline-flex items-center gap-1">
+                      <Check className="w-4 h-4" /> Finalized & Submitted
+                    </span>
+                  ) : (
+                    <span className="text-stone-500 font-normal">Pending client submission</span>
+                  )}
+                </span>
+              </div>
+              {selectedGalleryForPhotos.selections_submitted && selectedGalleryForPhotos.selections_submitted_at && (
+                <span className="text-[10px] text-stone-400">
+                  Submitted on: {new Date(selectedGalleryForPhotos.selections_submitted_at).toLocaleString()}
+                </span>
+              )}
+            </div>
+
+            {/* URL Input Form */}
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase tracking-wider text-stone-500 font-medium block">
+                Download ZIP URL / Link
+              </label>
+              <div className="flex flex-col md:flex-row gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. /static/media/123-abc.zip or Google Drive/Dropbox link"
+                  value={zipUrlInput}
+                  onChange={(e) => setZipUrlInput(e.target.value)}
+                  className="flex-1 bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden text-[#2C2623]"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowZipPicker(true)}
+                    className="inline-flex items-center justify-center space-x-1.5 text-xs uppercase tracking-widest text-[#2C2623] border border-[#DCD0C0] hover:bg-stone-50 px-4 py-2 rounded-sm transition-all cursor-pointer font-medium"
+                  >
+                    <Library className="w-3.5 h-3.5" />
+                    <span>Library</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveZipUrl}
+                    disabled={updatingZip}
+                    className="inline-flex items-center justify-center space-x-1.5 text-xs uppercase tracking-widest text-[#FCFAF7] bg-[#C4A484] hover:bg-[#B39373] px-4 py-2 rounded-sm transition-all cursor-pointer font-semibold disabled:opacity-50"
+                  >
+                    {updatingZip ? "Saving..." : "Save Link"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Image Grid view with client selection status */}
         {loadingImages ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-3">
@@ -857,6 +957,28 @@ export default function AdminGalleries() {
               </button>
             </div>
             <MediaPicker token={token} onSelect={handleSetCoverFromLibrary} />
+          </div>
+        </div>
+      )}
+
+      {/* ZIP file picker modal */}
+      {showZipPicker && token && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-4xl w-full shadow-lg space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#DCD0C0]/20 pb-3">
+              <h3 className="text-sm font-serif font-semibold text-[#2C2623]">Select ZIP File from Library</h3>
+              <button onClick={() => setShowZipPicker(false)} className="text-[#6E635F] hover:text-[#2C2623]">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <MediaPicker 
+              token={token} 
+              allowedExtensions={[".zip"]} 
+              onSelect={(media) => {
+                setZipUrlInput(media.original_url);
+                setShowZipPicker(false);
+              }} 
+            />
           </div>
         </div>
       )}

@@ -22,6 +22,7 @@ class ClientGalleryBase(BaseModel):
     can_edit_details: Optional[bool] = False
     can_submit_selections: Optional[bool] = True
     can_share: Optional[bool] = False
+    download_zip_url: Optional[str] = None
 
 class ClientGalleryCreate(ClientGalleryBase):
     user_id: Optional[uuid.UUID] = None
@@ -47,6 +48,7 @@ class ClientGalleryUpdate(BaseModel):
     can_share: Optional[bool] = None
     
     cover_image_id: Optional[uuid.UUID] = None
+    download_zip_url: Optional[str] = None
 
 class ClientGalleryResponse(ClientGalleryBase):
     model_config = ConfigDict(from_attributes=True)

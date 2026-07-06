@@ -3,13 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { fetchAPI } from "@/lib/api";
 import { getMediaPreviewUrl, MediaItem } from "@/lib/media";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, FolderArchive } from "lucide-react";
 
 interface MediaPickerProps {
   token: string;
   onSelect: (media: MediaItem) => void;
   category?: string;
   selectedId?: string | null;
+  allowedExtensions?: string[];
   className?: string;
 }
 
@@ -18,6 +19,7 @@ export default function MediaPicker({
   onSelect,
   category,
   selectedId,
+  allowedExtensions,
   className = "",
 }: MediaPickerProps) {
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
@@ -46,6 +48,13 @@ export default function MediaPicker({
     return () => clearTimeout(timer);
   }, [token, searchTerm]);
 
+  const filteredMediaList = allowedExtensions
+    ? mediaList.filter((item) => {
+        const filename = (item.original_filename || item.filename || "").toLowerCase();
+        return allowedExtensions.some((ext) => filename.endsWith(ext.toLowerCase()));
+      })
+    : mediaList;
+
   if (loading && mediaList.length === 0) {
     return (
       <div className={`flex items-center justify-center py-12 text-xs text-[#6E635F] ${className}`}>
@@ -73,8 +82,10 @@ export default function MediaPicker({
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[420px] overflow-y-auto pr-1">
-        {mediaList.map((media) => {
+        {filteredMediaList.map((media) => {
           const isSelected = selectedId === media.id;
+          const isZip = (media.original_filename || "").toLowerCase().endsWith(".zip") || (media.original_url || "").toLowerCase().endsWith(".zip");
+
           return (
             <button
               key={media.id}
@@ -86,12 +97,19 @@ export default function MediaPicker({
                   : "border-[#DCD0C0]/30 hover:border-[#C4A484]"
               }`}
             >
-              <div className="aspect-square bg-stone-100 relative">
-                <img
-                  src={getMediaPreviewUrl(media)}
-                  alt={media.alt_text || media.filename}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+              <div className="aspect-square bg-stone-100 relative flex items-center justify-center">
+                {isZip ? (
+                  <div className="flex flex-col items-center justify-center p-2 text-stone-400">
+                    <FolderArchive className="w-8 h-8 text-[#C4A484] mb-1" />
+                    <span className="text-[9px] uppercase tracking-wider block font-mono text-[#6E635F]">ZIP</span>
+                  </div>
+                ) : (
+                  <img
+                    src={getMediaPreviewUrl(media)}
+                    alt={media.alt_text || media.filename}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
               </div>
               <div className="p-2 space-y-1">
                 <p className="text-[10px] font-medium text-[#2C2623] truncate">
@@ -108,9 +126,9 @@ export default function MediaPicker({
         })}
       </div>
 
-      {!loading && mediaList.length === 0 && (
+      {!loading && filteredMediaList.length === 0 && (
         <div className="text-center py-10 text-xs text-[#6E635F] border border-dashed border-[#DCD0C0]/35 rounded-sm">
-          No media found. Upload images in the Media Library first.
+          No media files found matching the search criteria.
         </div>
       )}
     </div>
