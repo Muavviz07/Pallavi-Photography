@@ -20,10 +20,23 @@ import {
   ExternalLink,
   FileArchive,
   Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import ImageCropper from "@/components/cropper/ImageCropper";
+import UploadProgressOverlay from "@/components/media/UploadProgressOverlay";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+const isZip = (media: MediaItem) =>
+  (media.original_url || "").toLowerCase().endsWith(".zip") || 
+  (media.original_filename || "").toLowerCase().endsWith(".zip") ||
+  (media.filename || "").toLowerCase().endsWith(".zip");
+
+const getFullUrl = (media: MediaItem) => {
+  const path = media.original_url || "";
+  return path.startsWith("http") ? path : `${API_URL}${path}`;
+};
 
 export default function MediaManagementPage() {
   const { data: session } = useSession();
@@ -53,6 +66,27 @@ export default function MediaManagementPage() {
 
   // Copy link state
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Lightbox state
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  
+  const lightboxImages = mediaList.filter(item => !isZip(item));
+
+  // Keyboard navigation for Lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowRight") {
+        setLightboxIndex((prev) => (prev !== null && prev < lightboxImages.length - 1 ? prev + 1 : 0));
+      }
+      if (e.key === "ArrowLeft") {
+        setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : lightboxImages.length - 1));
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxIndex, lightboxImages]);
 
   const loadMedia = useCallback(async () => {
     if (!token) return;
@@ -197,13 +231,7 @@ export default function MediaManagementPage() {
     });
   };
 
-  const getFullUrl = (media: MediaItem) => {
-    const path = media.original_url || "";
-    return `${API_URL}${path}`;
-  };
 
-  const isZip = (media: MediaItem) =>
-    (media.original_url || "").endsWith(".zip") || (media.original_filename || "").endsWith(".zip");
 
   return (
     <div className="space-y-10 animate-fade-in">
@@ -330,7 +358,11 @@ export default function MediaManagementPage() {
                   <img
                     src={getMediaPreviewUrl(media)}
                     alt={media.alt_text || media.filename}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    onClick={() => {
+                      const idx = lightboxImages.findIndex((img) => img.id === media.id);
+                      if (idx !== -1) setLightboxIndex(idx);
+                    }}
+                    className="absolute inset-0 w-full h-full object-cover cursor-zoom-in hover:scale-[1.02] transition-transform duration-300"
                   />
                 )}
               </div>
@@ -522,6 +554,68 @@ export default function MediaManagementPage() {
           confirmLabel="Crop & Upload to Library"
         />
       )}
+
+      {/* Lightbox Overlay */}
+      {lightboxIndex !== null && lightboxImages.length > 0 && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-xs transition-opacity duration-300">
+          {/* Close Lightbox */}
+          <button
+            onClick={() => setLightboxIndex(null)}
+            className="absolute top-6 right-6 z-50 p-2 text-stone-400 hover:text-white transition-colors cursor-pointer bg-black/20 rounded-full"
+            aria-label="Close Lightbox"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          {/* Left Arrow */}
+          <button
+            onClick={() => setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : lightboxImages.length - 1))}
+            className="absolute left-6 z-40 p-3 text-stone-450 hover:text-white transition-colors cursor-pointer hover:bg-white/5 rounded-full"
+            aria-label="Previous image"
+          >
+            <ChevronLeft className="w-8 h-8" />
+          </button>
+
+          {/* Image Container */}
+          <div className="max-w-[85vw] max-h-[80vh] flex items-center justify-center relative">
+            <img
+              src={getFullUrl(lightboxImages[lightboxIndex])}
+              alt={lightboxImages[lightboxIndex].alt_text || "Lightbox view"}
+              className="max-w-full max-h-[80vh] object-contain rounded-xs shadow-2xl animate-fade-in select-none"
+            />
+          </div>
+
+          {/* Right Arrow */}
+          <button
+            onClick={() => setLightboxIndex((prev) => (prev !== null && prev < lightboxImages.length - 1 ? prev + 1 : 0))}
+            className="absolute right-6 z-40 p-3 text-stone-450 hover:text-white transition-colors cursor-pointer hover:bg-white/5 rounded-full"
+            aria-label="Next image"
+          >
+            <ChevronRight className="w-8 h-8" />
+          </button>
+
+          {/* Control Panel Below Lightbox */}
+          <div className="mt-6 text-center space-y-2 z-40 max-w-lg px-4">
+            <h4 className="text-sm font-serif font-light text-white uppercase tracking-wider">
+              {lightboxImages[lightboxIndex].title || lightboxImages[lightboxIndex].filename}
+            </h4>
+            {lightboxImages[lightboxIndex].description && (
+              <p className="text-xs text-stone-400 font-light line-clamp-2 leading-relaxed">
+                {lightboxImages[lightboxIndex].description}
+              </p>
+            )}
+            <div className="text-[10px] text-stone-500 font-mono pt-1">
+              {lightboxIndex + 1} / {lightboxImages.length}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Progress Simulation Overlay */}
+      <UploadProgressOverlay 
+        isActive={uploading} 
+        statusText={selectedFile ? `Uploading ${selectedFile.name}...` : "Uploading image..."} 
+      />
     </div>
   );
 }

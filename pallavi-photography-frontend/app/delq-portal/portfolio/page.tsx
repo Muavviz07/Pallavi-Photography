@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
-import { Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, Image as ImageIcon, Library } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, Image as ImageIcon, Library, Crop } from "lucide-react";
 import MediaPicker from "@/components/media/MediaPicker";
 import ImageCropper from "@/components/cropper/ImageCropper";
 import { MediaItem } from "@/lib/media";
+import UploadProgressOverlay from "@/components/media/UploadProgressOverlay";
 
 interface GalleryResponse {
   id: string;
@@ -73,6 +74,9 @@ export default function PortfolioAdmin() {
   const [libraryMedia, setLibraryMedia] = useState<MediaItem | null>(null);
   const [showLibraryCropper, setShowLibraryCropper] = useState(false);
   const [libraryCropperSrc, setLibraryCropperSrc] = useState("");
+  const [uploadStatusText, setUploadStatusText] = useState("");
+  const [pickerMultiSelect, setPickerMultiSelect] = useState(false);
+  const [croppingExistingImage, setCroppingExistingImage] = useState<ImageResponse | null>(null);
 
   // Edit Image Metadata Modal States
   const [showEditImageModal, setShowEditImageModal] = useState(false);
@@ -182,6 +186,7 @@ export default function PortfolioAdmin() {
   const handleCropAndUpload = async (blob: Blob, title: string, altText: string) => {
     if (!gallery || !selectedFile) return;
     setUploading(true);
+    setUploadStatusText("Cropping and uploading image...");
     setUploadError("");
 
     try {
@@ -214,6 +219,65 @@ export default function PortfolioAdmin() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleCropConfirm = async (blob: Blob, title: string, altText: string) => {
+    if (croppingExistingImage) {
+      await handleConfirmCropExistingImage(blob, title, altText);
+    } else {
+      await handleCropAndUpload(blob, title, altText);
+    }
+  };
+
+  const handleConfirmCropExistingImage = async (blob: Blob, title: string, altText: string) => {
+    if (!gallery || !token || !croppingExistingImage) return;
+    setAddingFromLibrary(true);
+    setUploadStatusText("Cropping image in place...");
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      
+      // 1. Upload cropped file as a new image in the gallery
+      const dataPayload = new FormData();
+      dataPayload.append("file", blob, `${croppingExistingImage.id}_cropped.jpg`);
+      dataPayload.append("title", title || croppingExistingImage.title || "Cropped Portfolio Work");
+      dataPayload.append("alt_text", altText || croppingExistingImage.alt_text || "Cropped portfolio image");
+
+      const uploadRes = await fetch(`${apiUrl}/api/galleries/${gallery.id}/upload`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` },
+        body: dataPayload,
+      });
+
+      if (!uploadRes.ok) {
+        const errData = await uploadRes.json().catch(() => ({}));
+        throw new Error(errData.detail || "Failed to upload cropped image.");
+      }
+
+      // 2. Remove the old image link from this gallery
+      await fetch(`${apiUrl}/api/galleries/images/${croppingExistingImage.id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      setShowCropper(false);
+      setImageSrc("");
+      setCroppingExistingImage(null);
+      loadGalleryAndImages(activeCategory);
+    } catch (err: any) {
+      alert(err.message || "Failed to crop existing image.");
+    } finally {
+      setAddingFromLibrary(false);
+      setUploadStatusText("");
+    }
+  };
+
+  const handleCropExistingImage = (img: ImageResponse) => {
+    setCroppingExistingImage(img);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const src = img.optimized_url || img.original_url || "";
+    const fullSrc = src.startsWith("http") ? src : `${apiUrl}${src}`;
+    setImageSrc(fullSrc);
+    setShowCropper(true);
   };
 
   const handleOpenEditImage = (img: ImageResponse) => {
@@ -271,9 +335,41 @@ export default function PortfolioAdmin() {
     setShowLibraryCropper(true);
   };
 
+  const handleBulkAddFromLibrary = async (mediaItems: MediaItem[]) => {
+    if (!gallery || !token || mediaItems.length === 0) return;
+    setShowMediaPicker(false);
+    setAddingFromLibrary(true);
+    setUploadStatusText(`Adding 1/${mediaItems.length} images...`);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      for (let i = 0; i < mediaItems.length; i++) {
+        const media = mediaItems[i];
+        setUploadStatusText(`Linking image ${i + 1}/${mediaItems.length}: ${media.title || media.filename}...`);
+        const res = await fetch(
+          `${apiUrl}/api/galleries/${gallery.id}/images`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ image_id: media.id }),
+          }
+        );
+        if (!res.ok) {
+          console.error(`Failed to link image ${media.id}`);
+        }
+      }
+      loadGalleryAndImages(activeCategory);
+    } catch (err: any) {
+      alert(err.message || "Failed to add images in bulk.");
+    } finally {
+      setAddingFromLibrary(false);
+      setUploadStatusText("");
+    }
+  };
+
   const handleLibraryCropConfirm = async (blob: Blob, title: string, altText: string) => {
     if (!gallery || !token || !libraryMedia) return;
     setAddingFromLibrary(true);
+    setUploadStatusText("Uploading cropped image...");
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const formDataPayload = new FormData();
@@ -307,6 +403,7 @@ export default function PortfolioAdmin() {
   const handleUseOriginalFromLibrary = async () => {
     if (!gallery || !token || !libraryMedia) return;
     setAddingFromLibrary(true);
+    setUploadStatusText("Linking original library image...");
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/galleries/${gallery.id}/images`,
@@ -361,12 +458,26 @@ export default function PortfolioAdmin() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowMediaPicker(true)}
+            onClick={() => {
+              setPickerMultiSelect(false);
+              setShowMediaPicker(true);
+            }}
             disabled={!gallery || addingFromLibrary}
             className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#2C2623] border border-[#2C2623] hover:bg-[#2C2623] hover:text-white px-4 py-2.5 rounded-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
           >
             <Library className="w-4 h-4" />
             <span>From Library</span>
+          </button>
+          <button
+            onClick={() => {
+              setPickerMultiSelect(true);
+              setShowMediaPicker(true);
+            }}
+            disabled={!gallery || addingFromLibrary}
+            className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#2C2623] border border-[#2C2623] hover:bg-[#2C2623] hover:text-white px-4 py-2.5 rounded-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
+          >
+            <Library className="w-4 h-4" />
+            <span>Bulk Add</span>
           </button>
           <button
             onClick={() => {
@@ -536,6 +647,13 @@ export default function PortfolioAdmin() {
                                 <Edit2 className="w-4 h-4" />
                               </button>
                               <button
+                                onClick={() => handleCropExistingImage(img)}
+                                className="p-1 text-stone-450 hover:text-[#2C2623] transition-colors cursor-pointer"
+                                title="Crop / Edit Image"
+                              >
+                                <Crop className="w-4 h-4" />
+                              </button>
+                              <button
                                 onClick={() => handleDeleteImage(img.id)}
                                 className="p-1 text-stone-400 hover:text-red-600 transition-colors cursor-pointer"
                                 title="Delete Image"
@@ -607,10 +725,11 @@ export default function PortfolioAdmin() {
             setShowCropper(false);
             setSelectedFile(null);
             setImageSrc("");
+            setCroppingExistingImage(null);
           }}
-          onConfirm={handleCropAndUpload}
-          defaultTitle={selectedFile?.name?.substring(0, selectedFile.name.lastIndexOf(".")) || ""}
-          defaultAltText={activeCategory.replace("_", " ") + " portfolio photograph"}
+          onConfirm={handleCropConfirm}
+          defaultTitle={croppingExistingImage?.title || selectedFile?.name?.substring(0, selectedFile.name.lastIndexOf(".")) || ""}
+          defaultAltText={croppingExistingImage?.alt_text || activeCategory.replace("_", " ") + " portfolio photograph"}
           confirmLabel={uploading ? "Uploading..." : "Crop & Upload"}
         />
       )}
@@ -716,7 +835,6 @@ export default function PortfolioAdmin() {
           </div>
         </div>
       )}
-
       {showMediaPicker && token && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-4xl w-full shadow-lg space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto">
@@ -726,18 +844,19 @@ export default function PortfolioAdmin() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            {addingFromLibrary ? (
-              <div className="flex items-center justify-center py-12 text-xs text-[#6E635F]">
-                <Loader2 className="w-4 h-4 animate-spin mr-2 text-[#C4A484]" />
-                Adding image to portfolio...
-              </div>
-            ) : (
-              <MediaPicker token={token} category={activeCategory} onSelect={handleAddFromLibrary} />
-            )}
+            <MediaPicker 
+              token={token} 
+              category={activeCategory} 
+              multiSelect={pickerMultiSelect}
+              onSelectMultiple={handleBulkAddFromLibrary}
+              onSelect={handleAddFromLibrary} 
+            />
           </div>
         </div>
       )}
 
+      {/* Upload Progress Simulation Overlay */}
+      <UploadProgressOverlay isActive={uploading || addingFromLibrary} statusText={uploadStatusText} />
     </div>
   );
 }
