@@ -1,4 +1,5 @@
 import uuid
+import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
@@ -11,8 +12,11 @@ from app.services.media_service import refresh_usage_count, can_delete_media
 
 router = APIRouter()
 
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
-MAX_SIZE = 10 * 1024 * 1024
+ALLOWED_TYPES = {
+    "image/jpeg", "image/png", "image/webp", "image/jpg",
+    "application/zip", "application/x-zip-compressed",
+    "application/octet-stream",  # some browsers send zip as this
+}
 
 
 def _to_media_response(db_image: Image) -> MediaResponse:
@@ -31,37 +35,42 @@ async def upload_media(
 ):
     """Upload a new image to the centralized media library."""
     content_type = (file.content_type or "").lower()
-    if content_type not in ALLOWED_TYPES:
+    filename_lower = (file.filename or "").lower()
+    is_zip = filename_lower.endswith(".zip") or "zip" in content_type
+    is_image = any(t in content_type for t in ("image/jpeg", "image/png", "image/webp"))
+
+    if not (is_image or is_zip):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPEG, PNG, and WebP images are allowed.",
+            detail="Only JPEG, PNG, WebP images and ZIP archives are allowed.",
         )
 
-    file_data = await file.read()
-    if len(file_data) > MAX_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size must be under 10MB.",
-        )
+    # Read file bytes then reset pointer for downstream processing (no size limit)
+    file_bytes = await file.read()
+    if hasattr(file.file, "seek"):
+        file.file.seek(0)
 
-    try:
-        db_image = image_service.process_and_upload_image(
-            db=db,
-            file_data=file_data,
-            original_filename=file.filename or "upload.jpg",
-            gallery_id=None,
-            title=title,
-            alt_text=alt_text or None,
-            description=description or None,
-            uploaded_by_id=current_user.id,
-            category=category or None,
-        )
-        return _to_media_response(db_image)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+    image_info = await image_service.upload_image(file)
+
+    db_image = Image(
+        id=uuid.uuid4(),
+        original_url=image_info["file_url"],
+        optimized_url=None,
+        thumbnail_url=None,
+        original_filename=file.filename,
+        title=title,
+        description=description,
+        alt_text=alt_text,
+        category=category,
+        uploaded_by_id=current_user.id,
+        file_size=image_info.get("file_size"),
+    )
+    db.add(db_image)
+    db.commit()
+    db.refresh(db_image)
+    refresh_usage_count(db, db_image.id)
+    db.refresh(db_image)
+    return _to_media_response(db_image)
 
 
 @router.get("", response_model=MediaListResponse)
@@ -152,8 +161,21 @@ def delete_media(
             detail=f"Cannot delete. This media is used in {usage} place(s). Remove from galleries first.",
         )
 
-    success = image_service.delete_image_record(db, media_id)
-    if not success:
+    # Retrieve the image record
+    db_image = db.query(Image).filter(Image.id == media_id).first()
+    if not db_image:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found.")
+
+    # Extract filename from stored URL
+    filename = db_image.original_url.split('/')[-1]
+    # Delete the file from disk
+    file_deleted = image_service.delete_image(filename)
+    if not file_deleted:
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to delete image file: {filename}")
+
+    # Delete the DB record
+    db.delete(db_image)
+    db.commit()
 
     return {"message": "Media deleted successfully"}

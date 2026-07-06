@@ -31,8 +31,7 @@ export default function MediaPicker({
       setLoading(true);
       setError("");
       try {
-        const params = new URLSearchParams({ limit: "100" });
-        if (category) params.set("category", category);
+        const params = new URLSearchParams({ limit: "200" });
         if (searchTerm) params.set("search", searchTerm);
         const data = await fetchAPI(`/api/media?${params.toString()}`, { token });
         setMediaList(data.items || []);
@@ -45,7 +44,7 @@ export default function MediaPicker({
 
     const timer = setTimeout(loadMedia, searchTerm ? 250 : 0);
     return () => clearTimeout(timer);
-  }, [token, category, searchTerm]);
+  }, [token, searchTerm]);
 
   if (loading && mediaList.length === 0) {
     return (

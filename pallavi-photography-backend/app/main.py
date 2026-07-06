@@ -2,6 +2,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.api.routes import api_router
 from app.core.config import settings
 
@@ -17,6 +18,7 @@ app = FastAPI(
 
 # Configure CORS
 origins = [str(origin).rstrip("/") for origin in settings.BACKEND_CORS_ORIGINS]
+origins.extend(["http://localhost:3000", "http://127.0.0.1:3000"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -24,6 +26,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -34,4 +38,3 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
-# trigger reload

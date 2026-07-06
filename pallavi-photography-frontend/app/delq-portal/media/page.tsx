@@ -1,17 +1,27 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
 import { fetchAPI } from "@/lib/api";
 import {
   getMediaPreviewUrl,
-  MEDIA_CATEGORIES,
   MediaItem,
   MediaListResponse,
   uploadMediaFile,
 } from "@/lib/media";
-import { Loader2, Trash2, Upload } from "lucide-react";
+import {
+  Loader2,
+  Trash2,
+  Upload,
+  Edit2,
+  Copy,
+  Check,
+  X,
+  ExternalLink,
+  FileArchive,
+} from "lucide-react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function MediaManagementPage() {
   const { data: session } = useSession();
@@ -25,19 +35,26 @@ export default function MediaManagementPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [altText, setAltText] = useState("");
-  const [category, setCategory] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const loadMedia = async () => {
+  // Edit modal state
+  const [editingMedia, setEditingMedia] = useState<MediaItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editAltText, setEditAltText] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Copy link state
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const loadMedia = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     setError("");
     try {
-      const params = new URLSearchParams({ limit: "100" });
-      if (filterCategory) params.set("category", filterCategory);
+      const params = new URLSearchParams({ limit: "200" });
       if (searchTerm) params.set("search", searchTerm);
       const data: MediaListResponse = await fetchAPI(`/api/media?${params.toString()}`, { token });
       setMediaList(data.items || []);
@@ -47,11 +64,11 @@ export default function MediaManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, searchTerm]);
 
   useEffect(() => {
     if (token) loadMedia();
-  }, [token, filterCategory]);
+  }, [token]);
 
   useEffect(() => {
     if (!token) return;
@@ -62,7 +79,6 @@ export default function MediaManagementPage() {
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile || !token) return;
-
     setUploading(true);
     setError("");
     setSuccess("");
@@ -71,7 +87,6 @@ export default function MediaManagementPage() {
         title: title || undefined,
         description: description || undefined,
         alt_text: altText || undefined,
-        category: category || undefined,
       });
       setMediaList((prev) => [newMedia, ...prev]);
       setTotal((prev) => prev + 1);
@@ -79,8 +94,7 @@ export default function MediaManagementPage() {
       setTitle("");
       setDescription("");
       setAltText("");
-      setCategory("");
-      setSuccess("Image uploaded to media library.");
+      setSuccess("File uploaded to media library.");
     } catch (err: any) {
       setError(err.message || "Upload failed");
     } finally {
@@ -89,8 +103,7 @@ export default function MediaManagementPage() {
   };
 
   const handleDelete = async (mediaId: string) => {
-    if (!token || !confirm("Delete this media from the library?")) return;
-
+    if (!token || !confirm("Delete this media from the library? This is permanent.")) return;
     try {
       await fetchAPI(`/api/media/${mediaId}`, { method: "DELETE", token });
       setMediaList((prev) => prev.filter((m) => m.id !== mediaId));
@@ -100,13 +113,60 @@ export default function MediaManagementPage() {
     }
   };
 
+  const openEditModal = (media: MediaItem) => {
+    setEditingMedia(media);
+    setEditTitle(media.title || "");
+    setEditDescription(media.description || "");
+    setEditAltText(media.alt_text || "");
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMedia || !token) return;
+    setSavingEdit(true);
+    try {
+      const updated = await fetchAPI(`/api/media/${editingMedia.id}`, {
+        method: "PATCH",
+        token,
+        body: JSON.stringify({
+          title: editTitle || null,
+          description: editDescription || null,
+          alt_text: editAltText || null,
+        }),
+      });
+      setMediaList((prev) => prev.map((m) => (m.id === editingMedia.id ? { ...m, ...updated } : m)));
+      setEditingMedia(null);
+    } catch (err: any) {
+      alert(err.message || "Failed to save changes");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleCopyLink = (media: MediaItem) => {
+    const url = `${window.location.origin}/static/media/${(media.original_url || "").split("/").pop()}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(media.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
+
+  const getFullUrl = (media: MediaItem) => {
+    const path = media.original_url || "";
+    return `${API_URL}${path}`;
+  };
+
+  const isZip = (media: MediaItem) =>
+    (media.original_url || "").endsWith(".zip") || (media.original_filename || "").endsWith(".zip");
+
   return (
     <div className="space-y-10 animate-fade-in">
+      {/* Header */}
       <div className="flex items-start justify-between border-b border-[#DCD0C0]/25 pb-6 gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-light font-serif text-[#2C2623]">Media Library</h1>
           <p className="text-xs text-[#6E635F] font-light">
-            Centralized image management for portfolio, client galleries, and blog content.
+            Centralized file management for portfolio, client galleries, and blog content.
           </p>
         </div>
         <p className="text-[10px] uppercase tracking-wider text-stone-400 font-medium whitespace-nowrap">
@@ -114,27 +174,34 @@ export default function MediaManagementPage() {
         </p>
       </div>
 
+      {/* Upload Form */}
       <div className="bg-white border border-[#DCD0C0]/25 rounded-md p-6 space-y-4">
-        <h2 className="text-sm font-serif font-semibold text-[#2C2623]">Upload New Media</h2>
+        <h2 className="text-sm font-serif font-semibold text-[#2C2623]">Upload New File</h2>
 
         <form onSubmit={handleUpload} className="space-y-4">
+          {/* Drop zone */}
           <div className="border-2 border-dashed border-[#DCD0C0]/40 rounded-sm p-8 text-center bg-[#FAF8F5]/50">
             <input
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/jpeg,image/png,image/webp,application/zip,.zip"
               onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
               className="hidden"
               id="media-file-input"
             />
             <label htmlFor="media-file-input" className="cursor-pointer flex flex-col items-center space-y-2">
-              <Upload className="w-7 h-7 text-[#C4A484]" />
+              {selectedFile?.name?.endsWith(".zip") ? (
+                <FileArchive className="w-7 h-7 text-[#C4A484]" />
+              ) : (
+                <Upload className="w-7 h-7 text-[#C4A484]" />
+              )}
               <span className="text-xs font-medium text-[#2C2623]">
                 {selectedFile ? selectedFile.name : "Click to upload or drag and drop"}
               </span>
-              <span className="text-[10px] text-[#6E635F]">PNG, JPG, WebP up to 10MB</span>
+              <span className="text-[10px] text-[#6E635F]">PNG, JPG, WebP, ZIP — no size limit</span>
             </label>
           </div>
 
+          {/* Metadata fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="text"
@@ -151,7 +218,6 @@ export default function MediaManagementPage() {
               className="bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
             />
           </div>
-
           <textarea
             placeholder="Description (optional)"
             value={description}
@@ -160,25 +226,13 @@ export default function MediaManagementPage() {
             className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden resize-none font-light"
           />
 
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
-          >
-            {MEDIA_CATEGORIES.map((cat) => (
-              <option key={cat.value || "none"} value={cat.value}>
-                {cat.label}
-              </option>
-            ))}
-          </select>
-
           <button
             type="submit"
             disabled={!selectedFile || uploading}
             className="w-full md:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-[#2C2623] hover:bg-[#352F2C] text-white rounded-sm text-xs uppercase tracking-widest font-semibold transition-all disabled:opacity-50"
           >
             {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : null}
-            {uploading ? "Uploading..." : "Upload Media"}
+            {uploading ? "Uploading..." : "Upload File"}
           </button>
         </form>
 
@@ -186,68 +240,109 @@ export default function MediaManagementPage() {
         {error && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-sm px-3 py-2">{error}</p>}
       </div>
 
-      <div className="flex flex-col md:flex-row gap-3">
-        <input
-          type="text"
-          placeholder="Search media..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 bg-white border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
-        />
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="bg-white border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden md:w-48"
-        >
-          <option value="">All categories</option>
-          {MEDIA_CATEGORIES.filter((c) => c.value).map((cat) => (
-            <option key={cat.value} value={cat.value}>
-              {cat.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Search */}
+      <input
+        type="text"
+        placeholder="Search by title, filename, description…"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full bg-white border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
+      />
 
+      {/* Grid */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-3">
           <Loader2 className="w-7 h-7 text-[#C4A484] animate-spin" />
-          <p className="text-xs text-[#6E635F]">Loading media library...</p>
+          <p className="text-xs text-[#6E635F]">Loading media library…</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {mediaList.map((media) => (
             <div
               key={media.id}
-              className="bg-white border border-[#DCD0C0]/25 rounded-md overflow-hidden hover:shadow-sm transition-shadow"
+              className="bg-white border border-[#DCD0C0]/25 rounded-md overflow-hidden hover:shadow-sm transition-shadow flex flex-col"
             >
-              <div className="relative aspect-square bg-stone-100">
-                <img
-                  src={getMediaPreviewUrl(media)}
-                  alt={media.alt_text || media.filename}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+              {/* Thumbnail or zip icon */}
+              <div className="relative aspect-square bg-stone-100 flex items-center justify-center">
+                {isZip(media) ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <FileArchive className="w-10 h-10 text-[#C4A484]" />
+                    <span className="text-[10px] text-[#6E635F] font-mono">ZIP archive</span>
+                  </div>
+                ) : (
+                  <img
+                    src={getMediaPreviewUrl(media)}
+                    alt={media.alt_text || media.filename}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
               </div>
-              <div className="p-3 space-y-2">
-                <p className="text-xs font-medium text-[#2C2623] truncate">{media.title || media.filename}</p>
+
+              {/* Info & actions */}
+              <div className="p-3 space-y-2 flex-1 flex flex-col">
+                <p className="text-xs font-medium text-[#2C2623] truncate">
+                  {media.title || media.filename}
+                </p>
                 {media.description && (
                   <p className="text-[10px] text-[#6E635F] line-clamp-2 font-light">{media.description}</p>
                 )}
-                {media.category && (
-                  <span className="inline-block text-[9px] uppercase tracking-wider bg-[#FAF8F5] text-[#6E635F] px-2 py-0.5 rounded-sm">
-                    {media.category}
-                  </span>
-                )}
+
+                {/* File URL link */}
+                <div className="flex items-center gap-1.5 bg-[#FAF8F5] border border-[#DCD0C0]/30 rounded-sm px-2 py-1 min-w-0">
+                  <a
+                    href={getFullUrl(media)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[9px] text-[#C4A484] hover:underline truncate flex-1 font-mono"
+                    title={getFullUrl(media)}
+                  >
+                    {media.original_url}
+                  </a>
+                  <button
+                    onClick={() => handleCopyLink(media)}
+                    className="shrink-0 text-stone-400 hover:text-[#2C2623] transition-colors cursor-pointer"
+                    title="Copy link"
+                  >
+                    {copiedId === media.id ? (
+                      <Check className="w-3 h-3 text-green-600" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </button>
+                  <a
+                    href={getFullUrl(media)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-stone-400 hover:text-[#2C2623] transition-colors"
+                    title="Open file"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
                 <p className="text-[10px] text-stone-400">
-                  Used in {media.usage_count} place{media.usage_count === 1 ? "" : "s"}
+                  Used in {media.usage_count ?? 0} place{(media.usage_count ?? 0) === 1 ? "" : "s"}
                 </p>
-                <button
-                  onClick={() => handleDelete(media.id)}
-                  disabled={media.usage_count > 0}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-red-600 border border-red-200 rounded-sm hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] uppercase tracking-wider font-semibold transition-colors"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  Delete
-                </button>
+
+                {/* Actions */}
+                <div className="flex gap-2 mt-auto pt-2">
+                  <button
+                    onClick={() => openEditModal(media)}
+                    className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-[#2C2623] border border-[#DCD0C0]/40 rounded-sm hover:bg-[#FAF8F5] text-[10px] uppercase tracking-wider font-semibold transition-colors cursor-pointer"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(media.id)}
+                    disabled={(media.usage_count ?? 0) > 0}
+                    className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-red-600 border border-red-200 rounded-sm hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] uppercase tracking-wider font-semibold transition-colors cursor-pointer"
+                    title={(media.usage_count ?? 0) > 0 ? "Cannot delete — in use" : "Delete"}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -260,21 +355,99 @@ export default function MediaManagementPage() {
         </div>
       )}
 
-      <p className="text-[10px] text-stone-400 font-light">
-        Use selected media in{" "}
-        <Link href="/delq-portal/portfolio" className="text-[#C4A484] hover:underline">
-          Portfolio
-        </Link>
-        ,{" "}
-        <Link href="/delq-portal/galleries" className="text-[#C4A484] hover:underline">
-          Client Galleries
-        </Link>
-        , or{" "}
-        <Link href="/delq-portal/blogs" className="text-[#C4A484] hover:underline">
-          Blog Journal
-        </Link>
-        .
-      </p>
+      {/* Edit Modal */}
+      {editingMedia && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-lg w-full shadow-lg space-y-5 animate-scale-in">
+            <div className="flex items-center justify-between border-b border-[#DCD0C0]/20 pb-3">
+              <h3 className="text-sm font-serif font-semibold text-[#2C2623]">Edit Media Details</h3>
+              <button onClick={() => setEditingMedia(null)} className="text-[#6E635F] hover:text-[#2C2623] cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Preview */}
+            <div className="flex gap-4 items-start">
+              {isZip(editingMedia) ? (
+                <div className="w-20 h-20 shrink-0 rounded-sm bg-stone-100 flex items-center justify-center border border-[#DCD0C0]/20">
+                  <FileArchive className="w-8 h-8 text-[#C4A484]" />
+                </div>
+              ) : (
+                <img
+                  src={getMediaPreviewUrl(editingMedia)}
+                  alt={editingMedia.alt_text || editingMedia.filename}
+                  className="w-20 h-20 object-cover rounded-sm shrink-0 border border-[#DCD0C0]/20"
+                />
+              )}
+              <div className="space-y-1 text-[10px] text-stone-500 min-w-0">
+                <p className="font-mono truncate">{editingMedia.filename}</p>
+                {editingMedia.file_size && (
+                  <p>{(editingMedia.file_size / 1024).toFixed(1)} KB</p>
+                )}
+                <a
+                  href={getFullUrl(editingMedia)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#C4A484] hover:underline flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3" /> Open file
+                </a>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase text-stone-400 font-semibold block">Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="e.g. Newborn sleeping pose"
+                  className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase text-stone-400 font-semibold block">Alt Text</label>
+                <input
+                  type="text"
+                  value={editAltText}
+                  onChange={(e) => setEditAltText(e.target.value)}
+                  placeholder="Describe the image for accessibility"
+                  className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase text-stone-400 font-semibold block">Description</label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={3}
+                  placeholder="Optional internal notes about this file"
+                  className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden resize-none font-light"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#DCD0C0]/20">
+                <button
+                  type="button"
+                  onClick={() => setEditingMedia(null)}
+                  className="px-4 py-2 border border-[#DCD0C0]/40 text-[#6E635F] hover:text-[#2C2623] rounded-sm text-xs transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#2C2623] hover:bg-[#352F2C] text-white rounded-sm text-xs uppercase tracking-widest font-semibold transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {savingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

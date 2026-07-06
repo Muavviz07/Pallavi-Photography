@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
 import { 
   Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, 
-  Image as ImageIcon, Upload, ArrowLeft, Eye, EyeOff, CheckCircle2, UserCheck, Star, Library
+  Image as ImageIcon, ArrowLeft, Eye, EyeOff, CheckCircle2, UserCheck, Star, Library
 } from "lucide-react";
 import MediaPicker from "@/components/media/MediaPicker";
 import { MediaItem } from "@/lib/media";
@@ -90,8 +90,8 @@ export default function AdminGalleries() {
   const [loadingImages, setLoadingImages] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
-  const [customCoverUrlInput, setCustomCoverUrlInput] = useState("");
   const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [addingFromLibrary, setAddingFromLibrary] = useState(false);
 
   const loadData = async () => {
@@ -417,6 +417,24 @@ export default function AdminGalleries() {
     }
   };
 
+  const handleSetCoverFromLibrary = async (media: MediaItem) => {
+    if (!selectedGalleryForPhotos || !token) return;
+    setShowCoverPicker(false);
+    try {
+      const updated = await fetchAPI(`/api/client-galleries/${selectedGalleryForPhotos.id}`, {
+        method: "PUT",
+        token,
+        body: JSON.stringify({ cover_image_id: media.id })
+      });
+      setSelectedGalleryForPhotos(updated);
+      setGalleries((prev) =>
+        prev.map((g) => (g.id === updated.id ? updated : g))
+      );
+    } catch (err) {
+      console.error("Failed to set cover from library", err);
+    }
+  };
+
   const handleClearCoverImage = async () => {
     if (!selectedGalleryForPhotos || !token) return;
     if (!confirm("Are you sure you want to remove the cover image?")) return;
@@ -508,41 +526,32 @@ export default function AdminGalleries() {
           </div>
         )}
 
-        {/* Custom Cover / Thumbnail Section */}
+        {/* Cover / Thumbnail Section */}
         {(() => {
           const selectedCoverUrl = selectedGalleryForPhotos.cover_image 
             ? (selectedGalleryForPhotos.cover_image.thumbnail_url || selectedGalleryForPhotos.cover_image.optimized_url || selectedGalleryForPhotos.cover_image.original_url)
             : "";
           
           return (
-            <div className="bg-white border border-[#DCD0C0]/25 rounded-md p-6 space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-1.5">
+            <div className="bg-white border border-[#DCD0C0]/25 rounded-md p-6 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
                   <h3 className="text-sm font-medium text-[#2C2623] uppercase tracking-wider font-serif">
                     Gallery Cover / Thumbnail
                   </h3>
                   <p className="text-xs text-[#6E635F] font-light">
-                    Specify a cover image that represents this gallery. This can be selected from the images below, uploaded as a custom file, or set via an external URL.
+                    Select a cover image from your media library to represent this gallery.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Upload Custom Cover Button */}
-                  <label
-                    htmlFor="upload-custom-cover"
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCoverPicker(true)}
                     className="inline-flex items-center space-x-1.5 text-xs uppercase tracking-widest text-[#2C2623] border border-[#2C2623] hover:bg-[#2C2623] hover:text-white px-3.5 py-2 rounded-sm font-semibold transition-all cursor-pointer"
                   >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload Custom Cover</span>
-                  </label>
-                  <input
-                    type="file"
-                    id="upload-custom-cover"
-                    accept="image/*"
-                    onChange={handleCustomCoverUpload}
-                    className="hidden"
-                  />
-
-                  {/* Clear Cover Button */}
+                    <Library className="w-3.5 h-3.5" />
+                    <span>{selectedGalleryForPhotos.cover_image_id ? "Change Cover" : "Pick from Library"}</span>
+                  </button>
                   {selectedGalleryForPhotos.cover_image_id && (
                     <button
                       onClick={handleClearCoverImage}
@@ -555,45 +564,22 @@ export default function AdminGalleries() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start pt-4 border-t border-[#DCD0C0]/15">
-                {/* Preview */}
-                <div className="md:col-span-1">
-                  <span className="text-[10px] uppercase tracking-wider text-stone-500 font-medium block mb-2">Current Cover Preview</span>
-                  <div className="aspect-video w-full rounded-sm bg-stone-100 border border-[#DCD0C0]/20 overflow-hidden relative flex items-center justify-center">
-                    {selectedCoverUrl ? (
-                      <img
-                        src={selectedCoverUrl}
-                        alt="Gallery cover thumbnail"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="text-center p-4">
-                        <ImageIcon className="w-6 h-6 text-stone-300 mx-auto mb-1.5" />
-                        <span className="text-[10px] text-stone-400 block font-light">No cover set</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Set via URL Form */}
-                <div className="md:col-span-3 space-y-4">
-                  <span className="text-[10px] uppercase tracking-wider text-stone-500 font-medium block">Set Cover from External URL</span>
-                  <form onSubmit={handleCustomCoverUrlSubmit} className="flex gap-2 max-w-xl">
-                    <input
-                      type="url"
-                      placeholder="https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format..."
-                      value={customCoverUrlInput}
-                      onChange={(e) => setCustomCoverUrlInput(e.target.value)}
-                      className="flex-1 px-3 py-2 text-xs border border-stone-200 rounded-sm focus:outline-none focus:border-[#C4A484]"
-                      required
+              {/* Current cover preview */}
+              <div className="pt-3 border-t border-[#DCD0C0]/15">
+                <span className="text-[10px] uppercase tracking-wider text-stone-500 font-medium block mb-2">Current Cover Preview</span>
+                <div className="w-48 aspect-video rounded-sm bg-stone-100 border border-[#DCD0C0]/20 overflow-hidden relative flex items-center justify-center">
+                  {selectedCoverUrl ? (
+                    <img
+                      src={selectedCoverUrl}
+                      alt="Gallery cover thumbnail"
+                      className="w-full h-full object-cover"
                     />
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-[#2C2623] hover:bg-[#C4A484] text-white text-xs uppercase tracking-widest font-semibold rounded-sm transition-colors cursor-pointer"
-                    >
-                      Set URL
-                    </button>
-                  </form>
+                  ) : (
+                    <div className="text-center p-4">
+                      <ImageIcon className="w-6 h-6 text-stone-300 mx-auto mb-1.5" />
+                      <span className="text-[10px] text-stone-400 block font-light">No cover set</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -701,6 +687,21 @@ export default function AdminGalleries() {
             ) : (
               <MediaPicker token={token} onSelect={handleAddFromLibrary} />
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Cover image picker modal */}
+      {showCoverPicker && token && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-4xl w-full shadow-lg space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#DCD0C0]/20 pb-3">
+              <h3 className="text-sm font-serif font-semibold text-[#2C2623]">Select Cover Image from Library</h3>
+              <button onClick={() => setShowCoverPicker(false)} className="text-[#6E635F] hover:text-[#2C2623]">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <MediaPicker token={token} onSelect={handleSetCoverFromLibrary} />
           </div>
         </div>
       )}

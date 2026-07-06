@@ -83,3 +83,6 @@ Thumbs.db
 
 # Tool lock files (if not required)
 skills-lock.json
+
+# Uploaded media
+pallavi-photography-backend/static/
