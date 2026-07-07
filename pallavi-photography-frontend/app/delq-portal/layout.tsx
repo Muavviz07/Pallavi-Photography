@@ -112,6 +112,12 @@ export default function AdminLayout({
   } else if (pathname.startsWith("/delq-portal/media")) {
     isAuthorized = isSuperAdmin || settings.galleries;
     deniedMessage = "You do not have permission to manage the media library.";
+  } else if (pathname.startsWith("/delq-portal/hero-slider")) {
+    isAuthorized = isSuperAdmin || settings.galleries;
+    deniedMessage = "You do not have permission to manage the hero slider.";
+  } else if (pathname.startsWith("/delq-portal/recognitions-and-awards")) {
+    isAuthorized = isSuperAdmin || settings.galleries;
+    deniedMessage = "You do not have permission to manage recognitions and awards.";
   } else if (pathname.startsWith("/delq-portal/galleries")) {
     isAuthorized = isSuperAdmin || settings.galleries || userRole === "client";
     deniedMessage = "You do not have permission to access client galleries.";
@@ -167,6 +173,26 @@ export default function AdminLayout({
                 className={getNavLinkClass("/delq-portal/media")}
               >
                 Media Library
+              </Link>
+            )}
+
+            {/* Hero Slider Management */}
+            {(isSuperAdmin || (isAdmin && settings.galleries)) && (
+              <Link
+                href="/delq-portal/hero-slider"
+                className={getNavLinkClass("/delq-portal/hero-slider")}
+              >
+                Hero Slider
+              </Link>
+            )}
+
+            {/* Awards & Recognitions */}
+            {(isSuperAdmin || (isAdmin && settings.galleries)) && (
+              <Link
+                href="/delq-portal/recognitions-and-awards"
+                className={getNavLinkClass("/delq-portal/recognitions-and-awards")}
+              >
+                Awards & Recognitions
               </Link>
             )}
 

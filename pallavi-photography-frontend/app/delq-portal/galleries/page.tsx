@@ -996,7 +996,7 @@ export default function AdminGalleries() {
                 {/* Thumbnail container */}
                 <div className="aspect-square w-full bg-stone-100 overflow-hidden relative">
                   <img
-                    src={item.image.thumbnail_url || item.image.optimized_url}
+                    src={item.image.thumbnail_url || item.image.optimized_url || item.image.original_url}
                     alt={item.image.alt_text}
                     className="w-full h-full object-cover"
                   />

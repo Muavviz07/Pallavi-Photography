@@ -8,12 +8,14 @@ import { api } from "@/lib/api";
 interface Slide {
   id: string;
   title: string;
+  subtitle?: string | null;
   image_url: string;
-  order: number;
+  order_position?: number;
+  order?: number;
   is_active: boolean;
 }
 
-const FALLBACK_SLIDES = [
+const FALLBACK_SLIDES: Slide[] = [
   {
     id: "fb-1",
     title: "New Beginnings",
@@ -86,7 +88,7 @@ export default function HeroSlider() {
   useEffect(() => {
     async function fetchSlides() {
       try {
-        const res = await api.get<Slide[]>("/hero-sliders");
+        const res = await api.get<Slide[]>("/hero-slides");
         if (res && res.length > 0) {
           setSlides(res);
         }
@@ -97,11 +99,17 @@ export default function HeroSlider() {
     fetchSlides();
   }, []);
 
-  // Merge database slides with fallbacks to always guarantee exactly 9 slides
+  // Merge database slides with fallbacks and sort by order_position ascending
   const activeSlides = (slides.length >= 9 ? slides.slice(0, 9) : [
     ...slides,
     ...FALLBACK_SLIDES.slice(0, 9 - slides.length)
-  ]).filter(slide => slide.is_active !== false);
+  ])
+    .filter(slide => slide.is_active !== false)
+    .sort((a, b) => {
+      const posA = a.order_position !== undefined ? a.order_position : (a.order || 0);
+      const posB = b.order_position !== undefined ? b.order_position : (b.order || 0);
+      return posA - posB;
+    });
 
   // Background Prefetching of all slides to ensure lag-free image rendering
   useEffect(() => {
@@ -159,9 +167,14 @@ export default function HeroSlider() {
         <h2 className="text-4xl sm:text-6xl md:text-7xl font-light tracking-[0.25em] text-white uppercase font-serif leading-tight drop-shadow-md">
           {currentSlide?.title || "New Beginnings"}
         </h2>
+        {currentSlide?.subtitle && (
+          <p className="text-xs sm:text-sm font-light tracking-[0.2em] text-white/80 uppercase font-sans drop-shadow-sm max-w-2xl mx-auto pt-2">
+            {currentSlide.subtitle}
+          </p>
+        )}
         <div className="pt-12">
           <Link
-            href="/blogs"
+            href="/our-blogs"
             className="inline-flex items-center space-x-2 text-[10px] uppercase tracking-widest text-white border border-white/35 hover:border-white px-8 py-3.5 rounded-sm transition-all duration-300 hover:bg-white/5 cursor-pointer"
           >
             <span>Explore Portfolio</span>

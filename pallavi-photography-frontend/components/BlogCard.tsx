@@ -28,7 +28,7 @@ export default function BlogCard({
       <div className="space-y-5">
         {/* Cover Image in strict 3:4 Aspect Ratio */}
         <Link
-          href={`/blogs/${slug}`}
+          href={`/our-blogs/${slug}`}
           className="block relative w-full aspect-[3/4] overflow-hidden bg-stone-100 rounded-sm cursor-pointer shadow-xs"
         >
           <img
@@ -53,7 +53,7 @@ export default function BlogCard({
           )}
 
           {/* Title - serif, uppercase, wide letter spacing */}
-          <Link href={`/blogs/${slug}`} className="block">
+          <Link href={`/our-blogs/${slug}`} className="block">
             <h4 className="text-lg md:text-xl font-light tracking-[0.16em] font-serif text-[#2C2623] hover:text-[#C4A484] transition-colors duration-300 leading-snug uppercase">
               {title}
             </h4>
@@ -69,7 +69,7 @@ export default function BlogCard({
       {/* Read More Link */}
       <div className="pt-2">
         <Link
-          href={`/blogs/${slug}`}
+          href={`/our-blogs/${slug}`}
           className="inline-block text-[10px] uppercase tracking-[0.25em] font-semibold text-[#2C2623] hover:text-[#C4A484] transition-colors duration-200 cursor-pointer border-b border-[#2C2623]/20 pb-0.5 hover:border-[#C4A484]"
         >
           Read More

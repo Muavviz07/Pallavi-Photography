@@ -10,6 +10,7 @@ from app.models.newsletter import NewsletterSubscriber, SubscriberStatus
 from app.models.testimonial import Testimonial
 from app.models.hero_slide import HeroSlide
 from app.models.about_section import AboutSection
+from app.models.recognition_award import RecognitionAward
 from app.models.pricing_section import PricingSection
 from app.models.faq import FAQ
 from app.models.contact_section import ContactSection

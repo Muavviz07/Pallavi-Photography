@@ -45,7 +45,7 @@ const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
 
 const ABOUT_ITEMS = [
   { name: "About Me", href: "/about-me" },
-  { name: "Recognitions & Awards", href: "/about-me?section=awards" }
+  { name: "Recognitions & Awards", href: "/recognitions-and-awards" }
 ];
 
 const PRICING_ITEMS = [
@@ -237,7 +237,7 @@ export default function Header() {
                           href={item.href}
                           className="block px-3 py-1.5 text-[11px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150 rounded-sm cursor-pointer"
                         >
-                          {item.name}
+                          {item.name === "About Me" ? t.aboutMe : t.awards}
                         </Link>
                       ))}
                     </div>
@@ -312,9 +312,9 @@ export default function Header() {
               </Link>
 
               <Link
-                href="/blogs"
+                href="/our-blogs"
                 className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 cursor-pointer ${
-                  pathname === "/blogs" || pathname?.startsWith("/blogs/") ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
+                  pathname === "/our-blogs" || pathname?.startsWith("/our-blogs/") ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
                 }`}
               >
                 {t.blogs}
@@ -381,7 +381,7 @@ export default function Header() {
                 <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
                   {ABOUT_ITEMS.map((item) => (
                     <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
-                      {item.name}
+                      {item.name === "About Me" ? t.aboutMe : t.awards}
                     </Link>
                   ))}
                 </div>
@@ -413,7 +413,7 @@ export default function Header() {
                 {t.clientGallery}
               </Link>
 
-              <Link href="/blogs" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
+              <Link href="/our-blogs" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
                 {t.blogs}
               </Link>
 

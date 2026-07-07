@@ -220,9 +220,6 @@ def delete_media(
     db.query(Blog).filter(Blog.thumbnail_media_id == media_id).update(
         {"thumbnail_media_id": None}, synchronize_session=False
     )
-    db.query(HeroSlide).filter(HeroSlide.image_url.in_(urls)).update(
-        {"image_url": None}, synchronize_session=False
-    )
     db.query(AboutSection).filter(AboutSection.image_url.in_(urls)).update(
         {"image_url": None}, synchronize_session=False
     )

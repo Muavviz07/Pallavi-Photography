@@ -4,24 +4,24 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, computed_field
 from app.schemas.image import ImageResponse
 
-class HeroSlideBase(BaseModel):
+class RecognitionAwardBase(BaseModel):
     title: str
-    subtitle: Optional[str] = None
+    description: Optional[str] = None
     image_media_id: uuid.UUID
     order_position: Optional[int] = 0
     is_active: Optional[bool] = True
 
-class HeroSlideCreate(HeroSlideBase):
+class RecognitionAwardCreate(RecognitionAwardBase):
     pass
 
-class HeroSlideUpdate(BaseModel):
+class RecognitionAwardUpdate(BaseModel):
     title: Optional[str] = None
-    subtitle: Optional[str] = None
+    description: Optional[str] = None
     image_media_id: Optional[uuid.UUID] = None
     order_position: Optional[int] = None
     is_active: Optional[bool] = None
 
-class HeroSlideResponse(HeroSlideBase):
+class RecognitionAwardResponse(RecognitionAwardBase):
     model_config = ConfigDict(from_attributes=True)
     
     id: uuid.UUID

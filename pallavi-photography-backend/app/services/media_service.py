@@ -10,6 +10,7 @@ from app.models.client_gallery_image import ClientGalleryImage
 from app.models.blog import Blog
 from app.models.hero_slide import HeroSlide
 from app.models.about_section import AboutSection
+from app.models.recognition_award import RecognitionAward
 
 
 def _image_urls(db_image: Image) -> list[str]:
@@ -50,7 +51,8 @@ def compute_usage_count(db: Session, image_id: uuid.UUID) -> int:
 
     urls = _image_urls(db_image)
     count += db.query(Blog).filter(Blog.thumbnail_media_id == image_id).count()
-    count += db.query(HeroSlide).filter(HeroSlide.image_url.in_(urls)).count()
+    count += db.query(HeroSlide).filter(HeroSlide.image_media_id == image_id).count()
+    count += db.query(RecognitionAward).filter(RecognitionAward.image_media_id == image_id).count()
     count += db.query(AboutSection).filter(AboutSection.image_url.in_(urls)).count()
 
     return count
@@ -106,18 +108,23 @@ def bulk_compute_usage_counts(db: Session, images: List[Image]) -> Dict[uuid.UUI
         if img.thumbnail_url:
             url_to_id[img.thumbnail_url] = img.id
 
+    blogs = db.query(Blog.thumbnail_media_id).filter(Blog.thumbnail_media_id.in_(image_ids)).all()
+    for (media_id,) in blogs:
+        if media_id in counts:
+            counts[media_id] += 1
+
+    hero_slides = db.query(HeroSlide.image_media_id).filter(HeroSlide.image_media_id.in_(image_ids)).all()
+    for (media_id,) in hero_slides:
+        if media_id in counts:
+            counts[media_id] += 1
+
+    awards = db.query(RecognitionAward.image_media_id).filter(RecognitionAward.image_media_id.in_(image_ids)).all()
+    for (media_id,) in awards:
+        if media_id in counts:
+            counts[media_id] += 1
+
     all_urls = list(url_to_id.keys())
     if all_urls:
-        blogs = db.query(Blog.thumbnail_media_id).filter(Blog.thumbnail_media_id.in_(image_ids)).all()
-        for (media_id,) in blogs:
-            if media_id in counts:
-                counts[media_id] += 1
-
-        hero_slides = db.query(HeroSlide.image_url).filter(HeroSlide.image_url.in_(all_urls)).all()
-        for (url,) in hero_slides:
-            if url in url_to_id:
-                counts[url_to_id[url]] += 1
-
         about_sections = db.query(AboutSection.image_url).filter(AboutSection.image_url.in_(all_urls)).all()
         for (url,) in about_sections:
             if url in url_to_id:

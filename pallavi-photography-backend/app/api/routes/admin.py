@@ -22,7 +22,11 @@ from app.api.routes.client_galleries import process_and_create_gallery_logic, sl
 from app.core import security
 from app.models.blog import Blog
 from app.models.image import Image
+from app.models.hero_slide import HeroSlide
+from app.models.recognition_award import RecognitionAward
 from app.schemas.blog import BlogCreate, BlogUpdate, BlogResponse
+from app.schemas.hero_slide import HeroSlideCreate, HeroSlideUpdate, HeroSlideResponse
+from app.schemas.recognition_award import RecognitionAwardCreate, RecognitionAwardUpdate, RecognitionAwardResponse
 import re
 from datetime import datetime
 
@@ -567,5 +571,131 @@ def delete_blog_admin(
         raise HTTPException(status_code=404, detail="Blog post not found")
         
     db.delete(blog)
+    db.commit()
+    return
+
+# --- Hero Slides Admin CRUD ---
+
+@router.get("/hero-slides", response_model=List[HeroSlideResponse])
+def get_all_hero_slides_admin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("galleries"))
+):
+    return db.query(HeroSlide).order_by(HeroSlide.order_position.asc()).all()
+
+@router.post("/hero-slides", response_model=HeroSlideResponse, status_code=status.HTTP_201_CREATED)
+def create_hero_slide_admin(
+    slide_in: HeroSlideCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("galleries"))
+):
+    img = db.query(Image).filter(Image.id == slide_in.image_media_id).first()
+    if not img:
+        raise HTTPException(status_code=400, detail="Invalid image_media_id: Image not found")
+    
+    slide = HeroSlide(**slide_in.dict())
+    db.add(slide)
+    db.commit()
+    db.refresh(slide)
+    return slide
+
+@router.put("/hero-slides/{slide_id}", response_model=HeroSlideResponse)
+def update_hero_slide_admin(
+    slide_id: uuid.UUID,
+    slide_in: HeroSlideUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("galleries"))
+):
+    slide = db.query(HeroSlide).filter(HeroSlide.id == slide_id).first()
+    if not slide:
+        raise HTTPException(status_code=404, detail="Hero slide not found")
+    
+    update_data = slide_in.dict(exclude_unset=True)
+    if "image_media_id" in update_data and update_data["image_media_id"]:
+        img = db.query(Image).filter(Image.id == update_data["image_media_id"]).first()
+        if not img:
+            raise HTTPException(status_code=400, detail="Invalid image_media_id: Image not found")
+            
+    for field, value in update_data.items():
+        setattr(slide, field, value)
+        
+    db.commit()
+    db.refresh(slide)
+    return slide
+
+@router.delete("/hero-slides/{slide_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_hero_slide_admin(
+    slide_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("galleries"))
+):
+    slide = db.query(HeroSlide).filter(HeroSlide.id == slide_id).first()
+    if not slide:
+        raise HTTPException(status_code=404, detail="Hero slide not found")
+        
+    db.delete(slide)
+    db.commit()
+    return
+
+# --- Recognitions & Awards Admin CRUD ---
+
+@router.get("/recognitions-and-awards", response_model=List[RecognitionAwardResponse])
+def get_all_awards_admin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("galleries"))
+):
+    return db.query(RecognitionAward).order_by(RecognitionAward.order_position.asc()).all()
+
+@router.post("/recognitions-and-awards", response_model=RecognitionAwardResponse, status_code=status.HTTP_201_CREATED)
+def create_award_admin(
+    award_in: RecognitionAwardCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("galleries"))
+):
+    img = db.query(Image).filter(Image.id == award_in.image_media_id).first()
+    if not img:
+        raise HTTPException(status_code=400, detail="Invalid image_media_id: Image not found")
+        
+    award = RecognitionAward(**award_in.dict())
+    db.add(award)
+    db.commit()
+    db.refresh(award)
+    return award
+
+@router.put("/recognitions-and-awards/{award_id}", response_model=RecognitionAwardResponse)
+def update_award_admin(
+    award_id: uuid.UUID,
+    award_in: RecognitionAwardUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("galleries"))
+):
+    award = db.query(RecognitionAward).filter(RecognitionAward.id == award_id).first()
+    if not award:
+        raise HTTPException(status_code=404, detail="Award not found")
+        
+    update_data = award_in.dict(exclude_unset=True)
+    if "image_media_id" in update_data and update_data["image_media_id"]:
+        img = db.query(Image).filter(Image.id == update_data["image_media_id"]).first()
+        if not img:
+            raise HTTPException(status_code=400, detail="Invalid image_media_id: Image not found")
+            
+    for field, value in update_data.items():
+        setattr(award, field, value)
+        
+    db.commit()
+    db.refresh(award)
+    return award
+
+@router.delete("/recognitions-and-awards/{award_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_award_admin(
+    award_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("galleries"))
+):
+    award = db.query(RecognitionAward).filter(RecognitionAward.id == award_id).first()
+    if not award:
+        raise HTTPException(status_code=404, detail="Award not found")
+        
+    db.delete(award)
     db.commit()
     return

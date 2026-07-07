@@ -172,7 +172,7 @@ export default function BlogDetailPage() {
         setPost(data);
       } catch (err) {
         console.error("Failed to load blog details", err);
-        router.push("/blogs");
+        router.push("/our-blogs");
       } finally {
         setLoading(false);
       }
@@ -213,7 +213,7 @@ export default function BlogDetailPage() {
         title="Our Blogs"
         paths={[
           { label: "Home", href: "/" },
-          { label: "Our Blogs", href: "/blogs" },
+          { label: "Our Blogs", href: "/our-blogs" },
           { label: post.title }
         ]}
       />

@@ -70,5 +70,10 @@ from app.schemas.contact_section import (
     ContactSectionUpdate,
     ContactSectionResponse,
 )
+from app.schemas.recognition_award import (
+    RecognitionAwardCreate,
+    RecognitionAwardUpdate,
+    RecognitionAwardResponse,
+)
 
 
