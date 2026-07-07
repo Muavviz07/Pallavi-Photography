@@ -312,9 +312,9 @@ export default function Header() {
               </Link>
 
               <Link
-                href="/our-blogs"
+                href="/blogs"
                 className={`hover:text-brand-dark transition-all duration-200 uppercase pb-2 border-b-2 cursor-pointer ${
-                  pathname === "/our-blogs" ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
+                  pathname === "/blogs" || pathname?.startsWith("/blogs/") ? "border-brand-dark text-brand-dark font-semibold" : "border-transparent text-brand-muted"
                 }`}
               >
                 {t.blogs}
@@ -413,7 +413,7 @@ export default function Header() {
                 {t.clientGallery}
               </Link>
 
-              <Link href="/our-blogs" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
+              <Link href="/blogs" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
                 {t.blogs}
               </Link>
 

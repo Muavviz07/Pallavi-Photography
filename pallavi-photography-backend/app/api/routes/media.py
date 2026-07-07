@@ -9,7 +9,7 @@ from app.models.gallery_image import GalleryImage
 from app.models.client_gallery_image import ClientGalleryImage
 from app.models.gallery import Gallery
 from app.models.client_gallery import ClientGallery
-from app.models.blog import BlogPost
+from app.models.blog import Blog
 from app.models.hero_slide import HeroSlide
 from app.models.about_section import AboutSection
 from app.models.user import User
@@ -217,8 +217,8 @@ def delete_media(
     if db_image.thumbnail_url:
         urls.append(db_image.thumbnail_url)
 
-    db.query(BlogPost).filter(BlogPost.cover_image_url.in_(urls)).update(
-        {"cover_image_url": None}, synchronize_session=False
+    db.query(Blog).filter(Blog.thumbnail_media_id == media_id).update(
+        {"thumbnail_media_id": None}, synchronize_session=False
     )
     db.query(HeroSlide).filter(HeroSlide.image_url.in_(urls)).update(
         {"image_url": None}, synchronize_session=False

@@ -161,7 +161,7 @@ export default function HeroSlider() {
         </h2>
         <div className="pt-12">
           <Link
-            href="/our-blogs"
+            href="/blogs"
             className="inline-flex items-center space-x-2 text-[10px] uppercase tracking-widest text-white border border-white/35 hover:border-white px-8 py-3.5 rounded-sm transition-all duration-300 hover:bg-white/5 cursor-pointer"
           >
             <span>Explore Portfolio</span>

@@ -107,6 +107,7 @@ export default function ImageCropper({
     { key: "free", label: "Free-form", value: undefined },
     { key: "square", label: "Square (1:1)", value: 1 },
     { key: "portrait", label: "Standard Portrait (3:4)", value: 3/4 },
+    { key: "blog_cover", label: "Blog cover (3:4)", value: 3/4 },
     { key: "landscape", label: "Standard Landscape (3:2)", value: 3/2 },
     { key: "large_square", label: "Large Square (1:1)", value: 1 },
     { key: "large_portrait", label: "Larger Portrait (3:5)", value: 3/5 },

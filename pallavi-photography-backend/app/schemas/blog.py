@@ -1,57 +1,43 @@
 import uuid
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel, ConfigDict
+from typing import Optional
+from pydantic import BaseModel, ConfigDict, computed_field
+from app.schemas.image import ImageResponse
 
-class BlogPostTranslationBase(BaseModel):
-    language: str
+class BlogBase(BaseModel):
     title: str
-    content: str
-    summary: Optional[str] = None
+    excerpt: Optional[str] = None
+    body_content: str
+    thumbnail_media_id: Optional[uuid.UUID] = None
+    is_published: Optional[bool] = True
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
 
-class BlogPostTranslationCreate(BlogPostTranslationBase):
+class BlogCreate(BlogBase):
     pass
 
-class BlogPostTranslationResponse(BlogPostTranslationBase):
-    model_config = ConfigDict(from_attributes=True)
-    
-    id: uuid.UUID
-    blog_post_id: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
-
-class BlogPostBase(BaseModel):
-    title: str
-    slug: str
-    content: str
-    summary: Optional[str] = None
-    published: Optional[bool] = False
-    published_at: Optional[datetime] = None
-    category: str
-    tags: Optional[str] = None
-    cover_image_url: Optional[str] = None
-    reading_time: Optional[int] = 1
-
-class BlogPostCreate(BlogPostBase):
-    translations: Optional[List[BlogPostTranslationCreate]] = None
-
-class BlogPostUpdate(BaseModel):
+class BlogUpdate(BaseModel):
     title: Optional[str] = None
-    slug: Optional[str] = None
-    content: Optional[str] = None
-    summary: Optional[str] = None
-    published: Optional[bool] = None
-    published_at: Optional[datetime] = None
-    category: Optional[str] = None
-    tags: Optional[str] = None
-    cover_image_url: Optional[str] = None
-    reading_time: Optional[int] = None
-    translations: Optional[List[BlogPostTranslationCreate]] = None
+    excerpt: Optional[str] = None
+    body_content: Optional[str] = None
+    thumbnail_media_id: Optional[uuid.UUID] = None
+    is_published: Optional[bool] = None
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
 
-class BlogPostResponse(BlogPostBase):
+class BlogResponse(BlogBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    slug: str
+    published_date: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
-    translations: List[BlogPostTranslationResponse] = []
+    thumbnail: Optional[ImageResponse] = None
+
+    @computed_field
+    @property
+    def thumbnail_url(self) -> Optional[str]:
+        if self.thumbnail:
+            return self.thumbnail.optimized_url or self.thumbnail.original_url
+        return None

@@ -2,25 +2,35 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, BookOpen } from "lucide-react";
-import { api } from "@/lib/api";
 
-interface BlogPostData {
+interface BlogData {
   id: string;
   title: string;
   slug: string;
-  summary?: string;
-  content: string;
-  category: string;
-  cover_image_url?: string;
-  reading_time: number;
-  published_at?: string;
-  created_at: string;
-  translations?: any[];
+  excerpt?: string;
+  thumbnail_url?: string;
+  published_date?: string;
 }
 
+const sectionTranslations = {
+  EN: {
+    title: "READ OUR BLOG",
+    desc: "Create memories to treasure for generations",
+    readMore: "Read More",
+    loading: "Loading Journals...",
+    noPosts: "No journal articles published yet.",
+  },
+  FR: {
+    title: "LIRE NOTRE BLOG",
+    desc: "Créer des souvenirs à chérir pour des générations",
+    readMore: "Lire Plus",
+    loading: "Chargement des articles...",
+    noPosts: "Aucun article de blog publié pour le moment.",
+  },
+};
+
 export default function BlogSection() {
-  const [posts, setPosts] = useState<BlogPostData[]>([]);
+  const [posts, setPosts] = useState<BlogData[]>([]);
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState("EN");
 
@@ -39,8 +49,12 @@ export default function BlogSection() {
   useEffect(() => {
     async function loadPosts() {
       try {
-        const res = await api.get<BlogPostData[]>("/blogs?limit=3");
-        setPosts(res);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiUrl}/api/blogs?limit=3`);
+        if (res.ok) {
+          const data = await res.json();
+          setPosts(data);
+        }
       } catch (err) {
         console.error("Failed to load homepage blogs", err);
       } finally {
@@ -50,93 +64,95 @@ export default function BlogSection() {
     loadPosts();
   }, []);
 
-  const getLocalizedPost = (post: BlogPostData) => {
-    if (lang === "EN" || !post.translations || post.translations.length === 0) {
-      return {
-        title: post.title,
-        summary: post.summary || post.content.slice(0, 140) + "...",
-      };
-    }
-    const t = post.translations.find((item: any) => item.language.toLowerCase() === lang.toLowerCase());
-    return {
-      title: t ? t.title : post.title,
-      summary: t ? t.summary || post.summary || post.content.slice(0, 140) + "..." : post.summary || post.content.slice(0, 140) + "...",
-    };
-  };
+  const t = sectionTranslations[lang as "EN" | "FR"] || sectionTranslations.EN;
 
   return (
-    <section className="py-24 bg-brand-bg border-b border-brand-border">
-      <div className="max-w-[1200px] mx-auto px-6 md:px-12">
+    <section className="py-24 bg-[#FCFAF7] border-b border-brand-border">
+      <div className="max-w-[1250px] mx-auto px-6 md:px-12">
         
-        {/* Header Title */}
+        {/* Section Header matching screenshot 2 */}
         <div className="text-center mb-16 space-y-4">
-          <span className="text-[10px] uppercase tracking-[0.3em] text-brand-sage font-semibold block">
-            Journal & Notes
-          </span>
-          <h3 className="text-3xl sm:text-4xl font-light tracking-wide font-serif text-brand-dark uppercase">
-            Read Our Blog
+          <h3 
+            className="text-3xl sm:text-4xl font-light tracking-[0.25em] font-serif text-[#2C2623] uppercase"
+            style={{ fontWeight: 200 }}
+          >
+            {t.title}
           </h3>
-          <p className="text-xs text-brand-muted max-w-xl mx-auto font-light leading-relaxed">
-            Create memories to treasure for generations
+          <p className="text-sm font-serif italic text-[#6E635F] leading-relaxed">
+            {t.desc}
           </p>
         </div>
 
+        {/* Content grid */}
         {loading ? (
-          <div className="text-center py-12 text-xs uppercase tracking-widest text-brand-sage animate-pulse">
-            Loading Latest Journals...
+          <div className="text-center py-12 text-xs uppercase tracking-widest text-[#C4A484] animate-pulse">
+            {t.loading}
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-12 text-xs text-brand-muted italic">
-            No journal articles published yet.
+          <div className="text-center py-12 text-xs text-stone-400 italic">
+            {t.noPosts}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          /* Grid of exactly 3 cards (3 cols on desktop, 1 col on mobile) */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-16">
             {posts.map((post) => {
-              const { title, summary } = getLocalizedPost(post);
+              const cardImage =
+                post.thumbnail_url ||
+                "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=800";
+
               return (
                 <article
                   key={post.id}
-                  className="bg-brand-cream border border-brand-border rounded-xs overflow-hidden flex flex-col justify-between hover:shadow-xl transition-all duration-300"
+                  className="group flex flex-col justify-between space-y-5 text-left"
                 >
-                  <div className="space-y-4">
-                    {/* Card Cover image */}
-                    <div className="h-56 w-full relative overflow-hidden bg-stone-200 border-b border-brand-border">
+                  <div className="space-y-5">
+                    {/* Locked 3:4 Ratio Cover Image */}
+                    <Link
+                      href={`/blogs/${post.slug}`}
+                      className="block relative w-full aspect-[3/4] overflow-hidden bg-stone-100 rounded-sm cursor-pointer shadow-xs"
+                    >
                       <img
-                        src={post.cover_image_url || "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=600"}
-                        alt={title}
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-102"
+                        src={cardImage}
+                        alt={post.title}
+                        className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-102"
+                        loading="lazy"
                       />
-                      <span className="absolute top-4 left-4 bg-brand-bg/90 border border-brand-border/40 text-[9px] uppercase tracking-widest text-brand-dark px-2.5 py-1 rounded-sm font-semibold">
-                        {post.category}
-                      </span>
-                    </div>
+                    </Link>
 
-                    {/* Card text content */}
-                    <div className="p-6 md:p-8 space-y-3">
-                      <div className="flex items-center space-x-2 text-[9px] text-brand-muted uppercase tracking-wider">
-                        <span>{new Date(post.created_at).toLocaleDateString()}</span>
-                        <span>•</span>
-                        <span>{post.reading_time} Min Read</span>
-                      </div>
-                      
-                      <h4 className="text-lg font-light tracking-wide font-serif text-brand-dark hover:text-brand-sage transition-colors leading-snug uppercase">
-                        {title}
-                      </h4>
-                      
-                      <p className="text-xs text-brand-muted leading-relaxed font-light line-clamp-3">
-                        {summary}
+                    {/* Text Area */}
+                    <div className="space-y-3 pr-2">
+                      {/* Publication Date */}
+                      {post.published_date && (
+                        <span className="text-[9px] uppercase tracking-[0.2em] text-stone-400 block">
+                          {new Date(post.published_date).toLocaleDateString("en-US", {
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                      )}
+
+                      {/* Header in all-caps serif */}
+                      <Link href={`/blogs/${post.slug}`} className="block">
+                        <h4 className="text-lg md:text-xl font-light tracking-[0.16em] font-serif text-[#2C2623] hover:text-[#C4A484] transition-colors duration-300 leading-snug uppercase">
+                          {post.title}
+                        </h4>
+                      </Link>
+
+                      {/* Paragraph body excerpt */}
+                      <p className="text-xs text-[#6E635F] leading-relaxed font-light font-sans line-clamp-3">
+                        {post.excerpt || "No description available."}
                       </p>
                     </div>
                   </div>
 
-                  {/* Read More button */}
-                  <div className="p-6 md:p-8 pt-0">
+                  {/* READ MORE Link */}
+                  <div className="pt-2">
                     <Link
-                      href={`/our-blogs/${post.slug}`}
-                      className="inline-flex items-center space-x-2 text-[10px] uppercase tracking-widest text-brand-sage font-semibold hover:text-brand-dark transition-colors duration-150"
+                      href={`/blogs/${post.slug}`}
+                      className="inline-block text-[10px] uppercase tracking-[0.25em] font-semibold text-[#2C2623] hover:text-[#C4A484] transition-colors duration-200 cursor-pointer border-b border-[#2C2623]/20 pb-0.5 hover:border-[#C4A484]"
                     >
-                      <span>Read More</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      {t.readMore}
                     </Link>
                   </div>
                 </article>
@@ -144,18 +160,6 @@ export default function BlogSection() {
             })}
           </div>
         )}
-
-        {/* View all button */}
-        <div className="text-center pt-16">
-          <Link
-            href="/our-blogs"
-            className="inline-flex items-center space-x-2 border border-brand-dark/25 hover:border-brand-dark px-10 py-3.5 text-xs font-serif uppercase tracking-widest transition-all duration-300 font-medium hover:bg-brand-dark hover:text-white rounded-sm"
-          >
-            <span>View All Blogs</span>
-            <BookOpen className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
       </div>
     </section>
   );

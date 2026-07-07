@@ -23,11 +23,9 @@ from app.schemas.client_gallery import (
     ClientGalleryImageResponse,
 )
 from app.schemas.blog import (
-    BlogPostCreate,
-    BlogPostUpdate,
-    BlogPostResponse,
-    BlogPostTranslationCreate,
-    BlogPostTranslationResponse,
+    BlogCreate,
+    BlogUpdate,
+    BlogResponse,
 )
 from app.schemas.booking import (
     BookingCreate,

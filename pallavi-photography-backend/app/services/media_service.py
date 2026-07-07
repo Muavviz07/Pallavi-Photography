@@ -7,7 +7,7 @@ from app.models.gallery import Gallery
 from app.models.gallery_image import GalleryImage
 from app.models.client_gallery import ClientGallery
 from app.models.client_gallery_image import ClientGalleryImage
-from app.models.blog import BlogPost
+from app.models.blog import Blog
 from app.models.hero_slide import HeroSlide
 from app.models.about_section import AboutSection
 
@@ -49,7 +49,7 @@ def compute_usage_count(db: Session, image_id: uuid.UUID) -> int:
             count += 1
 
     urls = _image_urls(db_image)
-    count += db.query(BlogPost).filter(BlogPost.cover_image_url.in_(urls)).count()
+    count += db.query(Blog).filter(Blog.thumbnail_media_id == image_id).count()
     count += db.query(HeroSlide).filter(HeroSlide.image_url.in_(urls)).count()
     count += db.query(AboutSection).filter(AboutSection.image_url.in_(urls)).count()
 
@@ -108,10 +108,10 @@ def bulk_compute_usage_counts(db: Session, images: List[Image]) -> Dict[uuid.UUI
 
     all_urls = list(url_to_id.keys())
     if all_urls:
-        blog_posts = db.query(BlogPost.cover_image_url).filter(BlogPost.cover_image_url.in_(all_urls)).all()
-        for (url,) in blog_posts:
-            if url in url_to_id:
-                counts[url_to_id[url]] += 1
+        blogs = db.query(Blog.thumbnail_media_id).filter(Blog.thumbnail_media_id.in_(image_ids)).all()
+        for (media_id,) in blogs:
+            if media_id in counts:
+                counts[media_id] += 1
 
         hero_slides = db.query(HeroSlide.image_url).filter(HeroSlide.image_url.in_(all_urls)).all()
         for (url,) in hero_slides:

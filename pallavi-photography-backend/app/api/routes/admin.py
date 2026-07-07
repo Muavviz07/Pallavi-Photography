@@ -20,6 +20,11 @@ from app.schemas.user import UserResponse, UserUpdate, UserAdminResponse
 
 from app.api.routes.client_galleries import process_and_create_gallery_logic, slugify
 from app.core import security
+from app.models.blog import Blog
+from app.models.image import Image
+from app.schemas.blog import BlogCreate, BlogUpdate, BlogResponse
+import re
+from datetime import datetime
 
 router = APIRouter(tags=["admin"])
 
@@ -449,3 +454,118 @@ def update_admin_permissions(
     db.commit()
     
     return {"message": "Permissions updated successfully"}
+
+
+# Helper function to generate unique slug from title
+def generate_unique_slug(title: str, db: Session, exclude_id: uuid.UUID = None) -> str:
+    slug = title.lower()
+    slug = re.sub(r'[^a-z0-9\s-]', '', slug)
+    slug = re.sub(r'[\s-]+', '-', slug).strip('-')
+    
+    base_slug = slug
+    counter = 1
+    while True:
+        query = db.query(Blog).filter(Blog.slug == slug)
+        if exclude_id:
+            query = query.filter(Blog.id != exclude_id)
+        if not query.first():
+            return slug
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+# List all blogs (admin)
+@router.get("/blogs", response_model=List[BlogResponse])
+def list_all_blogs_admin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("blogs"))
+):
+    return db.query(Blog).order_by(Blog.created_at.desc()).all()
+
+# Get blog by ID (admin)
+@router.get("/blogs/{blog_id}", response_model=BlogResponse)
+def get_blog_by_id_admin(
+    blog_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("blogs"))
+):
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    return blog
+
+# Create new blog
+@router.post("/blogs", response_model=BlogResponse, status_code=status.HTTP_201_CREATED)
+def create_blog_admin(
+    blog_in: BlogCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("blogs"))
+):
+    if blog_in.thumbnail_media_id:
+        img = db.query(Image).filter(Image.id == blog_in.thumbnail_media_id).first()
+        if not img:
+            raise HTTPException(status_code=400, detail="Invalid thumbnail_media_id: Media not found")
+
+    blog_data = blog_in.model_dump()
+    slug = generate_unique_slug(blog_in.title, db)
+    blog_data["slug"] = slug
+    
+    if blog_in.is_published:
+        blog_data["published_date"] = datetime.utcnow()
+    else:
+        blog_data["published_date"] = None
+        
+    db_blog = Blog(**blog_data)
+    db.add(db_blog)
+    db.commit()
+    db.refresh(db_blog)
+    return db_blog
+
+# Update existing blog
+@router.put("/blogs/{blog_id}", response_model=BlogResponse)
+def update_blog_admin(
+    blog_id: uuid.UUID,
+    blog_in: BlogUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("blogs"))
+):
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(status_code=404, detail="Blog post not found")
+
+    update_data = blog_in.model_dump(exclude_unset=True)
+    
+    if "thumbnail_media_id" in update_data and update_data["thumbnail_media_id"]:
+        img = db.query(Image).filter(Image.id == update_data["thumbnail_media_id"]).first()
+        if not img:
+            raise HTTPException(status_code=400, detail="Invalid thumbnail_media_id: Media not found")
+
+    if "title" in update_data and update_data["title"] != blog.title:
+        update_data["slug"] = generate_unique_slug(update_data["title"], db, exclude_id=blog_id)
+
+    if "is_published" in update_data:
+        if update_data["is_published"] and not blog.is_published:
+            update_data["published_date"] = datetime.utcnow()
+        elif not update_data["is_published"]:
+            update_data["published_date"] = None
+
+    for field, value in update_data.items():
+        setattr(blog, field, value)
+
+    db.commit()
+    db.refresh(blog)
+    return blog
+
+# Delete blog
+@router.delete("/blogs/{blog_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_blog_admin(
+    blog_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_feature("blogs"))
+):
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(status_code=404, detail="Blog post not found")
+        
+    db.delete(blog)
+    db.commit()
+    return
