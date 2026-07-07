@@ -144,7 +144,7 @@ export default function ExplorePortfolioSection() {
       try {
         const galleries = await api.get<Gallery[]>("/galleries");
         const mapped: Record<string, Gallery> = {};
-        
+
         // Group galleries to pick the first published one for each category
         galleries.forEach((gal) => {
           const cat = gal.category.toLowerCase();
@@ -169,7 +169,7 @@ export default function ExplorePortfolioSection() {
 
   return (
     <section id="explore-portfolio" className="py-24 bg-white border-b border-brand-border/60">
-      
+
       {/* Keyframe styles for slide entry and underline transitions */}
       <style>{`
         @keyframes slide-in-left-to-right {
@@ -185,7 +185,7 @@ export default function ExplorePortfolioSection() {
       `}</style>
 
       <div className="max-w-[1450px] mx-auto px-6 md:px-10">
-        
+
         {/* Header content (reduced title size by 2 points and weight to 200/extralight) */}
         <div className="text-center mb-2 space-y-3">
           <h3 className="text-3xl sm:text-4xl lg:text-[46px] tracking-[0.25em] font-serif text-brand-dark uppercase" style={{ fontWeight: 200 }}>
@@ -198,7 +198,7 @@ export default function ExplorePortfolioSection() {
 
         {/* Categories list and Image showcase split (narrowed gap to gap-1) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-1 items-center">
-          
+
           {/* Left Category Menu (space-y-6 for generous vertical space, lg:col-span-3 to narrow the text column and pull the image closer) */}
           <div className="lg:col-span-3 flex flex-col justify-center space-y-6 lg:pl-0 py-2">
             {Object.keys(CATEGORY_META).map((key) => {
@@ -208,7 +208,7 @@ export default function ExplorePortfolioSection() {
               // Determine custom link for this specific category item
               const itemDbGallery = categoryData[key];
               const itemLinkHref = itemDbGallery ? `/our-gallery/${itemDbGallery.slug}` : `/our-gallery/${key}`;
-              
+
               return (
                 <div
                   key={key}
@@ -219,20 +219,18 @@ export default function ExplorePortfolioSection() {
                   <span className="text-[10px] sm:text-xs tracking-[0.25em] font-sans text-stone-400 block mb-0.5 animate-fade-in">
                     {meta.prefix}
                   </span>
-                  
+
                   {/* Category Link Label with left-to-right expanding underline */}
                   <div className="inline-block">
                     <Link href={itemLinkHref}>
                       <span
-                        className={`text-xl sm:text-2xl lg:text-[28px] tracking-[0.18em] font-serif uppercase transition-colors duration-300 block pb-1 relative cursor-pointer leading-none ${
-                          isActive ? "text-brand-dark font-normal" : "text-stone-400 hover:text-stone-700"
-                        }`}
+                        className={`text-xl sm:text-2xl lg:text-[28px] tracking-[0.18em] font-serif uppercase transition-colors duration-300 block pb-1 relative cursor-pointer leading-none ${isActive ? "text-brand-dark font-normal" : "text-stone-400 hover:text-stone-700"
+                          }`}
                       >
                         {tMeta.label}
                         <span
-                          className={`absolute bottom-0 left-0 h-[1.5px] bg-brand-dark transition-all duration-300 ease-out origin-left ${
-                            isActive ? "w-full scale-x-100" : "w-0 scale-x-0 group-hover:w-full group-hover:scale-x-100"
-                          }`}
+                          className={`absolute bottom-0 left-0 h-[1.5px] bg-brand-dark transition-all duration-300 ease-out origin-left ${isActive ? "w-full scale-x-100" : "w-0 scale-x-0 group-hover:w-full group-hover:scale-x-100"
+                            }`}
                         />
                       </span>
                     </Link>

@@ -86,7 +86,8 @@ const navTranslations: Record<string, Record<string, string>> = {
     fineArt: "Fine Art",
     nature: "Nature",
     naturePhotostock: "Nature Photostock",
-    faqs: "FAQs"
+    faqs: "FAQs",
+    sidebarBio: "In the gentle rustle of leaves and the golden glow of light, nature whispers its timeless story. Our photography captures these quiet, breathtaking moments, celebrating the wild beauty of the outdoors and the intimate elegance of beautiful indoor portraits. Whether bathed in sunlight or softly lit indoors, each image tells a story worth remembering."
   },
   FR: {
     home: "ACCUEIL",
@@ -106,7 +107,8 @@ const navTranslations: Record<string, Record<string, string>> = {
     fineArt: "Fine Art",
     nature: "Nature",
     naturePhotostock: "Photostock Nature",
-    faqs: "FAQ"
+    faqs: "FAQ",
+    sidebarBio: "Dans le doux bruissement des feuilles et la lueur dorée de la lumière, la nature murmure son histoire intemporelle. Notre photographie capture ces moments calmes et époustouflants, célébrant la beauté sauvage du plein air et l'élégance intime de magnifiques portraits en intérieur. Qu'elle soit baignée de soleil ou doucement éclairée à l'intérieur, chaque image raconte une histoire qui mérite d'être rappelée."
   }
 };
 
@@ -455,7 +457,7 @@ export default function Header() {
               style={{ filter: "invert(1) hue-rotate(180deg)" }}
             />
             <p className="text-xs md:text-sm font-light leading-relaxed text-white/80 max-w-sm mx-auto font-sans">
-              {t.sidebarBio || "In the gentle rustle of leaves and the golden glow of light, nature whispers it’s timeless story..."}
+              {t.sidebarBio}
             </p>
           </div>
 

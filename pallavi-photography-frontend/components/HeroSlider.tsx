@@ -159,7 +159,7 @@ export default function HeroSlider() {
         <h2 className="text-4xl sm:text-6xl md:text-7xl font-light tracking-[0.25em] text-white uppercase font-serif leading-tight drop-shadow-md">
           {currentSlide?.title || "New Beginnings"}
         </h2>
-        <div className="pt-4">
+        <div className="pt-12">
           <Link
             href="/our-blogs"
             className="inline-flex items-center space-x-2 text-[10px] uppercase tracking-widest text-white border border-white/35 hover:border-white px-8 py-3.5 rounded-sm transition-all duration-300 hover:bg-white/5 cursor-pointer"
