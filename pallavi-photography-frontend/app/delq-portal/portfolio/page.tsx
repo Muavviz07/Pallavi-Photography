@@ -83,7 +83,7 @@ export default function PortfolioAdmin() {
   const [editingImage, setEditingImage] = useState<ImageResponse | null>(null);
   const [editImageTitle, setEditImageTitle] = useState("");
   const [editImageAlt, setEditImageAlt] = useState("");
-  const [editImageAspect, setEditImageAspect] = useState<"square" | "portrait" | "landscape">("square");
+  const [editImageAspect, setEditImageAspect] = useState<string>("square");
   const [editImageSort, setEditImageSort] = useState(0);
   const [savingImage, setSavingImage] = useState(false);
 
@@ -183,17 +183,29 @@ export default function PortfolioAdmin() {
     }
   };
 
-  const handleCropAndUpload = async (blob: Blob, title: string, altText: string) => {
+  const handleCropAndUpload = async (blob: Blob, title: string, altText: string, aspect?: string) => {
     if (!gallery || !selectedFile) return;
     setUploading(true);
     setUploadStatusText("Cropping and uploading image...");
     setUploadError("");
 
     try {
+      let croppedName = selectedFile.name;
+      if (aspect && aspect !== "free") {
+        const dotIndex = selectedFile.name.lastIndexOf(".");
+        if (dotIndex !== -1) {
+          const name = selectedFile.name.substring(0, dotIndex);
+          const ext = selectedFile.name.substring(dotIndex);
+          croppedName = `${name}-${aspect}${ext}`;
+        } else {
+          croppedName = `${selectedFile.name}-${aspect}`;
+        }
+      }
       const formDataPayload = new FormData();
-      formDataPayload.append("file", blob, selectedFile.name);
+      formDataPayload.append("file", blob, croppedName);
       formDataPayload.append("title", title);
       formDataPayload.append("alt_text", altText);
+      formDataPayload.append("aspect", aspect || "square");
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(`${apiUrl}/api/galleries/${gallery.id}/upload`, {
@@ -221,15 +233,15 @@ export default function PortfolioAdmin() {
     }
   };
 
-  const handleCropConfirm = async (blob: Blob, title: string, altText: string) => {
+  const handleCropConfirm = async (blob: Blob, title: string, altText: string, aspect?: string) => {
     if (croppingExistingImage) {
-      await handleConfirmCropExistingImage(blob, title, altText);
+      await handleConfirmCropExistingImage(blob, title, altText, aspect);
     } else {
-      await handleCropAndUpload(blob, title, altText);
+      await handleCropAndUpload(blob, title, altText, aspect);
     }
   };
 
-  const handleConfirmCropExistingImage = async (blob: Blob, title: string, altText: string) => {
+  const handleConfirmCropExistingImage = async (blob: Blob, title: string, altText: string, aspect?: string) => {
     if (!gallery || !token || !croppingExistingImage) return;
     setAddingFromLibrary(true);
     setUploadStatusText("Cropping image in place...");
@@ -238,9 +250,18 @@ export default function PortfolioAdmin() {
       
       // 1. Upload cropped file as a new image in the gallery
       const dataPayload = new FormData();
-      dataPayload.append("file", blob, `${croppingExistingImage.id}_cropped.jpg`);
+      const origUrl = croppingExistingImage.optimized_url || croppingExistingImage.original_url || "";
+      const origFilename = origUrl.substring(origUrl.lastIndexOf("/") + 1);
+      const dotIndex = origFilename.lastIndexOf(".");
+      const baseName = dotIndex !== -1 ? origFilename.substring(0, dotIndex) : `${croppingExistingImage.id}_cropped`;
+      const ext = dotIndex !== -1 ? origFilename.substring(dotIndex) : ".jpg";
+      const aspectSuffix = aspect && aspect !== "free" ? `-${aspect}` : "-cropped";
+      const croppedName = `${baseName}${aspectSuffix}${ext}`;
+
+      dataPayload.append("file", blob, croppedName);
       dataPayload.append("title", title || croppingExistingImage.title || "Cropped Portfolio Work");
       dataPayload.append("alt_text", altText || croppingExistingImage.alt_text || "Cropped portfolio image");
+      dataPayload.append("aspect", aspect || "square");
 
       const uploadRes = await fetch(`${apiUrl}/api/galleries/${gallery.id}/upload`, {
         method: "POST",
@@ -366,16 +387,23 @@ export default function PortfolioAdmin() {
     }
   };
 
-  const handleLibraryCropConfirm = async (blob: Blob, title: string, altText: string) => {
+  const handleLibraryCropConfirm = async (blob: Blob, title: string, altText: string, aspect?: string) => {
     if (!gallery || !token || !libraryMedia) return;
     setAddingFromLibrary(true);
     setUploadStatusText("Uploading cropped image...");
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const formDataPayload = new FormData();
-      formDataPayload.append("file", blob, `${libraryMedia.id}_cropped.jpg`);
+      const dotIndex = libraryMedia.filename.lastIndexOf(".");
+      const baseName = dotIndex !== -1 ? libraryMedia.filename.substring(0, dotIndex) : `${libraryMedia.id}_cropped`;
+      const ext = dotIndex !== -1 ? libraryMedia.filename.substring(dotIndex) : ".jpg";
+      const aspectSuffix = aspect && aspect !== "free" ? `-${aspect}` : "-cropped";
+      const croppedName = `${baseName}${aspectSuffix}${ext}`;
+
+      formDataPayload.append("file", blob, croppedName);
       formDataPayload.append("title", title);
       formDataPayload.append("alt_text", altText);
+      formDataPayload.append("aspect", aspect || "square");
 
       const res = await fetch(`${apiUrl}/api/galleries/${gallery.id}/upload`, {
         method: "POST",
@@ -630,7 +658,13 @@ export default function PortfolioAdmin() {
                         </td>
                         <td className="p-4">
                           <span className="inline-block px-2.5 py-0.5 rounded-sm text-[9px] font-semibold uppercase tracking-wider bg-stone-50 border border-stone-200/50 text-[#6E635F]">
-                            {aspect}
+                            {aspect === "square" ? "Square (1:1)" :
+                             aspect === "portrait" ? "Portrait (3:4)" :
+                             aspect === "landscape" ? "Landscape (3:2)" :
+                             aspect === "large_square" ? "Large Sq (1:1)" :
+                             aspect === "large_portrait" ? "Larger Port (3:5)" :
+                             aspect === "wide_landscape" ? "Wide Land (16:9)" :
+                             aspect === "panoramic" ? "Panoramic (21:9)" : aspect}
                           </span>
                         </td>
                         <td className="p-4 text-center font-mono text-[10px]">{img.sort_order}</td>
@@ -795,12 +829,16 @@ export default function PortfolioAdmin() {
                   <label className="block text-[10px] uppercase text-stone-400 font-semibold">Aspect Crop</label>
                   <select
                     value={editImageAspect}
-                    onChange={(e) => setEditImageAspect(e.target.value as any)}
-                    className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
+                    onChange={(e) => setEditImageAspect(e.target.value)}
+                    className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden text-[#6E635F]"
                   >
-                    <option value="square">Square</option>
-                    <option value="portrait">Portrait</option>
-                    <option value="landscape">Landscape</option>
+                    <option value="square">Square (1:1)</option>
+                    <option value="portrait">Standard Portrait (3:4)</option>
+                    <option value="landscape">Standard Landscape (3:2)</option>
+                    <option value="large_square">Large Square (1:1 Double size)</option>
+                    <option value="large_portrait">Larger Portrait (3:5 Double height)</option>
+                    <option value="wide_landscape">Wide Landscape (16:9 Double width)</option>
+                    <option value="panoramic">Panoramic (21:9 Triple width)</option>
                   </select>
                 </div>
 

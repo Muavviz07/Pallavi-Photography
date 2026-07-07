@@ -140,32 +140,26 @@ export default function HeroSlider() {
         <div
           key={slide.id}
           className={`absolute inset-0 z-0 transition-opacity duration-1000 ease-in-out ${
-            index === currentIdx ? "opacity-60 pointer-events-auto" : "opacity-0 pointer-events-none"
+            index === currentIdx ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           }`}
         >
           <img
             src={slide.image_url}
             alt={slide.title}
-            className="w-full h-full object-cover object-center scale-102 transition-transform duration-[4500ms] ease-out"
+            className="w-full h-full object-cover object-center scale-102 transition-transform duration-[4500ms] ease-out filter contrast-[1.05] saturate-[1.12]"
             loading={index === 0 ? "eager" : "lazy"}
           />
           {/* Readability scrim/gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/85 via-brand-dark/20 to-brand-dark/50" />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/90 via-brand-dark/30 to-brand-dark/60" />
         </div>
       ))}
 
       {/* Slide Text Content overlay */}
-      <div className="relative z-10 text-center px-6 max-w-4xl space-y-6">
-        <span className="text-[10px] md:text-xs uppercase tracking-[0.4em] text-white/80 block font-light">
-          Switzerland Fine Art Studio
-        </span>
+      <div className="relative z-10 text-center px-6 max-w-5xl lg:max-w-7xl space-y-6">
         <h2 className="text-4xl sm:text-6xl md:text-7xl font-light tracking-[0.25em] text-white uppercase font-serif leading-tight drop-shadow-md">
           {currentSlide?.title || "New Beginnings"}
         </h2>
-        <p className="text-xs md:text-sm text-stone-200 font-light tracking-widest max-w-xl mx-auto leading-relaxed uppercase">
-          Capturing the pure emotions, soft light, and beautiful details of newborn, family, and maternity journeys.
-        </p>
-        <div className="pt-8">
+        <div className="pt-4">
           <Link
             href="/our-blogs"
             className="inline-flex items-center space-x-2 text-[10px] uppercase tracking-widest text-white border border-white/35 hover:border-white px-8 py-3.5 rounded-sm transition-all duration-300 hover:bg-white/5 cursor-pointer"

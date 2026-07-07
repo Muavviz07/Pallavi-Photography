@@ -141,7 +141,7 @@ export default function MediaManagementPage() {
     }
   };
 
-  const handleCroppedUpload = async (blob: Blob, cropTitle: string, cropAltText: string) => {
+  const handleCroppedUpload = async (blob: Blob, cropTitle: string, cropAltText: string, aspect?: string) => {
     if (!token) return;
     setUploading(true);
     setError("");
@@ -149,7 +149,19 @@ export default function MediaManagementPage() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const formData = new FormData();
-      formData.append("file", blob, selectedFile?.name || "cropped.jpg");
+      
+      let croppedName = selectedFile?.name || "cropped.jpg";
+      if (selectedFile?.name && aspect && aspect !== "free") {
+        const dotIndex = selectedFile.name.lastIndexOf(".");
+        if (dotIndex !== -1) {
+          const name = selectedFile.name.substring(0, dotIndex);
+          const ext = selectedFile.name.substring(dotIndex);
+          croppedName = `${name}-${aspect}${ext}`;
+        } else {
+          croppedName = `${selectedFile.name}-${aspect}`;
+        }
+      }
+      formData.append("file", blob, croppedName);
       if (cropTitle) formData.append("title", cropTitle);
       if (description) formData.append("description", description);
       if (cropAltText) formData.append("alt_text", cropAltText);

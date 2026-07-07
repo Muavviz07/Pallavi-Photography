@@ -370,7 +370,7 @@ export default function AdminGalleries() {
     }
   };
 
-  const handleConfirmCropExistingImage = async (blob: Blob, title: string, altText: string) => {
+  const handleConfirmCropExistingImage = async (blob: Blob, title: string, altText: string, aspect?: string) => {
     if (!selectedGalleryForPhotos || !token || !croppingExistingImage) return;
     setAddingFromLibrary(true);
     setUploadStatusText("Cropping image in-place...");
@@ -379,7 +379,15 @@ export default function AdminGalleries() {
 
       // 1. Upload cropped file as a new image in the gallery
       const dataPayload = new FormData();
-      dataPayload.append("file", blob, `${croppingExistingImage.id}_cropped.jpg`);
+      const origUrl = croppingExistingImage.optimized_url || croppingExistingImage.original_url || "";
+      const origFilename = origUrl.substring(origUrl.lastIndexOf("/") + 1);
+      const dotIndex = origFilename.lastIndexOf(".");
+      const baseName = dotIndex !== -1 ? origFilename.substring(0, dotIndex) : `${croppingExistingImage.id}_cropped`;
+      const ext = dotIndex !== -1 ? origFilename.substring(dotIndex) : ".jpg";
+      const aspectSuffix = aspect && aspect !== "free" ? `-${aspect}` : "-cropped";
+      const croppedName = `${baseName}${aspectSuffix}${ext}`;
+
+      dataPayload.append("file", blob, croppedName);
       dataPayload.append("title", title || croppingExistingImage.title || "Cropped Frame");
       dataPayload.append("alt_text", altText || croppingExistingImage.alt_text || "Cropped proof image");
 
@@ -455,14 +463,24 @@ export default function AdminGalleries() {
     }
   };
 
-  const handleLibraryCropConfirm = async (blob: Blob, title: string, altText: string) => {
+  const handleLibraryCropConfirm = async (blob: Blob, title: string, altText: string, aspect?: string) => {
     if (!selectedGalleryForPhotos || !token || !libraryMedia) return;
     setAddingFromLibrary(true);
     setUploadStatusText("Uploading cropped image...");
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const formDataPayload = new FormData();
-      formDataPayload.append("file", blob, `${libraryMedia.id}_cropped.jpg`);
+      
+      const baseName = libraryMedia.filename
+        ? libraryMedia.filename.substring(0, libraryMedia.filename.lastIndexOf("."))
+        : `${libraryMedia.id}_cropped`;
+      const ext = libraryMedia.filename
+        ? libraryMedia.filename.substring(libraryMedia.filename.lastIndexOf("."))
+        : ".jpg";
+      const aspectSuffix = aspect && aspect !== "free" ? `-${aspect}` : "-cropped";
+      const croppedName = `${baseName}${aspectSuffix}${ext}`;
+
+      formDataPayload.append("file", blob, croppedName);
       formDataPayload.append("title", title);
       formDataPayload.append("alt_text", altText);
 

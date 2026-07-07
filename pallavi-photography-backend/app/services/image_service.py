@@ -157,6 +157,7 @@ class ImageService:
             description=description,
             gallery_id=None,
             file_size=len(file_data),
+            dimensions={"aspect": aspect} if aspect else None,
         )
         db.add(db_image)
         db.flush()

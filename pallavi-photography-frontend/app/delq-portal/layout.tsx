@@ -28,6 +28,18 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
 
+  const getNavLinkClass = (href: string) => {
+    const isActive = href === "/delq-portal" 
+      ? pathname === "/delq-portal" 
+      : pathname.startsWith(href);
+      
+    const baseClass = "px-4 py-2.5 rounded-xs transition-all duration-200 block border-l-2";
+    if (isActive) {
+      return `${baseClass} border-[#C4A484] bg-white/5 text-white font-semibold`;
+    }
+    return `${baseClass} border-transparent text-stone-300 hover:bg-white/5 hover:text-white`;
+  };
+
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FCFAF7]">
@@ -124,7 +136,7 @@ export default function AdminLayout({
           <nav className="flex flex-col space-y-1.5 text-[10px] uppercase tracking-[0.2em] font-medium text-stone-300">
             <Link
               href="/delq-portal"
-              className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+              className={getNavLinkClass("/delq-portal")}
             >
               Overview
             </Link>
@@ -133,7 +145,7 @@ export default function AdminLayout({
             {isSuperAdmin && (
               <Link
                 href="/delq-portal/super-admin"
-                className="px-4 py-2.5 rounded-sm text-[#C4A484] border border-[#C4A484]/35 bg-[#C4A484]/5 font-semibold transition-all hover:bg-[#C4A484]/15"
+                className={getNavLinkClass("/delq-portal/super-admin")}
               >
                 Super Admin Panel
               </Link>
@@ -143,7 +155,7 @@ export default function AdminLayout({
             {(isSuperAdmin || (isAdmin && settings.galleries)) && (
               <Link
                 href="/delq-portal/portfolio"
-                className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+                className={getNavLinkClass("/delq-portal/portfolio")}
               >
                 Portfolio Gallery
               </Link>
@@ -152,7 +164,7 @@ export default function AdminLayout({
             {(isSuperAdmin || (isAdmin && settings.galleries)) && (
               <Link
                 href="/delq-portal/media"
-                className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+                className={getNavLinkClass("/delq-portal/media")}
               >
                 Media Library
               </Link>
@@ -162,7 +174,7 @@ export default function AdminLayout({
             {(isSuperAdmin || (isAdmin && settings.galleries) || userRole === "client") && (
               <Link
                 href="/delq-portal/galleries"
-                className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+                className={getNavLinkClass("/delq-portal/galleries")}
               >
                 Client Galleries
               </Link>
@@ -174,7 +186,7 @@ export default function AdminLayout({
                 {(isSuperAdmin || settings.bookings) && (
                   <Link
                     href="/delq-portal/bookings"
-                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+                    className={getNavLinkClass("/delq-portal/bookings")}
                   >
                     Booking Requests
                   </Link>
@@ -184,7 +196,7 @@ export default function AdminLayout({
                 {(isSuperAdmin || settings.pricing) && (
                   <Link
                     href="/delq-portal/pricing"
-                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+                    className={getNavLinkClass("/delq-portal/pricing")}
                   >
                     Manage Pricing
                   </Link>
@@ -194,7 +206,7 @@ export default function AdminLayout({
                 {(isSuperAdmin || settings.faqs) && (
                   <Link
                     href="/delq-portal/faqs"
-                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+                    className={getNavLinkClass("/delq-portal/faqs")}
                   >
                     Manage FAQs
                   </Link>
@@ -204,7 +216,7 @@ export default function AdminLayout({
                 {(isSuperAdmin || settings.contact) && (
                   <Link
                     href="/delq-portal/contact"
-                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+                    className={getNavLinkClass("/delq-portal/contact")}
                   >
                     Manage Contact
                   </Link>
@@ -214,7 +226,7 @@ export default function AdminLayout({
                 {(isSuperAdmin || settings.blogs) && (
                   <Link
                     href="/delq-portal/blogs"
-                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+                    className={getNavLinkClass("/delq-portal/blogs")}
                   >
                     Blog Journal
                   </Link>
@@ -224,7 +236,7 @@ export default function AdminLayout({
                 {(isSuperAdmin || settings.enquiries) && (
                   <Link
                     href="/delq-portal/enquiries"
-                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+                    className={getNavLinkClass("/delq-portal/enquiries")}
                   >
                     Enquiries Log
                   </Link>
@@ -234,7 +246,7 @@ export default function AdminLayout({
                 {(isSuperAdmin || settings.users) && (
                   <Link
                     href="/delq-portal/users"
-                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+                    className={getNavLinkClass("/delq-portal/users")}
                   >
                     Users & Roles
                   </Link>
@@ -244,7 +256,7 @@ export default function AdminLayout({
                 {(isSuperAdmin || settings.analytics) && (
                   <Link
                     href="/delq-portal/analytics"
-                    className="px-4 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-all duration-200"
+                    className={getNavLinkClass("/delq-portal/analytics")}
                   >
                     Analytics
                   </Link>

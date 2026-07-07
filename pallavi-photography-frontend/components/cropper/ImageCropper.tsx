@@ -9,7 +9,7 @@ interface ImageCropperProps {
   open: boolean;
   imageSrc: string;
   onCancel: () => void;
-  onConfirm: (croppedBlob: Blob, title: string, altText: string) => Promise<void>;
+  onConfirm: (croppedBlob: Blob, title: string, altText: string, aspect?: string) => Promise<void>;
   /** Called instead of onConfirm when the user has not actually cropped or rotated the image.
    *  Use this to link the original media directly rather than creating a duplicate. */
   onUseOriginal?: () => void;
@@ -103,7 +103,19 @@ export default function ImageCropper({
   showMetadata = true,
   confirmLabel = "Crop & Save",
 }: ImageCropperProps) {
+  const ASPECT_PRESETS = [
+    { key: "free", label: "Free-form", value: undefined },
+    { key: "square", label: "Square (1:1)", value: 1 },
+    { key: "portrait", label: "Standard Portrait (3:4)", value: 3/4 },
+    { key: "landscape", label: "Standard Landscape (3:2)", value: 3/2 },
+    { key: "large_square", label: "Large Square (1:1)", value: 1 },
+    { key: "large_portrait", label: "Larger Portrait (3:5)", value: 3/5 },
+    { key: "wide_landscape", label: "Wide Landscape (16:9)", value: 16/9 },
+    { key: "panoramic", label: "Panoramic (21:9)", value: 21/9 },
+  ];
+
   const imgRef = useRef<HTMLImageElement>(null);
+  const [selectedAspect, setSelectedAspect] = useState<string>("free");
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [rotation, setRotation] = useState(0);
@@ -111,6 +123,9 @@ export default function ImageCropper({
   const [error, setError] = useState("");
   const [title, setTitle] = useState(defaultTitle);
   const [altText, setAltText] = useState(defaultAltText);
+
+  const activePreset = ASPECT_PRESETS.find((p) => p.key === selectedAspect) || ASPECT_PRESETS[1];
+  const aspectValue = activePreset.value;
 
   // Reset everything when imageSrc changes
   useEffect(() => {
@@ -120,18 +135,33 @@ export default function ImageCropper({
     setError("");
     setTitle(defaultTitle);
     setAltText(defaultAltText);
+    setSelectedAspect("free");
   }, [imageSrc, defaultTitle, defaultAltText]);
 
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
-    // Start with 100% crop covering full image
+    const initialAspect = ASPECT_PRESETS.find((p) => p.key === selectedAspect)?.value;
     const fullCrop = centerCrop(
-      makeAspectCrop({ unit: "%", width: 100 }, width / height, width, height),
+      makeAspectCrop({ unit: "%", width: 90 }, initialAspect || width / height, width, height),
       width,
       height
     );
     setCrop(fullCrop);
-  }, []);
+  }, [selectedAspect]);
+
+  // Adjust crop bounds when aspect ratio selection changes
+  useEffect(() => {
+    if (imgRef.current) {
+      const { width, height } = imgRef.current;
+      const aspect = ASPECT_PRESETS.find((p) => p.key === selectedAspect)?.value;
+      const newCrop = centerCrop(
+        makeAspectCrop({ unit: "%", width: 90 }, aspect || width / height, width, height),
+        width,
+        height
+      );
+      setCrop(newCrop);
+    }
+  }, [selectedAspect]);
 
   /** Returns true when the current crop+rotation has NOT actually modified the image. */
   const isUnchanged = (): boolean => {
@@ -164,7 +194,7 @@ export default function ImageCropper({
     setError("");
     try {
       const blob = await getCroppedBlob(imgRef.current, px, rotation);
-      await onConfirm(blob, title, altText);
+      await onConfirm(blob, title, altText, selectedAspect);
     } catch (err: any) {
       setError(err.message || "Crop failed");
       console.error("Crop failed", err);
@@ -209,6 +239,7 @@ export default function ImageCropper({
             crop={crop}
             onChange={(c) => setCrop(c)}
             onComplete={(c) => setCompletedCrop(c)}
+            aspect={aspectValue}
             ruleOfThirds
             style={{ maxWidth: "100%", maxHeight: "100%" }}
           >
@@ -232,41 +263,58 @@ export default function ImageCropper({
 
         {/* Controls */}
         <div className="px-5 py-3 border-t border-[#DCD0C0]/20 space-y-4 shrink-0">
-          {/* Rotation row */}
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold w-14">Rotate</span>
-            <button
-              onClick={() => setRotation((r) => (r - 90 + 360) % 360)}
-              className="flex items-center gap-1.5 text-[10px] text-stone-500 hover:text-[#2C2623] border border-[#DCD0C0]/40 rounded-sm px-2 py-1 cursor-pointer transition-colors"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>−90°</span>
-            </button>
-            <button
-              onClick={() => setRotation((r) => (r + 90) % 360)}
-              className="flex items-center gap-1.5 text-[10px] text-stone-500 hover:text-[#2C2623] border border-[#DCD0C0]/40 rounded-sm px-2 py-1 cursor-pointer transition-colors"
-            >
-              <span>+90°</span>
-            </button>
-            <span className="text-[10px] text-stone-400 font-mono">{rotation}°</span>
-            <div className="h-4 w-px bg-stone-200 mx-1" />
+          {/* Rotation and Aspect row */}
+          <div className="flex flex-wrap items-center gap-y-3 gap-x-6">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold w-12">Rotate</span>
+              <button
+                onClick={() => setRotation((r) => (r - 90 + 360) % 360)}
+                className="flex items-center gap-1.5 text-[10px] text-stone-500 hover:text-[#2C2623] border border-[#DCD0C0]/40 rounded-sm px-2 py-1 cursor-pointer transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>−90°</span>
+              </button>
+              <button
+                onClick={() => setRotation((r) => (r + 90) % 360)}
+                className="flex items-center gap-1.5 text-[10px] text-stone-500 hover:text-[#2C2623] border border-[#DCD0C0]/40 rounded-sm px-2 py-1 cursor-pointer transition-colors"
+              >
+                <span>+90°</span>
+              </button>
+              <span className="text-[10px] text-stone-400 font-mono">{rotation}°</span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Aspect Layout</span>
+              <select
+                value={selectedAspect}
+                onChange={(e) => setSelectedAspect(e.target.value)}
+                className="bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-2.5 py-1 text-[10px] outline-hidden focus:border-[#C4A484] transition-colors font-medium text-[#6E635F]"
+              >
+                {ASPECT_PRESETS.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="h-4 w-px bg-stone-200 hidden sm:block" />
+
             <button
               onClick={() => {
                 setRotation(0);
-                setCrop(undefined);
-                setCompletedCrop(undefined);
-                // Re-trigger onImageLoad to reset to full
+                setSelectedAspect("square");
                 if (imgRef.current) {
                   const { width, height } = imgRef.current;
                   const fullCrop = centerCrop(
-                    makeAspectCrop({ unit: "%", width: 100 }, width / height, width, height),
+                    makeAspectCrop({ unit: "%", width: 90 }, 1, width, height),
                     width,
                     height
                   );
                   setCrop(fullCrop);
                 }
               }}
-              className="text-[10px] text-stone-400 hover:text-[#2C2623] cursor-pointer uppercase tracking-wider font-medium"
+              className="text-[10px] text-[#C4A484] hover:text-[#2C2623] cursor-pointer uppercase tracking-wider font-semibold"
             >
               Reset
             </button>
@@ -323,7 +371,7 @@ export default function ImageCropper({
               </button>
               <button
                 onClick={handleConfirm}
-                disabled={processing || !completedCrop || completedCrop.width === 0}
+                disabled={processing || (!onUseOriginal && (!completedCrop || completedCrop.width === 0))}
                 className="inline-flex items-center justify-center gap-2 bg-[#2C2623] hover:bg-[#352F2C] text-[#FCFAF7] px-5 py-2 text-xs rounded-sm font-semibold transition-all disabled:opacity-50 min-w-[140px] cursor-pointer"
               >
                 {processing ? (
