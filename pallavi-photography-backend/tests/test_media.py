@@ -7,7 +7,7 @@ from PIL import Image as PILImage
 
 from app.models.user import User, UserRole
 from app.models.image import Image
-from app.models.gallery import Gallery, GalleryStatus
+from app.models.gallery import PortfolioGallery
 from app.models.client_gallery import ClientGallery
 from app.models.client_gallery_image import ClientGalleryImage
 from tests.test_galleries import get_admin_token
@@ -130,7 +130,7 @@ def test_cannot_delete_media_in_use(mock_upload, client, db):
 
     gallery_resp = client.post(
         "/api/galleries",
-        json={"title": "Use Gallery", "slug": "use-gallery", "category": "family", "status": "published"},
+        json={"name": "Use Gallery", "slug": "use-gallery", "is_active": True},
         headers={"Authorization": f"Bearer {token}"},
     )
     gallery_id = gallery_resp.json()["id"]
@@ -161,10 +161,9 @@ def test_add_media_to_portfolio_gallery(mock_upload, client, db):
         headers={"Authorization": f"Bearer {token}"},
     )
     media_id = media_resp.json()["id"]
-
     gallery_resp = client.post(
         "/api/galleries",
-        json={"title": "Portfolio", "slug": "portfolio-lib", "category": "family", "status": "published"},
+        json={"name": "Portfolio", "slug": "portfolio-lib", "is_active": True},
         headers={"Authorization": f"Bearer {token}"},
     )
     gallery_id = gallery_resp.json()["id"]

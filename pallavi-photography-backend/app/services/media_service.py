@@ -3,7 +3,7 @@ from typing import Optional, List, Dict
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.models.image import Image
-from app.models.gallery import Gallery
+from app.models.gallery import PortfolioGallery
 from app.models.gallery_image import GalleryImage
 from app.models.client_gallery import ClientGallery
 from app.models.client_gallery_image import ClientGalleryImage
@@ -30,7 +30,7 @@ def compute_usage_count(db: Session, image_id: uuid.UUID) -> int:
 
     count = 0
 
-    count += db.query(GalleryImage).filter(GalleryImage.image_id == image_id).count()
+    count += db.query(GalleryImage).filter(GalleryImage.image_media_id == image_id).count()
 
     count += (
         db.query(ClientGalleryImage)
@@ -39,8 +39,8 @@ def compute_usage_count(db: Session, image_id: uuid.UUID) -> int:
     )
 
     # Count cover image references ONLY if the image is not already in the gallery images list
-    for g in db.query(Gallery).filter(Gallery.cover_image_id == image_id).all():
-        is_in_gallery = db.query(GalleryImage).filter(GalleryImage.gallery_id == g.id, GalleryImage.image_id == image_id).first() is not None
+    for g in db.query(PortfolioGallery).filter(PortfolioGallery.cover_media_id == image_id).all():
+        is_in_gallery = db.query(GalleryImage).filter(GalleryImage.gallery_id == g.id, GalleryImage.image_media_id == image_id).first() is not None
         if not is_in_gallery:
             count += 1
 
@@ -68,9 +68,9 @@ def bulk_compute_usage_counts(db: Session, images: List[Image]) -> Dict[uuid.UUI
 
     # 1. GalleryImage references
     gi_counts = (
-        db.query(GalleryImage.image_id, func.count(GalleryImage.gallery_id))
-        .filter(GalleryImage.image_id.in_(image_ids))
-        .group_by(GalleryImage.image_id)
+        db.query(GalleryImage.image_media_id, func.count(GalleryImage.gallery_id))
+        .filter(GalleryImage.image_media_id.in_(image_ids))
+        .group_by(GalleryImage.image_media_id)
         .all()
     )
     for img_id, count in gi_counts:
@@ -87,9 +87,9 @@ def bulk_compute_usage_counts(db: Session, images: List[Image]) -> Dict[uuid.UUI
         counts[img_id] += count
 
     # 3. Cover image references only if NOT in the gallery images
-    galleries_with_covers = db.query(Gallery.id, Gallery.cover_image_id).filter(Gallery.cover_image_id.in_(image_ids)).all()
+    galleries_with_covers = db.query(PortfolioGallery.id, PortfolioGallery.cover_media_id).filter(PortfolioGallery.cover_media_id.in_(image_ids)).all()
     for g_id, cover_id in galleries_with_covers:
-        is_in = db.query(GalleryImage).filter(GalleryImage.gallery_id == g_id, GalleryImage.image_id == cover_id).first() is not None
+        is_in = db.query(GalleryImage).filter(GalleryImage.gallery_id == g_id, GalleryImage.image_media_id == cover_id).first() is not None
         if not is_in:
             counts[cover_id] += 1
 

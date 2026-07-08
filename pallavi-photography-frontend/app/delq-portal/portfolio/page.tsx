@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
-import { Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, Image as ImageIcon, Library, Crop } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, Image as ImageIcon, Library, Crop, ArrowLeft } from "lucide-react";
 import MediaPicker from "@/components/media/MediaPicker";
 import ImageCropper from "@/components/cropper/ImageCropper";
 import { MediaItem } from "@/lib/media";
@@ -46,13 +46,28 @@ export default function PortfolioAdmin() {
   const { data: session } = useSession();
   const token = (session as any)?.accessToken;
 
-  const [activeCategory, setActiveCategory] = useState("newborn");
-  const [gallery, setGallery] = useState<GalleryResponse | null>(null);
+  // New Dynamic Galleries States
+  const [galleries, setGalleries] = useState<any[]>([]);
+  const [gallery, setGallery] = useState<any | null>(null); // Active gallery for managing images (null = galleries list view)
   const [images, setImages] = useState<ImageResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   
-  // Gallery Edit Settings state
+  // Gallery Edit/Create modal states
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [galleryFormMode, setGalleryFormMode] = useState<"create" | "edit">("create");
+  const [galleryForm, setGalleryForm] = useState({
+    id: "",
+    name: "",
+    slug: "",
+    description: "",
+    is_active: true,
+    order_position: 0,
+    cover_media_id: ""
+  });
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
+
+  // Gallery Edit Settings state (inside image manager)
   const [editingGallery, setEditingGallery] = useState(false);
   const [galleryTitle, setGalleryTitle] = useState("");
   const [galleryDesc, setGalleryDesc] = useState("");
@@ -87,59 +102,112 @@ export default function PortfolioAdmin() {
   const [editImageSort, setEditImageSort] = useState(0);
   const [savingImage, setSavingImage] = useState(false);
 
-  const loadGalleryAndImages = async (categoryKey: string) => {
+  const loadAllGalleries = async () => {
     if (!token) return;
     setLoading(true);
-    setEditingGallery(false);
     try {
-      // Fetch galleries by category key (backend handles hyphen replacement)
-      const data = await fetchAPI(`/api/galleries?category=${categoryKey}`, { token });
-      if (data && data.length > 0) {
-        const gal = data[0];
-        setGallery(gal);
-        setGalleryTitle(gal.title || "");
-        setGalleryDesc(gal.description || "");
-        setGalleryStatus(gal.status);
-        
-        // Fetch images
-        const imgs = await fetchAPI(`/api/galleries/${gal.id}/images`, { token });
-        setImages(imgs);
-      } else {
-        // Automatically initialize standard gallery for this category
-        const initialTitle = `${categoryKey.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase())} Portfolio`;
-        const initialSlug = categoryKey.replace("_", "-");
-        
-        const newGal = await fetchAPI("/api/galleries", {
-          method: "POST",
-          token,
-          body: JSON.stringify({
-            title: initialTitle,
-            slug: initialSlug,
-            description: `Collection of high-resolution professional ${categoryKey.replace("_", " ")} photography.`,
-            category: categoryKey,
-            status: "published",
-            sort_order: 0
-          })
-        });
-        
-        setGallery(newGal);
-        setGalleryTitle(newGal.title);
-        setGalleryDesc(newGal.description || "");
-        setGalleryStatus(newGal.status);
-        setImages([]);
-      }
+      const data = await fetchAPI("/api/galleries", { token });
+      setGalleries(data || []);
     } catch (err) {
-      console.error("Failed to load portfolio gallery", err);
+      console.error("Failed to load galleries list", err);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadGalleryImages = async (galId: string) => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const imgs = await fetchAPI(`/api/galleries/${galId}/images`, { token });
+      setImages(imgs || []);
+    } catch (err) {
+      console.error("Failed to load gallery images", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshCurrentView = async () => {
+    if (gallery) {
+      try {
+        const updated = await fetchAPI(`/api/galleries/${gallery.id}`, { token });
+        setGallery(updated);
+        setGalleryTitle(updated.name || "");
+        setGalleryDesc(updated.description || "");
+        setGalleryStatus(updated.is_active ? "published" : "draft");
+      } catch (e) {
+        // Ignored fallback
+      }
+      await loadGalleryImages(gallery.id);
+    } else {
+      await loadAllGalleries();
+    }
+  };
+
+  // On page load or token availability
   useEffect(() => {
     if (token) {
-      loadGalleryAndImages(activeCategory);
+      loadAllGalleries();
     }
-  }, [activeCategory, token]);
+  }, [token]);
+
+  const handleCreateOrUpdateGallery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    setSavingGallery(true);
+    try {
+      const body = {
+        name: galleryForm.name,
+        slug: galleryForm.slug,
+        description: galleryForm.description,
+        is_active: galleryForm.is_active,
+        order_position: Number(galleryForm.order_position) || 0,
+        cover_media_id: galleryForm.cover_media_id || null,
+      };
+
+      if (galleryFormMode === "create") {
+        await fetchAPI("/api/galleries", {
+          method: "POST",
+          token,
+          body: JSON.stringify(body),
+        });
+      } else {
+        await fetchAPI(`/api/galleries/${galleryForm.id}`, {
+          method: "PUT",
+          token,
+          body: JSON.stringify(body),
+        });
+      }
+      setShowGalleryModal(false);
+      await loadAllGalleries();
+    } catch (err: any) {
+      console.error("Failed to save gallery changes", err);
+      alert(err.message || "Failed to save gallery.");
+    } finally {
+      setSavingGallery(false);
+    }
+  };
+
+  const handleDeleteGallery = async (galId: string) => {
+    if (!confirm("Are you sure you want to delete this portfolio gallery? All image associations in this gallery will be permanently deleted.")) return;
+    setUpdatingId(galId);
+    try {
+      await fetchAPI(`/api/galleries/${galId}`, {
+        method: "DELETE",
+        token,
+      });
+      if (gallery && gallery.id === galId) {
+        setGallery(null);
+      }
+      await loadAllGalleries();
+    } catch (err: any) {
+      console.error("Failed to delete gallery", err);
+      alert(err.message || "Failed to delete gallery.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const handleSaveGallerySettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,21 +218,26 @@ export default function PortfolioAdmin() {
         method: "PUT",
         token,
         body: JSON.stringify({
-          title: galleryTitle,
+          name: galleryTitle,
           description: galleryDesc,
           slug: gallery.slug,
-          category: gallery.category,
-          status: galleryStatus
+          is_active: galleryStatus === "published"
         })
       });
       setGallery(updated);
       setEditingGallery(false);
+      await loadAllGalleries();
     } catch (err) {
       console.error("Failed to update gallery settings", err);
       alert("Failed to save gallery changes.");
     } finally {
       setSavingGallery(false);
     }
+  };
+
+  const handleSelectCoverImage = (media: MediaItem) => {
+    setGalleryForm(prev => ({ ...prev, cover_media_id: media.id }));
+    setShowCoverPicker(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,7 +298,7 @@ export default function PortfolioAdmin() {
       setSelectedFile(null);
       setImageSrc("");
       
-      loadGalleryAndImages(activeCategory);
+      refreshCurrentView();
     } catch (err: any) {
       throw new Error(err.message || "Failed to upload image.");
     } finally {
@@ -283,7 +356,7 @@ export default function PortfolioAdmin() {
       setShowCropper(false);
       setImageSrc("");
       setCroppingExistingImage(null);
-      loadGalleryAndImages(activeCategory);
+      refreshCurrentView();
     } catch (err: any) {
       alert(err.message || "Failed to crop existing image.");
     } finally {
@@ -336,7 +409,7 @@ export default function PortfolioAdmin() {
       }
 
       setShowEditImageModal(false);
-      loadGalleryAndImages(activeCategory);
+      refreshCurrentView();
     } catch (err: any) {
       alert(err.message || "Failed to update image.");
     } finally {
@@ -378,7 +451,7 @@ export default function PortfolioAdmin() {
           console.error(`Failed to link image ${media.id}`);
         }
       }
-      loadGalleryAndImages(activeCategory);
+      refreshCurrentView();
     } catch (err: any) {
       alert(err.message || "Failed to add images in bulk.");
     } finally {
@@ -419,7 +492,7 @@ export default function PortfolioAdmin() {
       setShowLibraryCropper(false);
       setLibraryMedia(null);
       setLibraryCropperSrc("");
-      loadGalleryAndImages(activeCategory);
+      refreshCurrentView();
     } catch (err: any) {
       throw new Error(err.message || "Failed to add image from library.");
     } finally {
@@ -448,7 +521,7 @@ export default function PortfolioAdmin() {
       setShowLibraryCropper(false);
       setLibraryMedia(null);
       setLibraryCropperSrc("");
-      loadGalleryAndImages(activeCategory);
+      refreshCurrentView();
     } catch (err: any) {
       alert(err.message || "Failed to add image from library.");
     } finally {
@@ -464,7 +537,7 @@ export default function PortfolioAdmin() {
         method: "DELETE",
         token
       });
-      loadGalleryAndImages(activeCategory);
+      refreshCurrentView();
     } catch (err) {
       console.error("Failed to delete image", err);
     } finally {
@@ -472,229 +545,155 @@ export default function PortfolioAdmin() {
     }
   };
 
+  const openCreateGallery = () => {
+    setGalleryForm({
+      id: "",
+      name: "",
+      slug: "",
+      description: "",
+      is_active: true,
+      order_position: galleries.length,
+      cover_media_id: ""
+    });
+    setGalleryFormMode("create");
+    setShowGalleryModal(true);
+  };
+
+  const openEditGallery = (g: any) => {
+    setGalleryForm({
+      id: g.id,
+      name: g.name,
+      slug: g.slug,
+      description: g.description || "",
+      is_active: g.is_active,
+      order_position: g.order_position || 0,
+      cover_media_id: g.cover_media_id || ""
+    });
+    setGalleryFormMode("edit");
+    setShowGalleryModal(true);
+  };
+
+  const selectActiveGalleryForImages = async (g: any) => {
+    setGallery(g);
+    setGalleryTitle(g.name || "");
+    setGalleryDesc(g.description || "");
+    setGalleryStatus(g.is_active ? "published" : "draft");
+    await loadGalleryImages(g.id);
+  };
+
   return (
     <div className="space-y-10">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#DCD0C0]/25 pb-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-light font-serif text-[#2C2623]">
-            Portfolio Galleries
-          </h1>
-          <p className="text-xs text-[#6E635F] font-light">
-            Manage public portfolio works for each photography category. Apply cropping layouts for visual consistency.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              setPickerMultiSelect(false);
-              setShowMediaPicker(true);
-            }}
-            disabled={!gallery || addingFromLibrary}
-            className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#2C2623] border border-[#2C2623] hover:bg-[#2C2623] hover:text-white px-4 py-2.5 rounded-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
-          >
-            <Library className="w-4 h-4" />
-            <span>From Library</span>
-          </button>
-          <button
-            onClick={() => {
-              setPickerMultiSelect(true);
-              setShowMediaPicker(true);
-            }}
-            disabled={!gallery || addingFromLibrary}
-            className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#2C2623] border border-[#2C2623] hover:bg-[#2C2623] hover:text-white px-4 py-2.5 rounded-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
-          >
-            <Library className="w-4 h-4" />
-            <span>Bulk Add</span>
-          </button>
-          <button
-            onClick={() => {
-              setSelectedFile(null);
-              setImageSrc("");
-              setShowUploadModal(true);
-            }}
-            disabled={!gallery}
-            className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#FCFAF7] bg-[#2C2623] hover:bg-[#352F2C] px-4 py-2.5 rounded-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Upload Image</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-[#DCD0C0]/20 gap-2 text-xs tracking-wider font-light text-stone-500 uppercase overflow-x-auto pb-px">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat.key}
-            onClick={() => setActiveCategory(cat.key)}
-            className={`px-4 py-3 border-b-2 transition-all font-medium whitespace-nowrap cursor-pointer ${
-              activeCategory === cat.key
-                ? "border-[#C4A484] text-[#2C2623] font-semibold"
-                : "border-transparent hover:text-[#2C2623]"
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-24 space-y-4">
-          <Loader2 className="w-8 h-8 text-[#C4A484] animate-spin" />
-          <p className="text-xs text-[#6E635F] font-light">Loading category data...</p>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {/* Gallery Info Panel */}
-          {gallery && (
-            <div className="bg-[#FAF8F5] border border-[#DCD0C0]/25 rounded-md p-6 space-y-4 shadow-xs">
-              <div className="flex items-center justify-between border-b border-[#DCD0C0]/15 pb-3">
-                <span className="text-[10px] uppercase font-mono tracking-widest text-[#C4A484]">
-                  Active Configuration
-                </span>
-                <button
-                  onClick={() => setEditingGallery(!editingGallery)}
-                  className="text-xs text-[#C4A484] hover:text-[#2C2623] font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                  <span>{editingGallery ? "Cancel" : "Edit Metadata"}</span>
-                </button>
-              </div>
-
-              {editingGallery ? (
-                <form onSubmit={handleSaveGallerySettings} className="space-y-4 text-xs max-w-xl">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] uppercase tracking-wider text-stone-500 block font-medium">Gallery Title</label>
-                      <input
-                        type="text"
-                        required
-                        value={galleryTitle}
-                        onChange={(e) => setGalleryTitle(e.target.value)}
-                        className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2 text-xs outline-hidden"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] uppercase tracking-wider text-stone-500 block font-medium">Publication Status</label>
-                      <select
-                        value={galleryStatus}
-                        onChange={(e) => setGalleryStatus(e.target.value)}
-                        className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2 text-xs outline-hidden"
-                      >
-                        <option value="published">Published (Public)</option>
-                        <option value="draft">Draft (Hidden)</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase tracking-wider text-stone-500 block font-medium">Description</label>
-                    <textarea
-                      value={galleryDesc}
-                      onChange={(e) => setGalleryDesc(e.target.value)}
-                      rows={2}
-                      className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2 text-xs outline-hidden resize-none font-light"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={savingGallery}
-                    className="inline-flex items-center justify-center bg-[#2C2623] hover:bg-[#352F2C] text-white text-[10px] uppercase tracking-widest px-4 py-2 rounded-sm font-semibold transition-all disabled:opacity-50"
-                  >
-                    {savingGallery && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
-                    Save Changes
-                  </button>
-                </form>
-              ) : (
-                <div className="space-y-2">
-                  <h3 className="text-lg font-serif font-light text-[#2C2623]">{gallery.title}</h3>
-                  <p className="text-stone-500 font-light text-xs max-w-3xl leading-relaxed">{gallery.description || "No description set."}</p>
-                  <div className="pt-2 flex items-center gap-4 text-[10px] text-stone-400 font-medium">
-                    <span>Slug: <strong className="font-mono">/our-gallery/{gallery.slug}</strong></span>
-                    <span>•</span>
-                    <span>Status: <strong className="uppercase text-[#C4A484]">{gallery.status}</strong></span>
-                  </div>
-                </div>
-              )}
+      {/* 1. VIEW MODE: Galleries List Dashboard */}
+      {!gallery ? (
+        <div className="space-y-8 animate-fade-in">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-[#DCD0C0]/25 pb-6">
+            <div className="space-y-1.5">
+              <h1 className="text-2xl font-light font-serif text-[#2C2623] tracking-wide">
+                Portfolio Galleries
+              </h1>
+              <p className="text-xs text-[#6E635F] font-light leading-relaxed">
+                Configure public showcase galleries, order sequences, cover imagery, and publish status.
+              </p>
             </div>
-          )}
+            <button
+              onClick={openCreateGallery}
+              className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#FCFAF7] bg-[#2C2623] hover:bg-[#352F2C] px-5 py-3 rounded-xs font-semibold transition-all duration-300 shadow-xs cursor-pointer hover:shadow-md hover:-translate-y-0.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Gallery</span>
+            </button>
+          </div>
 
-          {/* Images List */}
-          {images.length === 0 ? (
+          {/* Galleries Table Grid */}
+          {galleries.length === 0 ? (
             <div className="text-center py-24 border border-dashed border-[#DCD0C0]/35 rounded-md bg-white">
-              <ImageIcon className="w-8 h-8 text-stone-300 mx-auto mb-2" />
-              <p className="text-xs text-[#6E635F] font-light">No images uploaded to this portfolio yet.</p>
+              <ImageIcon className="w-8 h-8 text-stone-300 mx-auto mb-3" />
+              <p className="text-xs text-[#6E635F] font-light">No portfolio galleries configured yet.</p>
+              <button
+                onClick={openCreateGallery}
+                className="mt-4 text-xs font-semibold text-[#C4A484] hover:underline uppercase tracking-wider cursor-pointer"
+              >
+                Create your first gallery
+              </button>
             </div>
           ) : (
-            <div className="bg-white border border-[#DCD0C0]/25 rounded-md overflow-hidden shadow-xs">
+            <div className="bg-white border border-[#DCD0C0]/25 rounded-sm overflow-hidden shadow-2xs">
               <table className="w-full text-left text-xs font-light text-[#6E635F] border-collapse">
                 <thead>
-                  <tr className="bg-[#FAF8F5] border-b border-[#DCD0C0]/20 text-[#2C2623] font-semibold uppercase tracking-wider text-[9px]">
-                    <th className="p-4">Frame Preview</th>
-                    <th className="p-4">Title & Alt Text</th>
-                    <th className="p-4">Layout Aspect</th>
-                    <th className="p-4 text-center">Order</th>
-                    <th className="p-4 text-right">Actions</th>
+                  <tr className="bg-stone-50/60 border-b border-[#DCD0C0]/20 text-[#2C2623] font-semibold uppercase tracking-widest text-[9px]">
+                    <th className="py-4 px-6 w-24">Cover</th>
+                    <th className="py-4 px-6 w-56">Name & Slug</th>
+                    <th className="py-4 px-6">Description</th>
+                    <th className="py-4 px-6 text-center w-24">Images</th>
+                    <th className="py-4 px-6 text-center w-28">Status</th>
+                    <th className="py-4 px-6 text-center w-20">Order</th>
+                    <th className="py-4 px-6 text-right w-44">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {images.map((img) => {
-                    const aspect = img.dimensions?.aspect || "square";
-                    const isDeleting = updatingId === img.id;
+                  {galleries.map((g) => {
+                    const fallbackCover = "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200";
+                    const isDeleting = updatingId === g.id;
                     return (
-                      <tr key={img.id} className="border-b border-[#DCD0C0]/15 hover:bg-[#FAF8F5]/30 transition-colors">
-                        <td className="p-4 w-28">
-                          <div className="w-16 h-16 rounded-sm overflow-hidden bg-stone-100 border border-stone-200/50 flex items-center justify-center">
+                      <tr key={g.id} className="border-b border-[#DCD0C0]/15 hover:bg-[#FAF8F5]/30 transition-all duration-200">
+                        <td className="py-4 px-6">
+                          <div className="w-12 h-12 rounded-xs overflow-hidden bg-stone-100 border border-stone-200/50 flex items-center justify-center shadow-3xs group cursor-pointer">
                             <img
-                              src={img.optimized_url || img.original_url}
-                              alt={img.alt_text || ""}
-                              className="w-full h-full object-cover"
+                              src={g.cover_url || fallbackCover}
+                              alt={g.name}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
                             />
                           </div>
                         </td>
-                        <td className="p-4 space-y-1">
-                          <p className="font-semibold text-[#2C2623]">{img.title || "Untitled"}</p>
-                          <p className="text-[10px] text-stone-400 italic max-w-sm overflow-hidden text-ellipsis whitespace-nowrap">{img.alt_text || "No description set"}</p>
+                        <td className="py-4 px-6 space-y-1">
+                          <p className="font-semibold text-[#2C2623] text-sm">{g.name}</p>
+                          <p className="text-[9px] font-mono text-stone-400">/portfolio/{g.slug}</p>
                         </td>
-                        <td className="p-4">
-                          <span className="inline-block px-2.5 py-0.5 rounded-sm text-[9px] font-semibold uppercase tracking-wider bg-stone-50 border border-stone-200/50 text-[#6E635F]">
-                            {aspect === "square" ? "Square (1:1)" :
-                             aspect === "portrait" ? "Portrait (3:4)" :
-                             aspect === "landscape" ? "Landscape (3:2)" :
-                             aspect === "large_square" ? "Large Sq (1:1)" :
-                             aspect === "large_portrait" ? "Larger Port (3:5)" :
-                             aspect === "wide_landscape" ? "Wide Land (16:9)" :
-                             aspect === "panoramic" ? "Panoramic (21:9)" : aspect}
+                        <td className="py-4 px-6 max-w-xs truncate text-[11px] leading-relaxed text-[#6E635F]" title={g.description}>
+                          {g.description || <span className="text-stone-300 italic font-light">No description configured</span>}
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className="inline-flex w-7 h-7 rounded-full bg-stone-50 text-stone-600 font-mono text-[10px] items-center justify-center border border-stone-200/40 font-medium">
+                            {g.image_count ?? 0}
                           </span>
                         </td>
-                        <td className="p-4 text-center font-mono text-[10px]">{img.sort_order}</td>
-                        <td className="p-4 text-right space-x-2">
+                        <td className="py-4 px-6 text-center">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-xs text-[9px] font-semibold uppercase tracking-wider ${
+                            g.is_active
+                              ? "bg-[#FAF8F5] text-[#C4A484] border border-[#C4A484]/30"
+                              : "bg-stone-50 text-stone-400 border border-stone-200/50"
+                          }`}>
+                            {g.is_active ? "Active" : "Draft"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center font-mono text-[11px] text-[#2C2623]">{g.order_position ?? 0}</td>
+                        <td className="py-4 px-6 text-right">
                           {isDeleting ? (
                             <Loader2 className="w-4 h-4 animate-spin text-stone-400 ml-auto" />
                           ) : (
-                            <>
+                            <div className="inline-flex space-x-2.5 items-center justify-end">
                               <button
-                                onClick={() => handleOpenEditImage(img)}
-                                className="p-1 text-stone-400 hover:text-[#2C2623] transition-colors cursor-pointer"
-                                title="Edit Metadata"
+                                onClick={() => selectActiveGalleryForImages(g)}
+                                className="px-3 py-1.5 text-[9px] font-semibold uppercase tracking-widest bg-[#2C2623] text-white hover:bg-[#352F2C] rounded-sm transition-all shadow-xs cursor-pointer"
                               >
-                                <Edit2 className="w-4 h-4" />
+                                Images
                               </button>
                               <button
-                                onClick={() => handleCropExistingImage(img)}
-                                className="p-1 text-stone-450 hover:text-[#2C2623] transition-colors cursor-pointer"
-                                title="Crop / Edit Image"
+                                onClick={() => openEditGallery(g)}
+                                className="p-1.5 border border-stone-100 rounded-sm text-stone-400 hover:text-[#2C2623] hover:bg-stone-50 transition-all cursor-pointer"
+                                title="Edit Settings"
                               >
-                                <Crop className="w-4 h-4" />
+                                <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               <button
-                                onClick={() => handleDeleteImage(img.id)}
-                                className="p-1 text-stone-400 hover:text-red-600 transition-colors cursor-pointer"
-                                title="Delete Image"
+                                onClick={() => handleDeleteGallery(g.id)}
+                                className="p-1.5 border border-stone-100 rounded-sm text-stone-400 hover:text-red-650 hover:bg-red-50/20 transition-all cursor-pointer"
+                                title="Delete Gallery"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
-                            </>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -704,6 +703,360 @@ export default function PortfolioAdmin() {
               </table>
             </div>
           )}
+        </div>
+      ) : (
+        /* 2. VIEW MODE: Gallery Images Management */
+        <div className="space-y-8 animate-fade-in">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-[#DCD0C0]/25 pb-6">
+            <div className="space-y-1.5">
+              <button
+                onClick={() => setGallery(null)}
+                className="text-xs text-[#C4A484] hover:text-[#2C2623] font-semibold transition-all flex items-center gap-1 cursor-pointer mb-2 group"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+                <span>Back to Galleries List</span>
+              </button>
+              <h1 className="text-2xl font-light font-serif text-[#2C2623] tracking-wide">
+                {gallery.name}
+              </h1>
+              <p className="text-xs text-[#6E635F] font-light leading-relaxed">
+                Add, crop, organize, and sort images displayed in the public {gallery.name} portfolio.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setPickerMultiSelect(false);
+                  setShowMediaPicker(true);
+                }}
+                disabled={addingFromLibrary}
+                className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#2C2623] border border-[#2C2623] hover:bg-[#2C2623] hover:text-white px-4 py-2.5 rounded-sm font-semibold transition-all duration-300 cursor-pointer disabled:opacity-50"
+              >
+                <Library className="w-4 h-4" />
+                <span>From Library</span>
+              </button>
+              <button
+                onClick={() => {
+                  setPickerMultiSelect(true);
+                  setShowMediaPicker(true);
+                }}
+                disabled={addingFromLibrary}
+                className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#2C2623] border border-[#2C2623] hover:bg-[#2C2623] hover:text-white px-4 py-2.5 rounded-sm font-semibold transition-all duration-300 cursor-pointer disabled:opacity-50"
+              >
+                <Library className="w-4 h-4" />
+                <span>Bulk Add</span>
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedFile(null);
+                  setImageSrc("");
+                  setShowUploadModal(true);
+                }}
+                className="inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#FCFAF7] bg-[#2C2623] hover:bg-[#352F2C] px-4 py-2.5 rounded-sm font-semibold transition-all duration-300 shadow-xs cursor-pointer hover:shadow-md hover:-translate-y-0.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Upload Image</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Gallery Info Summary */}
+          <div className="bg-[#FAF8F5] border border-[#DCD0C0]/25 rounded-md p-6 space-y-4 shadow-3xs">
+            <div className="flex items-center justify-between border-b border-[#DCD0C0]/15 pb-3">
+              <span className="text-[10px] uppercase font-mono tracking-widest text-[#C4A484] font-semibold">
+                Gallery Information
+              </span>
+              <button
+                onClick={() => setEditingGallery(!editingGallery)}
+                className="text-xs text-[#C4A484] hover:text-[#2C2623] font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                <span>{editingGallery ? "Cancel" : "Edit Metadata"}</span>
+              </button>
+            </div>
+
+            {editingGallery ? (
+              <form onSubmit={handleSaveGallerySettings} className="space-y-4 text-xs max-w-xl">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-wider text-stone-500 block font-medium">Gallery Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={galleryTitle}
+                      onChange={(e) => setGalleryTitle(e.target.value)}
+                      className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2 text-xs outline-hidden"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-wider text-stone-500 block font-medium">Publication Status</label>
+                    <select
+                      value={galleryStatus}
+                      onChange={(e) => setGalleryStatus(e.target.value)}
+                      className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2 text-xs outline-hidden"
+                    >
+                      <option value="published">Published (Public)</option>
+                      <option value="draft">Draft (Hidden)</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider text-stone-500 block font-medium">Description</label>
+                  <textarea
+                    value={galleryDesc}
+                    onChange={(e) => setGalleryDesc(e.target.value)}
+                    rows={2}
+                    className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2 text-xs outline-hidden resize-none font-light"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={savingGallery}
+                  className="inline-flex items-center justify-center bg-[#2C2623] hover:bg-[#352F2C] text-white text-[10px] uppercase tracking-widest px-4 py-2 rounded-sm font-semibold transition-all disabled:opacity-50"
+                >
+                  {savingGallery && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+                  Save Changes
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-stone-500 font-light text-xs max-w-3xl leading-relaxed">{gallery.description || "No description set."}</p>
+                <div className="pt-2 flex items-center gap-4 text-[10px] text-stone-400 font-medium">
+                  <span>Slug: <strong className="font-mono">/portfolio/{gallery.slug}</strong></span>
+                  <span>•</span>
+                  <span>Status: <strong className="uppercase text-[#C4A484]">{gallery.is_active ? "Active" : "Draft"}</strong></span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Images List */}
+          {images.length === 0 ? (
+            <div className="text-center py-24 border border-dashed border-[#DCD0C0]/35 rounded-md bg-white">
+              <ImageIcon className="w-8 h-8 text-stone-300 mx-auto mb-2" />
+              <p className="text-xs text-[#6E635F] font-light">No images uploaded to this portfolio gallery yet.</p>
+            </div>
+          ) : (
+            <div className="bg-white border border-[#DCD0C0]/25 rounded-sm overflow-hidden shadow-2xs">
+              <table className="w-full text-left text-xs font-light text-[#6E635F] border-collapse">
+                <thead>
+                  <tr className="bg-stone-50/60 border-b border-[#DCD0C0]/20 text-[#2C2623] font-semibold uppercase tracking-widest text-[9px]">
+                    <th className="py-4 px-6 w-32">Frame Preview</th>
+                    <th className="py-4 px-6">Title & Alt Text</th>
+                    <th className="py-4 px-6 w-44">Layout Aspect</th>
+                    <th className="py-4 px-6 text-center w-24">Order</th>
+                    <th className="py-4 px-6 text-right w-36">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {images.map((img) => {
+                    const aspect = img.dimensions?.aspect || "square";
+                    const isDeleting = updatingId === img.id;
+                    return (
+                      <tr key={img.id} className="border-b border-[#DCD0C0]/15 hover:bg-[#FAF8F5]/30 transition-all duration-200">
+                        <td className="py-4 px-6">
+                          <div className="w-16 h-16 rounded-xs overflow-hidden bg-stone-100 border border-stone-200/50 flex items-center justify-center shadow-3xs group cursor-pointer">
+                            <img
+                              src={img.optimized_url || img.original_url}
+                              alt={img.alt_text || ""}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
+                            />
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 space-y-1">
+                          <p className="font-semibold text-[#2C2623] text-sm">{img.title || "Untitled"}</p>
+                          <p className="text-[10px] text-stone-400 italic max-w-sm overflow-hidden text-ellipsis whitespace-nowrap">{img.alt_text || "No alt text set"}</p>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="inline-block px-2.5 py-0.5 rounded-xs text-[9px] font-semibold uppercase tracking-wider bg-stone-50 border border-stone-200/60 text-[#6E635F]">
+                            {aspect === "square" ? "Square (1:1)" :
+                             aspect === "portrait" ? "Portrait (3:4)" :
+                             aspect === "landscape" ? "Landscape (3:2)" :
+                             aspect === "large_square" ? "Large Sq (1:1)" :
+                             aspect === "large_portrait" ? "Larger Port (3:5)" :
+                             aspect === "wide_landscape" ? "Wide Land (16:9)" :
+                             aspect === "panoramic" ? "Panoramic (21:9)" : aspect}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center font-mono text-[11px] text-[#2C2623]">{img.sort_order}</td>
+                        <td className="py-4 px-6 text-right">
+                          {isDeleting ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-stone-400 ml-auto" />
+                          ) : (
+                            <div className="inline-flex space-x-2.5 items-center justify-end">
+                              <button
+                                onClick={() => handleOpenEditImage(img)}
+                                className="p-1.5 border border-stone-100 rounded-sm text-stone-400 hover:text-[#2C2623] hover:bg-stone-50 transition-all cursor-pointer"
+                                title="Edit Metadata"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleCropExistingImage(img)}
+                                className="p-1.5 border border-stone-100 rounded-sm text-stone-400 hover:text-[#2C2623] hover:bg-stone-50 transition-all cursor-pointer"
+                                title="Crop / Edit Image"
+                              >
+                                <Crop className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteImage(img.id)}
+                                className="p-1.5 border border-stone-100 rounded-sm text-stone-400 hover:text-red-655 hover:bg-red-50/20 transition-all cursor-pointer"
+                                title="Delete Image"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CREATE / EDIT GALLERY MODAL */}
+      {showGalleryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-md w-full shadow-lg space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between border-b border-[#DCD0C0]/20 pb-3">
+              <h3 className="text-sm font-serif font-semibold text-[#2C2623] uppercase tracking-wider">
+                {galleryFormMode === "create" ? "Create New Gallery" : "Edit Gallery Metadata"}
+              </h3>
+              <button
+                onClick={() => setShowGalleryModal(false)}
+                className="text-[#6E635F] hover:text-[#2C2623]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateOrUpdateGallery} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase text-[#6E635F] font-semibold">Gallery Name</label>
+                <input
+                  type="text"
+                  required
+                  value={galleryForm.name}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setGalleryForm(prev => ({
+                      ...prev,
+                      name: val,
+                      // Auto slug generation if creating
+                      slug: prev.id ? prev.slug : val.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+                    }));
+                  }}
+                  className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase text-[#6E635F] font-semibold">Slug Path</label>
+                <input
+                  type="text"
+                  required
+                  value={galleryForm.slug}
+                  onChange={(e) => setGalleryForm(prev => ({ ...prev, slug: e.target.value.toLowerCase() }))}
+                  className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs font-mono outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase text-[#6E635F] font-semibold">Description</label>
+                <textarea
+                  value={galleryForm.description}
+                  onChange={(e) => setGalleryForm(prev => ({ ...prev, description: e.target.value }))}
+                  rows={3}
+                  className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden resize-none font-light"
+                />
+              </div>
+
+              {/* Cover Image Selection Field */}
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase text-[#6E635F] font-semibold">Cover Image</label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    disabled
+                    placeholder="No cover photo selected"
+                    value={galleryForm.cover_media_id || ""}
+                    className="w-full bg-stone-50 border border-[#DCD0C0]/45 rounded-sm px-3 py-2 text-[10px] text-stone-400 outline-hidden font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCoverPicker(true)}
+                    className="px-3 py-2 border border-[#2C2623] hover:bg-[#2C2623] hover:text-white rounded-sm text-[10px] font-semibold uppercase tracking-wider transition-all"
+                  >
+                    Browse
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase text-[#6E635F] font-semibold">Order Position</label>
+                  <input
+                    type="number"
+                    value={galleryForm.order_position}
+                    onChange={(e) => setGalleryForm(prev => ({ ...prev, order_position: parseInt(e.target.value) || 0 }))}
+                    className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase text-[#6E635F] font-semibold">Visibility Status</label>
+                  <select
+                    value={galleryForm.is_active ? "active" : "draft"}
+                    onChange={(e) => setGalleryForm(prev => ({ ...prev, is_active: e.target.value === "active" }))}
+                    className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3 py-2 text-xs outline-hidden text-[#6E635F]"
+                  >
+                    <option value="active">Active (Visible)</option>
+                    <option value="draft">Draft (Hidden)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-[#DCD0C0]/25">
+                <button
+                  type="button"
+                  onClick={() => setShowGalleryModal(false)}
+                  className="px-4 py-2 border border-[#DCD0C0]/40 text-[#6E635F] hover:text-[#2C2623] rounded-sm transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingGallery}
+                  className="inline-flex items-center justify-center bg-[#2C2623] hover:bg-[#352F2C] text-[#FCFAF7] px-5 py-2 rounded-sm font-semibold transition-all disabled:opacity-50 min-w-[80px]"
+                >
+                  {savingGallery ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* GALLERY COVER SELECTOR MODAL */}
+      {showCoverPicker && token && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white border border-[#DCD0C0]/35 rounded-md p-6 max-w-4xl w-full shadow-lg space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#DCD0C0]/20 pb-3">
+              <h3 className="text-sm font-serif font-semibold text-[#2C2623]">Choose Gallery Cover Image</h3>
+              <button onClick={() => setShowCoverPicker(false)} className="text-[#6E635F] hover:text-[#2C2623]">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <MediaPicker 
+              token={token} 
+              multiSelect={false}
+              onSelect={handleSelectCoverImage} 
+            />
+          </div>
         </div>
       )}
 
@@ -763,7 +1116,7 @@ export default function PortfolioAdmin() {
           }}
           onConfirm={handleCropConfirm}
           defaultTitle={croppingExistingImage?.title || selectedFile?.name?.substring(0, selectedFile.name.lastIndexOf(".")) || ""}
-          defaultAltText={croppingExistingImage?.alt_text || activeCategory.replace("_", " ") + " portfolio photograph"}
+          defaultAltText={croppingExistingImage?.alt_text || (gallery?.name || "portfolio") + " photography"}
           confirmLabel={uploading ? "Uploading..." : "Crop & Upload"}
         />
       )}
@@ -781,7 +1134,7 @@ export default function PortfolioAdmin() {
           onConfirm={handleLibraryCropConfirm}
           onUseOriginal={handleUseOriginalFromLibrary}
           defaultTitle={libraryMedia?.title || ""}
-          defaultAltText={activeCategory.replace("_", " ") + " portfolio photograph"}
+          defaultAltText={(gallery?.name || "portfolio") + " photography"}
           confirmLabel={addingFromLibrary ? "Adding..." : "Crop & Add"}
         />
       )}
@@ -884,7 +1237,7 @@ export default function PortfolioAdmin() {
             </div>
             <MediaPicker 
               token={token} 
-              category={activeCategory} 
+              category={gallery?.slug || "general"} 
               multiSelect={pickerMultiSelect}
               onSelectMultiple={handleBulkAddFromLibrary}
               onSelect={handleAddFromLibrary} 

@@ -7,7 +7,7 @@ from app.models.pricing_section import PricingSection
 from app.models.faq import FAQ
 from app.models.contact_section import ContactSection
 from app.models.system_setting import SystemSetting
-from app.models.gallery import Gallery, GalleryStatus
+from app.models.gallery import PortfolioGallery
 import json
 from app.core import security
 
@@ -215,21 +215,20 @@ def seed_db():
             }
         ]
 
-        for item in galleries_data:
-            existing = db.query(Gallery).filter(Gallery.category == item["category"]).first()
+        for index, item in enumerate(galleries_data):
+            existing = db.query(PortfolioGallery).filter(PortfolioGallery.slug == item["slug"]).first()
             if existing:
-                existing.title = item["title"]
+                existing.name = item["title"]
                 existing.description = item["description"]
-                existing.slug = item["slug"]
-                existing.status = GalleryStatus.PUBLISHED.value
+                existing.is_active = True
+                existing.order_position = index
             else:
-                new_gallery = Gallery(
-                    category=item["category"],
-                    title=item["title"],
+                new_gallery = PortfolioGallery(
+                    name=item["title"],
                     description=item["description"],
                     slug=item["slug"],
-                    status=GalleryStatus.PUBLISHED.value,
-                    sort_order=0
+                    is_active=True,
+                    order_position=index
                 )
                 db.add(new_gallery)
         db.commit()

@@ -14,7 +14,7 @@ class Image(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     gallery_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("galleries.id", ondelete="CASCADE"), nullable=True
+        ForeignKey("portfolio_galleries.id", ondelete="CASCADE"), nullable=True
     )
     uploaded_by_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id"), nullable=True, index=True
@@ -49,7 +49,7 @@ class Image(Base):
 
     # Relationships
     gallery = relationship(
-        "Gallery", back_populates="images", foreign_keys=[gallery_id], viewonly=True
+        "PortfolioGallery", back_populates="images", foreign_keys=[gallery_id], viewonly=True
     )
     gallery_links = relationship(
         "GalleryImage", back_populates="image", cascade="all, delete-orphan"

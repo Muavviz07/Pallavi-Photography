@@ -7,10 +7,10 @@ from app.api.dependencies import (
     get_current_admin_user,
     get_current_admin_or_client_user,
 )
-from app.models.gallery import Gallery, GalleryStatus
+from app.models.gallery import PortfolioGallery
 from app.models.gallery_image import GalleryImage
 from app.models.image import Image
-from app.schemas.gallery import GalleryCreate, GalleryUpdate, GalleryResponse
+from app.schemas.gallery import GalleryCreate, GalleryUpdate, GalleryResponse, GalleryDetailResponse
 from app.schemas.image import ImageResponse
 from app.schemas.media import AddMediaToGalleryRequest
 from app.services.image_service import image_service
@@ -19,36 +19,27 @@ from app.services.media_service import refresh_usage_count, can_delete_media
 router = APIRouter()
 
 
-def get_gallery_by_id_or_slug(db: Session, id_or_slug: str) -> Optional[Gallery]:
+def get_gallery_by_id_or_slug(db: Session, id_or_slug: str) -> Optional[PortfolioGallery]:
     try:
         gallery_uuid = uuid.UUID(id_or_slug)
-        return db.query(Gallery).filter(Gallery.id == gallery_uuid).first()
+        return db.query(PortfolioGallery).filter(PortfolioGallery.id == gallery_uuid).first()
     except ValueError:
-        return db.query(Gallery).filter(Gallery.slug == id_or_slug).first()
+        return db.query(PortfolioGallery).filter(PortfolioGallery.slug == id_or_slug).first()
 
 
 @router.get("", response_model=List[GalleryResponse])
 def list_galleries(
-    category: Optional[str] = None,
-    status: Optional[str] = None,
+    is_active: Optional[bool] = None,
     db: Session = Depends(get_db),
 ):
     """
-    List galleries. Public access shows only PUBLISHED by default.
-    Admin can filter by status.
+    List galleries. Public access shows only active ones by default.
     """
-    query = db.query(Gallery)
-    if category:
-        db_category = category.replace("-", "_")
-        query = query.filter(Gallery.category == db_category)
+    query = db.query(PortfolioGallery)
+    if is_active is not None:
+        query = query.filter(PortfolioGallery.is_active == is_active)
 
-    if status:
-        query = query.filter(Gallery.status == status)
-    else:
-        # Default to public published check
-        query = query.filter(Gallery.status == GalleryStatus.PUBLISHED.value)
-
-    return query.order_by(Gallery.sort_order.asc(), Gallery.created_at.desc()).all()
+    return query.order_by(PortfolioGallery.order_position.asc(), PortfolioGallery.created_at.desc()).all()
 
 
 @router.post("", response_model=GalleryResponse, status_code=status.HTTP_201_CREATED)
@@ -61,22 +52,20 @@ def create_gallery(
     Create a new gallery. (Admin only)
     """
     # Check if slug exists
-    existing = db.query(Gallery).filter(Gallery.slug == gallery_in.slug).first()
+    existing = db.query(PortfolioGallery).filter(PortfolioGallery.slug == gallery_in.slug).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="A gallery with this slug already exists.",
         )
 
-    db_gallery = Gallery(
-        title=gallery_in.title,
+    db_gallery = PortfolioGallery(
+        name=gallery_in.name,
         slug=gallery_in.slug,
         description=gallery_in.description,
-        category=gallery_in.category,
-        status=gallery_in.status.value
-        if gallery_in.status
-        else GalleryStatus.DRAFT.value,
-        sort_order=gallery_in.sort_order,
+        cover_media_id=gallery_in.cover_media_id,
+        is_active=gallery_in.is_active if gallery_in.is_active is not None else True,
+        order_position=gallery_in.order_position if gallery_in.order_position is not None else 0,
     )
     db.add(db_gallery)
     db.commit()
@@ -84,7 +73,7 @@ def create_gallery(
     return db_gallery
 
 
-@router.get("/{id_or_slug}", response_model=GalleryResponse)
+@router.get("/{id_or_slug}", response_model=GalleryDetailResponse)
 def get_gallery(id_or_slug: str, db: Session = Depends(get_db)):
     """
     Get a single gallery by ID or slug.
@@ -94,7 +83,25 @@ def get_gallery(id_or_slug: str, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Gallery not found."
         )
-    return gallery
+    
+    images_list = []
+    # Sort by order_position ascending
+    sorted_gi = sorted(gallery.gallery_images, key=lambda x: x.order_position)
+    for gi in sorted_gi:
+        images_list.append({
+            "id": gi.image.id,
+            "url": gi.image.optimized_url or gi.image.original_url,
+            "order_position": gi.order_position
+        })
+        
+    return {
+        "id": gallery.id,
+        "name": gallery.name,
+        "slug": gallery.slug,
+        "description": gallery.description,
+        "cover_url": gallery.cover_url,
+        "images": images_list
+    }
 
 
 @router.put("/{id}", response_model=GalleryResponse)
@@ -107,7 +114,7 @@ def update_gallery(
     """
     Update a gallery's metadata. (Admin only)
     """
-    db_gallery = db.query(Gallery).filter(Gallery.id == id).first()
+    db_gallery = db.query(PortfolioGallery).filter(PortfolioGallery.id == id).first()
     if not db_gallery:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Gallery not found."
@@ -115,9 +122,7 @@ def update_gallery(
 
     update_data = gallery_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        if field == "status" and value is not None:
-            setattr(db_gallery, field, value.value)
-        elif value is not None:
+        if value is not None:
             setattr(db_gallery, field, value)
 
     db.add(db_gallery)
@@ -135,7 +140,7 @@ def delete_gallery(
     """
     Delete a gallery. (Admin only)
     """
-    db_gallery = db.query(Gallery).filter(Gallery.id == id).first()
+    db_gallery = db.query(PortfolioGallery).filter(PortfolioGallery.id == id).first()
     if not db_gallery:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Gallery not found."
@@ -160,9 +165,9 @@ def list_gallery_images(
 
     images = (
         db.query(Image)
-        .join(GalleryImage, GalleryImage.image_id == Image.id)
+        .join(GalleryImage, GalleryImage.image_media_id == Image.id)
         .filter(GalleryImage.gallery_id == gallery.id)
-        .order_by(GalleryImage.sort_order.asc().nulls_last(), Image.created_at.desc())
+        .order_by(GalleryImage.order_position.asc(), Image.created_at.desc())
         .offset(skip)
         .limit(limit)
         .all()
@@ -184,7 +189,7 @@ async def upload_gallery_image(
     """
     Upload and process an image to be associated with a gallery. (Admin only)
     """
-    db_gallery = db.query(Gallery).filter(Gallery.id == id).first()
+    db_gallery = db.query(PortfolioGallery).filter(PortfolioGallery.id == id).first()
     if not db_gallery:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Gallery not found."
@@ -201,10 +206,11 @@ async def upload_gallery_image(
             description=description,
             aspect=aspect,
         )
-        gi = GalleryImage(gallery_id=db_gallery.id, image_id=db_image.id)
+        order = len(db_gallery.gallery_images)
+        gi = GalleryImage(gallery_id=db_gallery.id, image_media_id=db_image.id, order_position=order)
         db.add(gi)
-        if not db_gallery.cover_image_id:
-            db_gallery.cover_image_id = db_image.id
+        if not db_gallery.cover_media_id:
+            db_gallery.cover_media_id = db_image.id
             db.add(db_gallery)
         db.commit()
         refresh_usage_count(db, db_image.id)
@@ -224,7 +230,7 @@ def delete_image(
     Remove an image from all portfolio galleries.
     The image file remains in the media library.
     """
-    db.query(GalleryImage).filter(GalleryImage.image_id == image_id).delete()
+    db.query(GalleryImage).filter(GalleryImage.image_media_id == image_id).delete()
     db.commit()
     refresh_usage_count(db, image_id)
 
@@ -284,7 +290,7 @@ def add_image_from_media_library(
     """
     Add an existing media library image to a portfolio gallery.
     """
-    db_gallery = db.query(Gallery).filter(Gallery.id == id).first()
+    db_gallery = db.query(PortfolioGallery).filter(PortfolioGallery.id == id).first()
     if not db_gallery:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -302,23 +308,78 @@ def add_image_from_media_library(
         db.query(GalleryImage)
         .filter(
             GalleryImage.gallery_id == id,
-            GalleryImage.image_id == body.image_id,
+            GalleryImage.image_media_id == body.image_id,
         )
         .first()
     )
     if not existing:
         gi = GalleryImage(
             gallery_id=id,
-            image_id=body.image_id,
-            sort_order=body.sort_order,
+            image_media_id=body.image_id,
+            order_position=body.sort_order if body.sort_order is not None else 0,
         )
         db.add(gi)
 
-    if not db_gallery.cover_image_id:
-        db_gallery.cover_image_id = db_image.id
+    if not db_gallery.cover_media_id:
+        db_gallery.cover_media_id = db_image.id
 
     db.add(db_gallery)
     db.commit()
     db.refresh(db_image)
     refresh_usage_count(db, db_image.id)
     return db_image
+
+
+@router.put("/admin/{gallery_id}/images/{image_id}")
+@router.put("/{gallery_id}/images/{image_id}")
+def reorder_gallery_image(
+    gallery_id: uuid.UUID,
+    image_id: uuid.UUID,
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_admin_or_client_user),
+):
+    """Reorder an image in the gallery."""
+    gi = db.query(GalleryImage).filter(
+        GalleryImage.gallery_id == gallery_id,
+        GalleryImage.image_media_id == image_id
+    ).first()
+    if not gi:
+        raise HTTPException(status_code=404, detail="Image association not found in this gallery")
+    
+    order_pos = body.get("order_position", 0)
+    gi.order_position = order_pos
+    db.add(gi)
+    db.commit()
+    return {"message": "Reordered successfully"}
+
+
+@router.delete("/admin/{gallery_id}/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{gallery_id}/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_image_from_gallery(
+    gallery_id: uuid.UUID,
+    image_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_admin_or_client_user),
+):
+    """Remove an image from a gallery."""
+    gi = db.query(GalleryImage).filter(
+        GalleryImage.gallery_id == gallery_id,
+        GalleryImage.image_media_id == image_id
+    ).first()
+    if not gi:
+        raise HTTPException(status_code=404, detail="Image association not found")
+        
+    db.delete(gi)
+    
+    # If this was the cover image, clear it or pick another one
+    gallery = db.query(PortfolioGallery).filter(PortfolioGallery.id == gallery_id).first()
+    if gallery and gallery.cover_media_id == image_id:
+        # Find next available image
+        next_img = db.query(GalleryImage).filter(GalleryImage.gallery_id == gallery_id).first()
+        gallery.cover_media_id = next_img.image_media_id if next_img else None
+        db.add(gallery)
+        
+    db.commit()
+    refresh_usage_count(db, image_id)
+    return None

@@ -1,7 +1,6 @@
-"use client";
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { formatDate } from "@/lib/date";
 
 interface BlogCardProps {
   title: string;
@@ -18,7 +17,12 @@ export default function BlogCard({
   thumbnail_url,
   published_date,
 }: BlogCardProps) {
-  // Use a reliable fallback if no thumbnail is provided
+  const [lang, setLang] = useState("en");
+
+  useEffect(() => {
+    setLang((localStorage.getItem("lang") || "EN").toLowerCase());
+  }, []);
+
   const imageUrl =
     thumbnail_url ||
     "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=800";
@@ -44,11 +48,7 @@ export default function BlogCard({
           {/* Metadata */}
           {published_date && (
             <span className="text-[9px] uppercase tracking-[0.2em] text-stone-400 block">
-              {new Date(published_date).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
+              {formatDate(published_date, lang)}
             </span>
           )}
 

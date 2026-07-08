@@ -47,6 +47,8 @@ const pageTranslations = {
 
 export default function OurGalleryIndex() {
   const [lang, setLang] = useState("EN");
+  const [galleries, setGalleries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const stored = localStorage.getItem("lang") || "EN";
@@ -60,46 +62,49 @@ export default function OurGalleryIndex() {
     return () => window.removeEventListener("languagechange", handleLangChange);
   }, []);
 
-  const t = pageTranslations[lang as "EN" | "FR"] || pageTranslations.EN;
+  useEffect(() => {
+    async function loadGalleries() {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiUrl}/api/galleries`);
+        if (res.ok) {
+          const data = await res.json();
+          // Filter active ones
+          const active = (data || []).filter((g: any) => g.is_active);
 
-  const galleryItems = [
-    {
-      slug: "newborn",
-      title: t.newbornTitle,
-      desc: t.newbornDesc,
-      image: "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200",
-    },
-    {
-      slug: "children",
-      title: t.childrenTitle,
-      desc: t.childrenDesc,
-      image: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fENoaWxkcmVuJTIwcGhvdG9zaG9vdHxlbnwwfHwwfHx8MA%3D%3D",
-    },
-    {
-      slug: "family",
-      title: t.familyTitle,
-      desc: t.familyDesc,
-      image: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=1200",
-    },
-    {
-      slug: "maternity",
-      title: t.maternityTitle,
-      desc: t.maternityDesc,
-      image: "https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8TWF0ZXJuaXR5JTIwcGhvdG9zaG9vdHxlbnwwfHwwfHx8MA%3D%3D",
-    },
-    {
-      slug: "fine-art",
-      title: t.fineArtTitle,
-      desc: t.fineArtDesc,
-      image: "https://images.unsplash.com/photo-1637511844674-d2c52d5f29b5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8RmluZWFydCUyMHBob3Rvc2hvb3R8ZW58MHx8MHx8fDA%3D",
-    },
-    {
-      slug: "nature",
-      title: t.natureTitle,
-      desc: t.natureDesc,
-      image: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=1200",
+          const REQUIRED_ORDER = ["newborn", "children", "family", "maternity", "fine-art", "nature"];
+          const sorted: any[] = [];
+
+          REQUIRED_ORDER.forEach((slugPattern) => {
+            const found = active.find(
+              (g: any) => {
+                const s = (g.slug || "").toLowerCase();
+                return s === slugPattern || s.replace("_", "-") === slugPattern;
+              }
+            );
+            if (found && !sorted.includes(found)) {
+              sorted.push(found);
+            }
+          });
+
+          active.forEach((g: any) => {
+            if (!sorted.includes(g)) {
+              sorted.push(g);
+            }
+          });
+
+          setGalleries(sorted);
+        }
+      } catch (err) {
+        console.error("Error loading galleries:", err);
+      } finally {
+        setLoading(false);
+      }
     }
-  ];
+    loadGalleries();
+  }, []);
+
+  const t = pageTranslations[lang as "EN" | "FR"] || pageTranslations.EN;
 
   return (
     <>
@@ -107,10 +112,10 @@ export default function OurGalleryIndex() {
 
       {/* Standardized Breadcrumbs Banner */}
       <BreadcrumbsBanner
-        title="OUR GALLERY"
+        title={t.bannerTitle}
         paths={[
-          { label: "Home", href: "/" },
-          { label: "Our Gallery" }
+          { label: t.breadcrumbHome, href: "/" },
+          { label: t.breadcrumbGallery }
         ]}
       />
 
@@ -123,60 +128,77 @@ export default function OurGalleryIndex() {
             {t.pageHeading}
           </h1>
 
-          {/* Gallery Items Alternating List */}
-          <div className="space-y-20 md:space-y-28">
-            {galleryItems.map((item, idx) => {
-              const isEven = idx % 2 === 0;
-              return (
-                <div
-                  key={item.slug}
-                  className={`grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 items-center`}
-                >
-                  {/* Image Column (col-span-7 for larger display) */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-8 h-8 border-2 border-brand-sage border-t-transparent rounded-full animate-spin"></div>
+              <p className="mt-4 text-xs text-stone-400 uppercase tracking-widest font-sans">
+                {lang === "FR" ? "Chargement..." : "Loading Galleries..."}
+              </p>
+            </div>
+          ) : galleries.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-sm text-stone-500 font-light font-sans tracking-wide">
+                {lang === "FR" ? "Aucune galerie trouvée." : "No galleries found."}
+              </p>
+            </div>
+          ) : (
+            /* Gallery Items Alternating List */
+            <div className="space-y-20 md:space-y-28">
+              {galleries.map((item, idx) => {
+                const isEven = idx % 2 === 0;
+                const coverImage = item.cover_url || "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200";
+                
+                return (
                   <div
-                    className={`col-span-1 md:col-span-7 ${
-                      isEven ? "md:order-1" : "md:order-2"
-                    }`}
+                    key={item.id}
+                    className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 items-center"
                   >
-                    <Link
-                      href={`/our-gallery/${item.slug}`}
-                      className="group block relative aspect-3/2 overflow-hidden bg-brand-cream border border-brand-border/40 rounded-xs shadow-xs cursor-pointer"
+                    {/* Image Column */}
+                    <div
+                      className={`col-span-1 md:col-span-7 ${
+                        isEven ? "md:order-1" : "md:order-2"
+                      }`}
                     >
-                      <img
-                        src={item.image}
-                        alt={`${item.title} preview`}
-                        className="w-full h-full object-cover transition-transform duration-700 ease-out scale-100 group-hover:scale-103"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </Link>
-                  </div>
-
-                  {/* Text Column (col-span-5) */}
-                  <div
-                    className={`col-span-1 md:col-span-5 space-y-4 ${
-                      isEven ? "md:order-2 text-left" : "md:order-1 text-left"
-                    }`}
-                  >
-                    <h3 className="text-lg sm:text-xl md:text-2xl tracking-[0.2em] font-serif text-brand-dark uppercase">
-                      {item.title}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-stone-500 font-light leading-relaxed tracking-wide font-sans">
-                      {item.desc}
-                    </p>
-                    <div className="pt-2">
                       <Link
-                        href={`/our-gallery/${item.slug}`}
-                        className="inline-block text-[11px] font-sans uppercase tracking-[0.25em] text-brand-dark border-b border-brand-dark/40 pb-1 hover:border-brand-dark transition-all duration-300 cursor-pointer"
+                        href={`/portfolio/${item.slug}`}
+                        className="group block relative aspect-3/2 overflow-hidden bg-brand-cream border border-brand-border/40 rounded-xs shadow-xs cursor-pointer"
                       >
-                        {lang === "FR" ? "Voir la galerie" : "View Gallery"}
+                        <img
+                          src={coverImage}
+                          alt={`${item.name} cover`}
+                          className="w-full h-full object-cover transition-transform duration-700 ease-out scale-100 group-hover:scale-103"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       </Link>
                     </div>
+
+                    {/* Text Column */}
+                    <div
+                      className={`col-span-1 md:col-span-5 space-y-4 ${
+                        isEven ? "md:order-2 text-left" : "md:order-1 text-left"
+                      }`}
+                    >
+                      <h3 className="text-lg sm:text-xl md:text-2xl tracking-[0.2em] font-serif text-brand-dark uppercase">
+                        {item.name}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-stone-500 font-light leading-relaxed tracking-wide font-sans">
+                        {item.description}
+                      </p>
+                      <div className="pt-2">
+                        <Link
+                          href={`/portfolio/${item.slug}`}
+                          className="inline-block text-[11px] font-sans uppercase tracking-[0.25em] text-brand-dark border-b border-brand-dark/40 pb-1 hover:border-brand-dark transition-all duration-300 cursor-pointer"
+                        >
+                          {lang === "FR" ? "Voir la galerie" : "View Gallery"}
+                        </Link>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
         </div>
       </section>

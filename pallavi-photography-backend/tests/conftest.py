@@ -16,7 +16,21 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
     # Recreate schema so model changes are reflected in the test database
-    Base.metadata.drop_all(bind=engine)
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        transaction = conn.begin()
+        try:
+            result = conn.execute(text(
+                "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+            ))
+            tables = [row[0] for row in result.all()]
+            if tables:
+                conn.execute(text(f"DROP TABLE IF EXISTS {', '.join(tables)} CASCADE"))
+            transaction.commit()
+        except Exception:
+            transaction.rollback()
+            raise
+            
     Base.metadata.create_all(bind=engine)
     yield
 

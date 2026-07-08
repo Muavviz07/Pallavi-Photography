@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Calendar, CheckCircle, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, CheckCircle, Loader2, Lock } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
@@ -9,35 +9,92 @@ export default function BookSessionPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState("");
-  const [bookedDates, setBookedDates] = useState<string[]>([]);
+  const [calendarSummary, setCalendarSummary] = useState<Record<string, { booked: number; total: number; is_locked?: boolean; has_client_booking?: boolean }>>({});
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [lang, setLang] = useState("EN");
   
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    session_type: "",
     message: ""
   });
+  const [sessionTypes, setSessionTypes] = useState<any[]>([]);
 
-  // Fetch unavailable dates
   useEffect(() => {
-    const fetchAvailability = async () => {
+    const fetchSessionTypes = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const res = await fetch(`${apiUrl}/api/bookings/availability`);
+        const res = await fetch(`${apiUrl}/api/galleries`);
         if (res.ok) {
           const data = await res.json();
-          setBookedDates(data);
+          const active = data.filter((g: any) => g.is_active);
+          setSessionTypes(active);
         }
       } catch (err) {
-        console.error("Failed to load availability mapping", err);
+        console.error("Failed to fetch session types", err);
       }
     };
-    fetchAvailability();
+    fetchSessionTypes();
   }, []);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+
+  useEffect(() => {
+    const stored = localStorage.getItem("lang") || "EN";
+    setLang(stored);
+
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("lang") || "EN");
+    };
+
+    window.addEventListener("languagechange", handleLangChange);
+    return () => window.removeEventListener("languagechange", handleLangChange);
+  }, []);
+
+  // Fetch monthly calendar summary whenever current month/year changes
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const start = new Date(year, month, 1);
+        const end = new Date(year, month + 1, 0);
+        // Format to YYYY-MM-DD
+        const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
+        const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
+        
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiUrl}/api/bookings/calendar-summary?start_date=${startStr}&end_date=${endStr}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCalendarSummary(data);
+        }
+      } catch (err) {
+        console.error("Failed to load calendar summary:", err);
+      }
+    };
+    fetchSummary();
+  }, [currentDate, year, month]);
+
+  const fetchSlotsForDate = async (targetDate: Date) => {
+    setLoadingSlots(true);
+    try {
+      const dateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/bookings/available-slots?date=${dateStr}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableSlots(data);
+      }
+    } catch (err) {
+      console.error("Error fetching slots:", err);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
 
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -58,21 +115,19 @@ export default function BookSessionPage() {
     today.setHours(0, 0, 0, 0);
     if (dateObj < today) return;
 
-    // Block already booked dates
-    const isoString = dateObj.toISOString().split("T")[0];
-    if (bookedDates.includes(isoString)) return;
-
     setSelectedDate(dateObj);
+    setSelectedTime("");
+    fetchSlotsForDate(dateObj);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedDate || !selectedTime || !formData.name || !formData.email) return;
+    if (!selectedDate || !selectedTime || !formData.name || !formData.email || !formData.session_type) return;
 
     setStatus("loading");
     setErrorMessage("");
@@ -83,8 +138,9 @@ export default function BookSessionPage() {
       const payload = {
         name: formData.name,
         email: formData.email,
-        date: selectedDate.toISOString().split("T")[0],
-        time: selectedTime,
+        date: `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`,
+        time: selectedTime.includes(":") ? selectedTime : `${selectedTime}:00`,
+        session_type: formData.session_type,
         message: formData.message
       };
 
@@ -100,12 +156,20 @@ export default function BookSessionPage() {
       }
 
       setStatus("success");
-      setFormData({ name: "", email: "", message: "" });
+      setFormData({ name: "", email: "", session_type: "", message: "" });
       setSelectedDate(null);
       setSelectedTime("");
 
-      // Update booked dates to immediately block it locally
-      setBookedDates((prev) => [...prev, payload.date]);
+      // Refresh calendar summary immediately
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 0);
+      const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
+      const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
+      const refreshRes = await fetch(`${apiUrl}/api/bookings/calendar-summary?start_date=${startStr}&end_date=${endStr}`);
+      if (refreshRes.ok) {
+        const data = await refreshRes.json();
+        setCalendarSummary(data);
+      }
     } catch (err: any) {
       setStatus("error");
       setErrorMessage(err.message || "An unexpected error occurred.");
@@ -118,44 +182,73 @@ export default function BookSessionPage() {
   ];
 
   const daysGrid = [];
-  // Empty slots for start offset
   for (let i = 0; i < firstDayOfMonth; i++) {
     daysGrid.push(<div key={`empty-${i}`} className="p-3" />);
   }
-  // Days of month
+
   for (let d = 1; d <= daysInMonth; d++) {
     const dateObj = new Date(year, month, d);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const isPast = dateObj < today;
 
-    const isoStr = dateObj.toISOString().split("T")[0];
-    const isBooked = bookedDates.includes(isoStr);
+    const isoStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
+    const daySummary = calendarSummary[isoStr];
+    
+    // Distinguish lock types
+    const isFullyLocked = daySummary && daySummary.is_locked && daySummary.booked === daySummary.total;
+    const isPartiallyLocked = daySummary && daySummary.is_locked && daySummary.booked < daySummary.total;
+    const isFullyBooked = daySummary && !daySummary.is_locked && daySummary.booked === daySummary.total;
     const isSelected = selectedDate && selectedDate.getDate() === d && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
 
-    let dayClass = "text-[#6E635F] hover:bg-[#FAF8F5]/80 hover:border-[#C4A484]/40";
+    let dayClass = "bg-white text-[#6E635F] hover:bg-[#FAF8F5]/80 hover:border-[#C4A484]/40 border-stone-100 shadow-2xs";
     if (isPast) {
-      dayClass = "text-stone-300 cursor-not-allowed line-through";
-    } else if (isBooked) {
-      dayClass = "text-red-300 bg-red-50/30 cursor-not-allowed line-through border border-red-100/10";
+      dayClass = "text-stone-300 cursor-not-allowed line-through bg-stone-50/10";
+    } else if (isFullyLocked) {
+      dayClass = "bg-stone-50 text-stone-400 border-stone-200 cursor-not-allowed";
+    } else if (isFullyBooked) {
+      dayClass = "text-red-700 bg-red-50/60 cursor-not-allowed border border-red-200";
     } else if (isSelected) {
-      dayClass = "bg-[#2C2623] text-white font-medium border-[#2C2623]";
+      dayClass = "bg-[#2C2623] text-white font-medium border-[#2C2623] shadow-md";
+    } else if (daySummary && daySummary.booked > 0) {
+      if (daySummary.booked === 1) {
+        dayClass = "bg-amber-50/40 border-amber-200 text-stone-700 font-medium";
+      } else if (daySummary.booked === 2) {
+        dayClass = "bg-orange-50/50 border-orange-200 text-stone-700 font-medium";
+      } else if (daySummary.booked === 3) {
+        dayClass = "bg-orange-100/40 border-orange-300 text-stone-850 font-semibold";
+      }
     }
 
     daysGrid.push(
       <button
         key={`day-${d}`}
         type="button"
-        disabled={isPast || isBooked}
+        disabled={isPast || isFullyLocked || isFullyBooked}
         onClick={() => handleDateClick(d)}
-        className={`p-3 text-center text-xs rounded-sm border border-transparent transition-all cursor-pointer ${dayClass}`}
+        className={`p-2.5 text-center text-xs rounded-sm border transition-all cursor-pointer flex flex-col items-center justify-between min-h-[50px] ${dayClass}`}
       >
-        {d}
+        <span>{d}</span>
+        {isFullyLocked ? (
+          <span className="flex items-center justify-center scale-90 mb-0.5" title="Manually Locked Timeframe">
+            <Lock className="w-3 h-3 text-stone-450" />
+          </span>
+        ) : isPartiallyLocked ? (
+          <span className="flex items-center justify-center scale-90 mb-0.5 animate-pulse" title="Some Slots Manually Locked">
+            <Lock className="w-2.5 h-2.5 text-amber-500/80" />
+          </span>
+        ) : daySummary && daySummary.booked > 0 ? (
+          <span className={`text-[8px] px-1 py-0.5 rounded-full scale-90 ${
+            isFullyBooked 
+              ? "bg-red-100 text-red-755" 
+              : "bg-[#C4A484]/20 text-[#2C2623] font-medium"
+          }`}>
+            {daySummary.booked} book{daySummary.booked > 1 ? "s" : ""}
+          </span>
+        ) : null}
       </button>
     );
   }
-
-  const timeSlots = ["09:00:00", "11:00:00", "14:00:00", "16:00:00"];
 
   return (
     <>
@@ -163,7 +256,7 @@ export default function BookSessionPage() {
       
       <main className="min-h-screen bg-[#FCFAF7] pt-32 pb-24">
         <div className="max-w-6xl mx-auto px-6 space-y-12">
-          {/* Header */}
+          
           <div className="text-center max-w-xl mx-auto space-y-4">
             <span className="text-[10px] uppercase tracking-[0.35em] text-[#C4A484] font-semibold block">
               Reservation Center
@@ -217,7 +310,6 @@ export default function BookSessionPage() {
                   </div>
                 </div>
 
-                {/* Calendar Grid */}
                 <div className="space-y-2">
                   <div className="grid grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wider text-stone-400 font-semibold mb-2">
                     <span>Su</span>
@@ -233,14 +325,26 @@ export default function BookSessionPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center space-x-6 text-[10px] text-[#6E635F] pt-4 border-t border-[#DCD0C0]/20 font-light">
+                <div className="flex flex-wrap items-center justify-center gap-4 text-[9px] text-[#6E635F] pt-4 border-t border-[#DCD0C0]/20 font-light uppercase tracking-wider">
                   <span className="flex items-center space-x-1.5">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-[#2C2623]" />
-                    <span>Selected</span>
+                    <span className="w-2.5 h-2.5 rounded-sm bg-amber-50/40 border border-amber-200" />
+                    <span>1 Booked</span>
                   </span>
                   <span className="flex items-center space-x-1.5">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-red-100/50 border border-red-200" />
-                    <span>Booked / Out</span>
+                    <span className="w-2.5 h-2.5 rounded-sm bg-orange-50/50 border border-orange-200" />
+                    <span>2 Booked</span>
+                  </span>
+                  <span className="flex items-center space-x-1.5">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-orange-100/40 border border-orange-300" />
+                    <span>3 Booked</span>
+                  </span>
+                  <span className="flex items-center space-x-1.5">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-red-50/60 border border-red-200" />
+                    <span>Fully Booked</span>
+                  </span>
+                  <span className="flex items-center space-x-1.5">
+                    <Lock className="w-2.5 h-2.5 text-stone-450" />
+                    <span>Locked Day</span>
                   </span>
                 </div>
               </div>
@@ -263,22 +367,52 @@ export default function BookSessionPage() {
 
                     <div className="space-y-2">
                       <span className="text-[10px] uppercase text-stone-400 font-semibold block">Available Time Slots</span>
-                      <div className="grid grid-cols-4 gap-2">
-                        {timeSlots.map((slot) => (
-                          <button
-                            key={slot}
-                            type="button"
-                            onClick={() => setSelectedTime(slot)}
-                            className={`py-2 text-[10px] font-semibold border rounded-sm transition-all cursor-pointer text-center ${
-                              selectedTime === slot
-                                ? "bg-[#2C2623] text-white border-[#2C2623]"
-                                : "bg-[#FCFAF7] border-[#DCD0C0]/40 text-[#6E635F] hover:border-[#C4A484]/40"
-                            }`}
-                          >
-                            {slot.slice(0, 5)}
-                          </button>
-                        ))}
-                      </div>
+                      {loadingSlots ? (
+                        <div className="flex items-center space-x-2 py-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-brand-sage" />
+                          <span className="text-[10px] text-stone-400">Checking availability...</span>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-2">
+                           {availableSlots.map((slot) => {
+                             const isSlotAvailable = slot.available;
+                             const isSelected = selectedTime === slot.time;
+                             const isLocked = slot.status === "busy";
+                             
+                             let slotClass = "";
+                             let content = <span>{slot.time}</span>;
+                             
+                             if (isLocked) {
+                               slotClass = "bg-stone-50 border-stone-250 text-stone-400 cursor-not-allowed flex items-center justify-center gap-1";
+                               content = (
+                                 <span className="flex items-center gap-1 font-medium">
+                                   <Lock className="w-2.5 h-2.5 text-stone-400" />
+                                   {slot.time}
+                                 </span>
+                               );
+                             } else if (!isSlotAvailable) {
+                               slotClass = "bg-red-50/20 border-red-100/60 text-red-400 cursor-not-allowed line-through flex items-center justify-center";
+                               content = <span>{slot.time}</span>;
+                             } else if (isSelected) {
+                               slotClass = "bg-[#2C2623] text-white border-[#2C2623]";
+                             } else {
+                               slotClass = "bg-[#FCFAF7] border-[#DCD0C0]/40 text-[#6E635F] hover:border-[#C4A484]/40";
+                             }
+                             
+                             return (
+                               <button
+                                 key={slot.id}
+                                 type="button"
+                                 disabled={!isSlotAvailable}
+                                 onClick={() => setSelectedTime(slot.time)}
+                                 className={`py-2 text-[10px] font-semibold border rounded-sm transition-all cursor-pointer text-center flex items-center justify-center ${slotClass}`}
+                               >
+                                 {content}
+                               </button>
+                             );
+                           })}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-3 pt-2">
@@ -308,6 +442,26 @@ export default function BookSessionPage() {
                           disabled={status === "loading"}
                           className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2 text-xs outline-hidden focus:border-[#C4A484] transition-colors"
                         />
+                      </div>
+
+                      <div>
+                        <label htmlFor="booking-session-type" className="block text-[10px] uppercase tracking-wider text-[#6E635F] mb-1 font-medium">Session Type</label>
+                        <select
+                          id="booking-session-type"
+                          name="session_type"
+                          value={formData.session_type}
+                          onChange={handleInputChange}
+                          required
+                          disabled={status === "loading"}
+                          className="w-full bg-[#FCFAF7] border border-[#DCD0C0]/40 rounded-sm px-3.5 py-2 text-xs outline-hidden focus:border-[#C4A484] transition-colors"
+                        >
+                          <option value="">Select a session type...</option>
+                          {sessionTypes.map((g) => (
+                            <option key={g.id} value={g.name}>
+                              {g.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
                       <div>

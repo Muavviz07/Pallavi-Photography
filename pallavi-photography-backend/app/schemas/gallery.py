@@ -2,33 +2,46 @@ import uuid
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, ConfigDict
-from app.models.gallery import GalleryStatus
-from app.schemas.image import ImageResponse
 
 class GalleryBase(BaseModel):
-    title: str
+    name: str
     slug: str
     description: Optional[str] = None
-    category: str  # newborn, children, family, maternity, fine_art, nature
-    status: Optional[GalleryStatus] = GalleryStatus.DRAFT
-    sort_order: Optional[int] = 0
+    order_position: Optional[int] = 0
+    is_active: Optional[bool] = True
 
 class GalleryCreate(GalleryBase):
-    pass
+    cover_media_id: Optional[uuid.UUID] = None
 
 class GalleryUpdate(BaseModel):
-    title: Optional[str] = None
+    name: Optional[str] = None
     slug: Optional[str] = None
     description: Optional[str] = None
-    category: Optional[str] = None
-    status: Optional[GalleryStatus] = None
-    sort_order: Optional[int] = None
+    cover_media_id: Optional[uuid.UUID] = None
+    order_position: Optional[int] = None
+    is_active: Optional[bool] = None
 
 class GalleryResponse(GalleryBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    cover_image_id: Optional[uuid.UUID] = None
+    cover_media_id: Optional[uuid.UUID] = None
+    cover_url: Optional[str] = None
+    image_count: int = 0
     created_at: datetime
     updated_at: datetime
-    cover_image: Optional[ImageResponse] = None
+
+class GalleryDetailImageResponse(BaseModel):
+    id: uuid.UUID
+    url: str
+    order_position: int
+
+class GalleryDetailResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    slug: str
+    description: Optional[str] = None
+    cover_url: Optional[str] = None
+    images: List[GalleryDetailImageResponse] = []

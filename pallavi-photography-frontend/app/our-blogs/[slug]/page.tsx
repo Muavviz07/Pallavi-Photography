@@ -7,6 +7,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
 import { Loader2 } from "lucide-react";
+import { formatDate } from "@/lib/date";
 
 interface BlogData {
   id: string;
@@ -156,6 +157,11 @@ export default function BlogDetailPage() {
   const router = useRouter();
   const [post, setPost] = useState<BlogData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lang, setLang] = useState("en");
+
+  useEffect(() => {
+    setLang((localStorage.getItem("lang") || "EN").toLowerCase());
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -233,11 +239,7 @@ export default function BlogDetailPage() {
             </h1>
             {post.published_date && (
               <span className="text-[10px] md:text-xs uppercase tracking-[0.3em] text-[#C4A484] block mt-5 font-light">
-                {new Date(post.published_date).toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric"
-                })}
+                {formatDate(post.published_date, lang)}
               </span>
             )}
           </div>

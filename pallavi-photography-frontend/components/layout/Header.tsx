@@ -156,14 +156,85 @@ export default function Header() {
     { name: t.faqs, href: "/faqs" }
   ];
 
-  const GALLERY_ITEMS = [
-    { name: t.newborn, href: "/our-gallery/newborn" },
-    { name: t.children, href: "/our-gallery/children" },
-    { name: t.family, href: "/our-gallery/family" },
-    { name: t.maternity, href: "/our-gallery/maternity" },
-    { name: t.fineArt, href: "/our-gallery/fine-art" },
-    { name: t.nature, href: "/our-gallery/nature" }
+  const GALLERY_ITEMS_STATIC = [
+    { name: t.newborn, href: "/portfolio/newborn" },
+    { name: t.children, href: "/portfolio/children" },
+    { name: t.family, href: "/portfolio/family" },
+    { name: t.maternity, href: "/portfolio/maternity" },
+    { name: t.fineArt, href: "/portfolio/fine-art" },
+    { name: t.nature, href: "/portfolio/nature" }
   ];
+
+  const [dynamicGalleryItems, setDynamicGalleryItems] = useState<{ name: string; href: string }[]>(GALLERY_ITEMS_STATIC);
+
+  useEffect(() => {
+    async function fetchDynamicGalleries() {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiUrl}/api/galleries`);
+        if (res.ok) {
+          const data = await res.json();
+          const activeGalleries = (data || []).filter((g: any) => g.is_active);
+
+          const REQUIRED_ORDER = ["newborn", "children", "family", "maternity", "fine-art", "nature"];
+          const sortedGalleries: any[] = [];
+
+          REQUIRED_ORDER.forEach((slugPattern) => {
+            const found = activeGalleries.find(
+              (g: any) => {
+                const s = (g.slug || "").toLowerCase();
+                return s === slugPattern || s.replace("_", "-") === slugPattern;
+              }
+            );
+            if (found && !sortedGalleries.includes(found)) {
+              sortedGalleries.push(found);
+            }
+          });
+
+          activeGalleries.forEach((g: any) => {
+            if (!sortedGalleries.includes(g)) {
+              sortedGalleries.push(g);
+            }
+          });
+
+          const items = sortedGalleries.map((g: any) => {
+            let displayName = g.name;
+            const slugLower = g.slug.toLowerCase();
+            
+            if (slugLower.includes("newborn")) {
+              displayName = t.newborn || g.name;
+            } else if (slugLower.includes("children")) {
+              displayName = t.children || g.name;
+            } else if (slugLower.includes("family")) {
+              displayName = t.family || g.name;
+            } else if (slugLower.includes("maternity")) {
+              displayName = t.maternity || g.name;
+            } else if (slugLower.includes("fine-art") || slugLower.includes("fine_art")) {
+              displayName = t.fineArt || g.name;
+            } else if (slugLower.includes("nature")) {
+              displayName = t.nature || g.name;
+            } else {
+              displayName = g.name.replace(" Photographer in Vevey, Vaud", "").replace(" Photographer", "");
+            }
+            
+            return {
+              name: displayName,
+              href: `/portfolio/${g.slug}`
+            };
+          });
+          if (items.length > 0) {
+            setDynamicGalleryItems(items);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading galleries for nav:", err);
+      }
+    }
+    
+    // Set static defaults first as localizations update
+    setDynamicGalleryItems(GALLERY_ITEMS_STATIC);
+    fetchDynamicGalleries();
+  }, [t]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -288,7 +359,7 @@ export default function Header() {
                 {activeDropdown === "gallery" && (
                   <div className="absolute left-0 top-full pt-3 min-w-[240px] z-50">
                     <div className="w-full bg-white border border-brand-border shadow-md py-5 px-6 text-left animate-fade-in rounded-xs space-y-1.5">
-                      {GALLERY_ITEMS.map((item) => (
+                      {dynamicGalleryItems.map((item) => (
                         <Link
                           key={item.name}
                           href={item.href}
@@ -401,7 +472,7 @@ export default function Header() {
               <div className="space-y-1">
                 <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">{t.gallery}</span>
                 <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
-                  {GALLERY_ITEMS.map((item) => (
+                  {dynamicGalleryItems.map((item) => (
                     <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
                       {item.name}
                     </Link>

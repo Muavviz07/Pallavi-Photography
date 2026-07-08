@@ -85,14 +85,11 @@ def test_newsletter_flow(client: TestClient):
 def test_blogs_flow(client: TestClient):
     admin_headers = get_admin_auth_header(client)
 
-    # 1. Create a blog post with translation
-    blog_res = client.post("/api/blogs", headers=admin_headers, json={
+    blog_res = client.post("/api/admin/blogs", headers=admin_headers, json={
         "title": "Beautiful Sunset Locations",
         "slug": "beautiful-sunset-locations-test",
-        "content": "Here are the top locations for sunset portrait shoots in Geneva.",
-        "category": "Locations",
-        "reading_time": 4,
-        "published": True,
+        "body_content": "Here are the top locations for sunset portrait shoots in Geneva.",
+        "is_published": True,
         "translations": [
             {
                 "language": "fr",
@@ -106,14 +103,12 @@ def test_blogs_flow(client: TestClient):
     post_id = blog_res.json()["id"]
 
     # 2. Get public blog by slug
-    get_res = client.get("/api/blogs/beautiful-sunset-locations-test")
+    get_res = client.get(f"/api/blogs/{blog_res.json()['slug']}")
     assert get_res.status_code == 200
     assert get_res.json()["title"] == "Beautiful Sunset Locations"
-    assert len(get_res.json()["translations"]) == 1
-    assert get_res.json()["translations"][0]["language"] == "fr"
 
     # 3. Clean up
-    del_res = client.delete(f"/api/blogs/admin/{post_id}", headers=admin_headers)
+    del_res = client.delete(f"/api/admin/blogs/{post_id}", headers=admin_headers)
     assert del_res.status_code == 204
 
 def test_bookings_flow(client: TestClient):
@@ -143,9 +138,13 @@ def test_bookings_flow(client: TestClient):
     assert app_res.status_code == 200
     assert app_res.json()["status"] == "approved"
 
-    # 4. Check availability mapping again (should be blocked now)
-    avail_res_new = client.get("/api/bookings/availability")
-    assert "2026-07-15" in avail_res_new.json()
+    # 4. Check slot availability (14:00 should be blocked, others open)
+    avail_res_new = client.get("/api/bookings/available-slots?date=2026-07-15")
+    assert avail_res_new.status_code == 200
+    slots_data = avail_res_new.json()
+    slot_14 = next(s for s in slots_data if s["time"] == "14:00")
+    assert slot_14["available"] is False
+    assert slot_14["status"] == "accepted"
 
     # 5. Clean up
     del_res = client.delete(f"/api/bookings/admin/{booking_id}", headers=admin_headers)

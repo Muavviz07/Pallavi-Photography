@@ -7,7 +7,7 @@ from app.api.dependencies import get_db, get_current_admin_user
 from app.models.image import Image
 from app.models.gallery_image import GalleryImage
 from app.models.client_gallery_image import ClientGalleryImage
-from app.models.gallery import Gallery
+from app.models.gallery import PortfolioGallery
 from app.models.client_gallery import ClientGallery
 from app.models.blog import Blog
 from app.models.hero_slide import HeroSlide

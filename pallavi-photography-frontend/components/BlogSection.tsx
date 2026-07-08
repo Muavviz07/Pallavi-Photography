@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { formatDate } from "@/lib/date";
 
 interface BlogData {
   id: string;
@@ -124,11 +125,7 @@ export default function BlogSection() {
                       {/* Publication Date */}
                       {post.published_date && (
                         <span className="text-[9px] uppercase tracking-[0.2em] text-stone-400 block">
-                          {new Date(post.published_date).toLocaleDateString("en-US", {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                          {formatDate(post.published_date, lang.toLowerCase())}
                         </span>
                       )}
 

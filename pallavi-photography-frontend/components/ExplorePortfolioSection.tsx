@@ -10,11 +10,14 @@ interface ImageRes {
 
 interface Gallery {
   id: string;
-  title: string;
+  name: string;
   slug: string;
   description: string;
-  category: string;
+  category?: string;
+  cover_url?: string;
   cover_image?: ImageRes;
+  is_active?: boolean;
+  order_position?: number;
 }
 
 const CATEGORY_META: Record<string, { label: string; prefix: string; fallbackImg: string; defaultDesc: string }> = {
@@ -98,11 +101,11 @@ const CATEGORY_META_TRANS: Record<string, Record<string, { label: string; defaul
     },
     maternity: {
       label: "MATERNITÉ",
-      defaultDesc: "Portraits de grossesse élégants et sereins au bord du lac Léman ou en studio."
+      defaultDesc: "Séances de grossesse sereines au bord du lac Léman ou configurations de studio conceptuelles."
     },
     "fine-art": {
-      label: "FINE ART",
-      defaultDesc: "Portraits conceptuels hautement stylisés ressemblant à des peintures à l'huile classiques."
+      label: "BEAUX-ARTS",
+      defaultDesc: "Portraits conceptuels très stylisés ressemblant à des peintures à l'huile classiques."
     },
     nature: {
       label: "NATURE",
@@ -123,8 +126,8 @@ const sectionTranslations = {
 };
 
 export default function ExplorePortfolioSection() {
-  const [activeCategory, setActiveCategory] = useState("newborn");
-  const [categoryData, setCategoryData] = useState<Record<string, Gallery>>({});
+  const [dbGalleries, setDbGalleries] = useState<Gallery[]>([]);
+  const [activeSlug, setActiveSlug] = useState("");
   const [lang, setLang] = useState("EN");
 
   useEffect(() => {
@@ -143,16 +146,35 @@ export default function ExplorePortfolioSection() {
     async function loadGalleries() {
       try {
         const galleries = await api.get<Gallery[]>("/galleries");
-        const mapped: Record<string, Gallery> = {};
+        // Filter only active ones
+        const active = (galleries || []).filter((g: Gallery) => g.is_active);
 
-        // Group galleries to pick the first published one for each category
-        galleries.forEach((gal) => {
-          const cat = gal.category.toLowerCase();
-          if (!mapped[cat]) {
-            mapped[cat] = gal;
+        // Custom order sequence
+        const REQUIRED_ORDER = ["newborn", "children", "family", "maternity", "fine-art", "nature"];
+        const sorted: Gallery[] = [];
+
+        REQUIRED_ORDER.forEach((slugPattern) => {
+          const found = active.find(
+            (g) => {
+              const s = (g.slug || "").toLowerCase();
+              return s === slugPattern || s.replace("_", "-") === slugPattern;
+            }
+          );
+          if (found && !sorted.includes(found)) {
+            sorted.push(found);
           }
         });
-        setCategoryData(mapped);
+
+        active.forEach((g) => {
+          if (!sorted.includes(g)) {
+            sorted.push(g);
+          }
+        });
+
+        setDbGalleries(sorted);
+        if (sorted.length > 0) {
+          setActiveSlug(sorted[0].slug);
+        }
       } catch (err) {
         console.error("Failed to load portfolio galleries", err);
       }
@@ -160,12 +182,32 @@ export default function ExplorePortfolioSection() {
     loadGalleries();
   }, []);
 
-  const currentMeta = CATEGORY_META[activeCategory];
-  const transMeta = CATEGORY_META_TRANS[lang as "EN" | "FR"]?.[activeCategory] || CATEGORY_META_TRANS.EN[activeCategory];
-  const currentDbGallery = categoryData[activeCategory];
-  const featuredImage = currentDbGallery?.cover_image?.url || currentMeta.fallbackImg;
-  const linkHref = currentDbGallery ? `/our-gallery/${currentDbGallery.slug}` : `/our-gallery/${activeCategory}`;
+  const currentDbGallery = dbGalleries.find(g => g.slug === activeSlug) || dbGalleries[0];
+  const activeCategoryKey = currentDbGallery?.slug.toLowerCase().replace("_", "-") || "";
+  const currentMeta = CATEGORY_META[activeCategoryKey] || {
+    fallbackImg: "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200",
+    defaultDesc: currentDbGallery?.description || ""
+  };
+
+  const getGalleryLabel = (gal: Gallery) => {
+    const key = gal.slug.toLowerCase().replace("_", "-");
+    const trans = CATEGORY_META_TRANS[lang as "EN" | "FR"]?.[key] || CATEGORY_META_TRANS.EN[key];
+    if (trans) return trans.label;
+    return gal.name.toUpperCase();
+  };
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const rawImage = currentDbGallery?.cover_url || currentDbGallery?.cover_image?.url;
+  const featuredImage = rawImage
+    ? (rawImage.startsWith("http") ? rawImage : `${apiUrl}${rawImage}`)
+    : currentMeta.fallbackImg;
+
+  const linkHref = currentDbGallery ? `/portfolio/${currentDbGallery.slug}` : "#";
   const sectionText = sectionTranslations[lang as "EN" | "FR"] || sectionTranslations.EN;
+
+  if (dbGalleries.length === 0) {
+    return null;
+  }
 
   return (
     <section id="explore-portfolio" className="py-24 bg-white border-b border-brand-border/60">
@@ -187,7 +229,7 @@ export default function ExplorePortfolioSection() {
       <div className="max-w-[1450px] mx-auto px-6 md:px-10">
 
         {/* Header content (reduced title size by 2 points and weight to 200/extralight) */}
-        <div className="text-center mb-2 space-y-3">
+        <div className="text-center mb-12 space-y-3">
           <h3 className="text-3xl sm:text-4xl lg:text-[46px] tracking-[0.25em] font-serif text-brand-dark uppercase" style={{ fontWeight: 200 }}>
             {sectionText.title}
           </h3>
@@ -201,23 +243,21 @@ export default function ExplorePortfolioSection() {
 
           {/* Left Category Menu (space-y-6 for generous vertical space, lg:col-span-3 to narrow the text column and pull the image closer) */}
           <div className="lg:col-span-3 flex flex-col justify-center space-y-6 lg:pl-0 py-2">
-            {Object.keys(CATEGORY_META).map((key) => {
-              const meta = CATEGORY_META[key];
-              const tMeta = CATEGORY_META_TRANS[lang as "EN" | "FR"]?.[key] || CATEGORY_META_TRANS.EN[key];
-              const isActive = activeCategory === key;
-              // Determine custom link for this specific category item
-              const itemDbGallery = categoryData[key];
-              const itemLinkHref = itemDbGallery ? `/our-gallery/${itemDbGallery.slug}` : `/our-gallery/${key}`;
+            {dbGalleries.map((gal, idx) => {
+              const isActive = activeSlug === gal.slug;
+              const prefix = String(idx + 1).padStart(2, "0");
+              const label = getGalleryLabel(gal);
+              const itemLinkHref = `/portfolio/${gal.slug}`;
 
               return (
                 <div
-                  key={key}
-                  onMouseEnter={() => setActiveCategory(key)}
+                  key={gal.id}
+                  onMouseEnter={() => setActiveSlug(gal.slug)}
                   className="group select-none text-left block"
                 >
                   {/* Category Prefix Number */}
                   <span className="text-[10px] sm:text-xs tracking-[0.25em] font-sans text-stone-400 block mb-0.5 animate-fade-in">
-                    {meta.prefix}
+                    {prefix}
                   </span>
 
                   {/* Category Link Label with left-to-right expanding underline */}
@@ -227,7 +267,7 @@ export default function ExplorePortfolioSection() {
                         className={`text-xl sm:text-2xl lg:text-[28px] tracking-[0.18em] font-serif uppercase transition-colors duration-300 block pb-1 relative cursor-pointer leading-none ${isActive ? "text-brand-dark font-normal" : "text-stone-400 hover:text-stone-700"
                           }`}
                       >
-                        {tMeta.label}
+                        {label}
                         <span
                           className={`absolute bottom-0 left-0 h-[1.5px] bg-brand-dark transition-all duration-300 ease-out origin-left ${isActive ? "w-full scale-x-100" : "w-0 scale-x-0 group-hover:w-full group-hover:scale-x-100"
                             }`}
@@ -244,9 +284,9 @@ export default function ExplorePortfolioSection() {
           <div className="lg:col-span-9 flex items-center">
             <Link href={linkHref} className="group block relative w-full h-[320px] sm:h-[450px] md:h-[550px] overflow-hidden bg-brand-cream border border-brand-border/60 rounded-xs shadow-xs cursor-pointer">
               <img
-                key={activeCategory}
+                key={activeSlug}
                 src={featuredImage}
-                alt={`${activeCategory} Collection Preview`}
+                alt={`${activeSlug} Collection Preview`}
                 className="w-full h-full object-cover transition-transform duration-700 ease-out scale-100 group-hover:scale-103"
                 style={{
                   animation: "slide-in-left-to-right 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards"

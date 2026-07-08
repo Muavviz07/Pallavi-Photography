@@ -4,8 +4,9 @@ import React, { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
-import { CheckCircle, Loader2, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { CheckCircle, Loader2, ChevronLeft, ChevronRight, Calendar, Lock } from "lucide-react";
 import { api } from "@/lib/api";
+import { formatToYYYYMMDD } from "@/lib/date";
 
 const contactTranslations = {
   EN: {
@@ -91,9 +92,12 @@ export default function ContactPage() {
 
   // Calendar Booking States
   const [currentDate, setCurrentDate] = useState(new Date());
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState("");
   const [bookedDates, setBookedDates] = useState<string[]>([]);
+  const [calendarSummary, setCalendarSummary] = useState<Record<string, { booked: number; total: number; is_locked?: boolean; has_client_booking?: boolean }>>({});
   const [bookingStatus, setBookingStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [bookingError, setBookingError] = useState("");
   const [bookingForm, setBookingForm] = useState({
@@ -101,6 +105,8 @@ export default function ContactPage() {
     email: "",
     message: ""
   });
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("lang") || "EN";
@@ -114,7 +120,7 @@ export default function ContactPage() {
     return () => window.removeEventListener("languagechange", handleLangChange);
   }, []);
 
-  // Fetch dynamic contact details and blocked dates availability
+  // Fetch dynamic contact details on mount
   useEffect(() => {
     async function loadContactSection() {
       try {
@@ -127,20 +133,30 @@ export default function ContactPage() {
       }
     }
 
+    loadContactSection();
+  }, []);
+
+  // Fetch monthly calendar summary when active year/month transitions
+  useEffect(() => {
     async function fetchAvailability() {
       try {
-        const res = await api.get<any>("/bookings/availability");
+        const start = new Date(year, month, 1);
+        const end = new Date(year, month + 1, 0);
+        const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
+        const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
+
+        const res = await api.get<any>(`/bookings/calendar-summary?start_date=${startStr}&end_date=${endStr}`);
         if (res) {
-          setBookedDates(res);
+          setCalendarSummary(res);
+          const blocked = Object.keys(res).filter(k => res[k].booked === res[k].total);
+          setBookedDates(blocked);
         }
       } catch (err) {
         console.error("Failed to load availability mapping", err);
       }
     }
-
-    loadContactSection();
     fetchAvailability();
-  }, []);
+  }, [currentDate, year, month]);
 
   const t = contactTranslations[lang as "EN" | "FR"] || contactTranslations.EN;
   const displayTitle = lang === "FR" ? (contactData.title_fr || contactData.title) : contactData.title;
@@ -193,7 +209,7 @@ export default function ContactPage() {
       const payload = {
         name: bookingForm.name,
         email: bookingForm.email,
-        date: selectedDate.toISOString().split("T")[0],
+        date: formatToYYYYMMDD(selectedDate),
         time: selectedTime,
         message: bookingForm.message
       };
@@ -213,10 +229,6 @@ export default function ContactPage() {
     }
   };
 
-  // Calendar Math
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -228,6 +240,21 @@ export default function ContactPage() {
     setCurrentDate(new Date(year, month + 1, 1));
   };
 
+  const fetchSlotsForDate = async (targetDate: Date) => {
+    setLoadingSlots(true);
+    try {
+      const dateStr = formatToYYYYMMDD(targetDate);
+      const res = await api.get<any[]>(`/bookings/available-slots?date=${dateStr}`);
+      if (res) {
+        setAvailableSlots(res);
+      }
+    } catch (err) {
+      console.error("Error fetching slots:", err);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
   const handleDateClick = (day: number) => {
     const dateObj = new Date(year, month, day);
     
@@ -237,10 +264,12 @@ export default function ContactPage() {
     if (dateObj < today) return;
 
     // Block already booked dates
-    const isoString = dateObj.toISOString().split("T")[0];
+    const isoString = formatToYYYYMMDD(dateObj);
     if (bookedDates.includes(isoString)) return;
 
     setSelectedDate(dateObj);
+    setSelectedTime("");
+    fetchSlotsForDate(dateObj);
   };
 
   const monthNames = lang === "FR" ? [
@@ -263,28 +292,60 @@ export default function ContactPage() {
     today.setHours(0, 0, 0, 0);
     const isPast = dateObj < today;
 
-    const isoStr = dateObj.toISOString().split("T")[0];
-    const isBooked = bookedDates.includes(isoStr);
+    const isoStr = formatToYYYYMMDD(dateObj);
+    const daySummary = calendarSummary[isoStr];
+    
+    // Distinguish lock types
+    const isFullyLocked = daySummary && daySummary.is_locked && daySummary.booked === daySummary.total;
+    const isPartiallyLocked = daySummary && daySummary.is_locked && daySummary.booked < daySummary.total;
+    const isFullyBooked = bookedDates.includes(isoStr) || (daySummary && !daySummary.is_locked && daySummary.booked === daySummary.total);
     const isSelected = selectedDate && selectedDate.getDate() === d && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
 
-    let dayClass = "text-[#6E635F] hover:bg-[#FAF8F5]/85 hover:border-[#C4A484]/45";
+    let dayClass = "bg-white text-[#6E635F] hover:bg-[#FAF8F5]/85 hover:border-[#C4A484]/45 border-stone-100 shadow-2xs";
     if (isPast) {
-      dayClass = "text-stone-300 cursor-not-allowed line-through";
-    } else if (isBooked) {
-      dayClass = "text-red-300 bg-red-50/20 cursor-not-allowed line-through border border-red-100/10";
+      dayClass = "text-stone-300 cursor-not-allowed line-through bg-stone-50/10";
+    } else if (isFullyLocked) {
+      dayClass = "bg-stone-50 text-stone-400 border-stone-200 cursor-not-allowed";
+    } else if (isFullyBooked) {
+      dayClass = "text-red-700 bg-red-50/60 cursor-not-allowed border border-red-200";
     } else if (isSelected) {
       dayClass = "bg-[#2C2623] text-white font-medium border-[#2C2623] shadow-xs";
+    } else if (daySummary && daySummary.booked > 0) {
+      if (daySummary.booked === 1) {
+        dayClass = "bg-amber-50/40 border-amber-200 text-stone-700 font-medium";
+      } else if (daySummary.booked === 2) {
+        dayClass = "bg-orange-50/50 border-orange-200 text-stone-700 font-medium";
+      } else if (daySummary.booked === 3) {
+        dayClass = "bg-orange-100/40 border-orange-300 text-stone-850 font-semibold";
+      }
     }
 
     daysGrid.push(
       <button
         key={`day-${d}`}
         type="button"
-        disabled={isPast || isBooked}
+        disabled={isPast || isFullyLocked || isFullyBooked}
         onClick={() => handleDateClick(d)}
-        className={`p-3 text-center text-xs rounded-sm border border-transparent transition-all cursor-pointer ${dayClass}`}
+        className={`p-2.5 text-center text-xs rounded-sm border transition-all cursor-pointer flex flex-col items-center justify-between min-h-[50px] ${dayClass}`}
       >
-        {d}
+        <span>{d}</span>
+        {isFullyLocked ? (
+          <span className="flex items-center justify-center scale-90 mb-0.5" title="Manually Locked Timeframe">
+            <Lock className="w-3 h-3 text-stone-450" />
+          </span>
+        ) : isPartiallyLocked ? (
+          <span className="flex items-center justify-center scale-90 mb-0.5 animate-pulse" title="Some Slots Manually Locked">
+            <Lock className="w-2.5 h-2.5 text-amber-500/80" />
+          </span>
+        ) : daySummary && daySummary.booked > 0 ? (
+          <span className={`text-[8px] px-1 py-0.5 rounded-full scale-90 ${
+            isFullyBooked 
+              ? "bg-red-100 text-red-750" 
+              : "bg-[#C4A484]/20 text-[#2C2623] font-medium"
+          }`}>
+            {daySummary.booked} book{daySummary.booked > 1 ? "s" : ""}
+          </span>
+        ) : null}
       </button>
     );
   }
@@ -595,14 +656,18 @@ export default function ContactPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-center space-x-6 text-[10px] text-[#6E635F] pt-4 border-t border-[#DCD0C0]/20 font-light">
+                  <div className="flex items-center justify-center space-x-4 text-[10px] text-[#6E635F] pt-4 border-t border-[#DCD0C0]/20 font-light">
                     <span className="flex items-center space-x-1.5">
                       <span className="w-2.5 h-2.5 rounded-sm bg-[#2C2623]" />
                       <span>Selected</span>
                     </span>
                     <span className="flex items-center space-x-1.5">
-                      <span className="w-2.5 h-2.5 rounded-sm bg-red-50/50 border border-red-200" />
+                      <span className="w-2.5 h-2.5 rounded-sm bg-red-50/60 border border-red-200" />
                       <span>Booked / Out</span>
+                    </span>
+                    <span className="flex items-center space-x-1.5">
+                      <Lock className="w-3 h-3 text-stone-450" />
+                      <span>Locked Day</span>
                     </span>
                   </div>
                 </div>
@@ -625,22 +690,52 @@ export default function ContactPage() {
 
                       <div className="space-y-2">
                         <span className="text-[10px] uppercase text-stone-400 font-semibold block">{t.calendarTimeSlotsLabel}</span>
-                        <div className="grid grid-cols-4 gap-2">
-                          {timeSlots.map((slot) => (
-                            <button
-                              key={slot}
-                              type="button"
-                              onClick={() => setSelectedTime(slot)}
-                              className={`py-2 text-[10px] font-semibold border rounded-sm transition-all cursor-pointer text-center ${
-                                selectedTime === slot
-                                  ? "bg-[#2C2623] text-white border-[#2C2623]"
-                                  : "bg-[#FCFAF7] border-[#DCD0C0]/40 text-[#6E635F] hover:border-[#C4A484]/40"
-                              }`}
-                            >
-                              {slot.slice(0, 5)}
-                            </button>
-                          ))}
-                        </div>
+                        {loadingSlots ? (
+                          <div className="flex items-center space-x-2 py-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-[#C4A484]" />
+                            <span className="text-[10px] text-stone-400">Checking availability...</span>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-4 gap-2">
+                            {availableSlots.map((slot) => {
+                              const isSlotAvailable = slot.available;
+                              const isSelected = selectedTime === slot.time || selectedTime === `${slot.time}:00`;
+                              const isLocked = slot.status === "busy";
+                              
+                              let slotClass = "";
+                              let content = <span>{slot.time}</span>;
+                              
+                              if (isLocked) {
+                                slotClass = "bg-stone-50 border-stone-250 text-stone-400 cursor-not-allowed flex items-center justify-center gap-1";
+                                content = (
+                                  <span className="flex items-center gap-1 font-medium">
+                                    <Lock className="w-2.5 h-2.5 text-stone-400" />
+                                    {slot.time}
+                                  </span>
+                                );
+                              } else if (!isSlotAvailable) {
+                                slotClass = "bg-red-50/20 border-red-100/60 text-red-400 cursor-not-allowed line-through flex items-center justify-center";
+                                content = <span>{slot.time}</span>;
+                              } else if (isSelected) {
+                                slotClass = "bg-[#2C2623] text-white border-[#2C2623]";
+                              } else {
+                                slotClass = "bg-[#FCFAF7] border-[#DCD0C0]/40 text-[#6E635F] hover:border-[#C4A484]/40";
+                              }
+                              
+                              return (
+                                <button
+                                  key={slot.id}
+                                  type="button"
+                                  disabled={!isSlotAvailable}
+                                  onClick={() => setSelectedTime(`${slot.time}:00`)}
+                                  className={`py-2 text-[10px] font-semibold border rounded-sm transition-all cursor-pointer text-center flex items-center justify-center ${slotClass}`}
+                                >
+                                  {content}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-3 pt-2">

@@ -20,6 +20,7 @@ class Booking(Base):
     time: Mapped[Time] = mapped_column(Time, nullable=False)
     message: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String(50), default=BookingStatus.PENDING.value, nullable=False)
+    session_type: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
 
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

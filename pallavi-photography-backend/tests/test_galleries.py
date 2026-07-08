@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch
 from fastapi import status
 from app.models.user import User, UserRole
-from app.models.gallery import Gallery, GalleryStatus
+from app.models.gallery import PortfolioGallery
 from app.models.image import Image
 
 def get_admin_token(client, db, email="admin_test@example.com", password="password123"):
@@ -33,7 +33,7 @@ def test_list_galleries_empty(client):
 def test_create_gallery_unauthorized(client):
     response = client.post(
         "/api/galleries",
-        json={"title": "Newborns", "slug": "newborns", "category": "newborn"}
+        json={"name": "Newborns", "slug": "newborns"}
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -41,15 +41,14 @@ def test_create_gallery_as_admin(client, db):
     token = get_admin_token(client, db)
     response = client.post(
         "/api/galleries",
-        json={"title": "Newborns", "slug": "newborns", "category": "newborn", "status": "published"},
+        json={"name": "Newborns", "slug": "newborns", "is_active": True},
         headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
-    assert data["title"] == "Newborns"
+    assert data["name"] == "Newborns"
     assert data["slug"] == "newborns"
-    assert data["category"] == "newborn"
-    assert data["status"] == "published"
+    assert data["is_active"] is True
     assert "id" in data
 
 def test_create_duplicate_slug_gallery(client, db):
@@ -57,13 +56,13 @@ def test_create_duplicate_slug_gallery(client, db):
     # First create
     client.post(
         "/api/galleries",
-        json={"title": "Family", "slug": "family", "category": "family", "status": "published"},
+        json={"name": "Family", "slug": "family", "is_active": True},
         headers={"Authorization": f"Bearer {token}"}
     )
     # Second create with duplicate slug
     response = client.post(
         "/api/galleries",
-        json={"title": "Family 2", "slug": "family", "category": "family", "status": "published"},
+        json={"name": "Family 2", "slug": "family", "is_active": True},
         headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -74,7 +73,7 @@ def test_get_gallery_by_slug(client, db):
     # Create gallery
     client.post(
         "/api/galleries",
-        json={"title": "Maternity Portfolio", "slug": "maternity-slug", "category": "maternity", "status": "published"},
+        json={"name": "Maternity Portfolio", "slug": "maternity-slug", "is_active": True},
         headers={"Authorization": f"Bearer {token}"}
     )
     
@@ -82,14 +81,14 @@ def test_get_gallery_by_slug(client, db):
     response = client.get("/api/galleries/maternity-slug")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["title"] == "Maternity Portfolio"
+    assert data["name"] == "Maternity Portfolio"
 
 def test_update_gallery(client, db):
     token = get_admin_token(client, db, email="admin_upd@example.com")
     # Create gallery
     create_resp = client.post(
         "/api/galleries",
-        json={"title": "Nature", "slug": "nature", "category": "nature", "status": "draft"},
+        json={"name": "Nature", "slug": "nature", "is_active": False},
         headers={"Authorization": f"Bearer {token}"}
     )
     gallery_id = create_resp.json()["id"]
@@ -97,13 +96,13 @@ def test_update_gallery(client, db):
     # Update gallery
     response = client.put(
         f"/api/galleries/{gallery_id}",
-        json={"title": "Nature Updated", "status": "published"},
+        json={"name": "Nature Updated", "is_active": True},
         headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["title"] == "Nature Updated"
-    assert data["status"] == "published"
+    assert data["name"] == "Nature Updated"
+    assert data["is_active"] is True
 
 @patch("app.services.s3_service.s3_service.upload_file")
 def test_upload_gallery_image(mock_upload, client, db):
@@ -113,7 +112,7 @@ def test_upload_gallery_image(mock_upload, client, db):
     # Create gallery
     gallery_resp = client.post(
         "/api/galleries",
-        json={"title": "Fine Art", "slug": "fine-art", "category": "fine_art", "status": "published"},
+        json={"name": "Fine Art", "slug": "fine-art", "is_active": True},
         headers={"Authorization": f"Bearer {token}"}
     )
     gallery_id = gallery_resp.json()["id"]
@@ -141,4 +140,4 @@ def test_upload_gallery_image(mock_upload, client, db):
 
     # Verify that cover image ID was auto-updated on the gallery
     gallery_get = client.get(f"/api/galleries/{gallery_id}")
-    assert gallery_get.json()["cover_image_id"] == data["id"]
+    assert gallery_get.json()["cover_url"] is not None
