@@ -2,5 +2,7 @@
   "title": "EXPLORE THE PORTFOLIO",
   "desc": "Create memories to treasure for generations",
   "loading": "Loading portfolio...",
-  "noGalleries": "No galleries created yet."
+  "noGalleries": "No galleries created yet.",
+  "gallery_test": "test",
+  "gallery_desc_test": "test.................."
 }

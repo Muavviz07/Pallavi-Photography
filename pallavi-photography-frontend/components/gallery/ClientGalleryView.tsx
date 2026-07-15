@@ -39,7 +39,14 @@ interface ClientGalleryViewProps {
 export default function ClientGalleryView({ slug, token, meta: initialMeta }: ClientGalleryViewProps) {
   const [meta, setMeta] = useState(initialMeta);
   const [images, setImages] = useState<ImageItem[]>([]);
+  const [filterMode, setFilterMode] = useState<"all" | "selected" | "unselected">("all");
   const [loading, setLoading] = useState(true);
+
+  const filteredImages = images.filter((item) => {
+    if (filterMode === "selected") return item.selected;
+    if (filterMode === "unselected") return !item.selected;
+    return true;
+  });
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -47,6 +54,14 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
   const [zipProgress, setZipProgress] = useState(0);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  const getImageUrl = (url: string) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+      return url;
+    }
+    return `${apiUrl}${url}`;
+  };
 
   const fetchImages = async () => {
     try {
@@ -216,11 +231,11 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
     if (lightboxIndex === null) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setLightboxIndex(null);
-      if (e.key === "ArrowRight") setLightboxIndex((prev) => (prev !== null && prev < images.length - 1 ? prev + 1 : 0));
-      if (e.key === "ArrowLeft") setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : images.length - 1));
+      if (e.key === "ArrowRight") setLightboxIndex((prev) => (prev !== null && prev < filteredImages.length - 1 ? prev + 1 : 0));
+      if (e.key === "ArrowLeft") setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : filteredImages.length - 1));
       if (e.key === " ") {
         e.preventDefault();
-        const currentImg = images[lightboxIndex];
+        const currentImg = filteredImages[lightboxIndex];
         if (currentImg && meta.can_submit_selections && !meta.selections_submitted) {
           toggleSelection(currentImg.image_id, currentImg.selected);
         }
@@ -228,7 +243,7 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [lightboxIndex, images, meta]);
+  }, [lightboxIndex, filteredImages, meta]);
 
   return (
     <div className="bg-[#FCFAF7] min-h-screen">
@@ -355,8 +370,51 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
             <p className="text-sm font-light text-[#6E635F]">This private gallery currently contains no photos.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {images.map((item, idx) => {
+          <div className="space-y-8">
+            {/* Filter Tabs */}
+            <div className="flex border-b border-[#DCD0C0]/20 pb-3.5 space-x-8 text-xs font-semibold uppercase tracking-wider">
+              <button
+                type="button"
+                onClick={() => setFilterMode("all")}
+                className={`pb-3 border-b-2 transition-all cursor-pointer ${
+                  filterMode === "all"
+                    ? "border-[#C4A484] text-[#2C2623] font-semibold"
+                    : "border-transparent text-[#6E635F] hover:text-[#2C2623]"
+                }`}
+              >
+                All ({images.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode("selected")}
+                className={`pb-3 border-b-2 transition-all cursor-pointer ${
+                  filterMode === "selected"
+                    ? "border-[#C4A484] text-[#2C2623] font-semibold"
+                    : "border-transparent text-[#6E635F] hover:text-[#2C2623]"
+                }`}
+              >
+                Selected ({images.filter((i) => i.selected).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode("unselected")}
+                className={`pb-3 border-b-2 transition-all cursor-pointer ${
+                  filterMode === "unselected"
+                    ? "border-[#C4A484] text-[#2C2623] font-semibold"
+                    : "border-transparent text-[#6E635F] hover:text-[#2C2623]"
+                }`}
+              >
+                Unselected ({images.filter((i) => !i.selected).length})
+              </button>
+            </div>
+
+            {filteredImages.length === 0 ? (
+              <div className="text-center py-24 border border-dashed border-[#DCD0C0]/35 rounded-sm bg-white text-stone-400 text-xs font-light">
+                No images match the '{filterMode}' filter.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {filteredImages.map((item, idx) => {
               const { image_id, selected, image } = item;
               return (
                 <div
@@ -375,7 +433,7 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
                         e.stopPropagation();
                         toggleSelection(image_id, selected);
                       }}
-                      src={image.thumbnail_url || image.optimized_url}
+                      src={getImageUrl(image.thumbnail_url || image.optimized_url || image.original_url)}
                       alt={image.alt_text}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
                       loading="lazy"
@@ -414,7 +472,7 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
                       {/* Individual Download Icon */}
                       {meta.can_download && (
                         <button
-                          onClick={() => handleDownloadImage(image.optimized_url || image.original_url, `${image.title || 'proof'}.webp`)}
+                          onClick={() => handleDownloadImage(getImageUrl(image.optimized_url || image.original_url), `${image.title || 'proof'}.webp`)}
                           className="w-7 h-7 rounded-full border border-stone-200 text-[#6E635F] hover:text-[#2C2623] hover:border-[#2C2623] bg-white flex items-center justify-center transition-colors cursor-pointer"
                           title="Download high-res WebP"
                         >
@@ -442,6 +500,8 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
                 </div>
               );
             })}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -468,7 +528,7 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
       )}
 
       {/* Lightbox Overlay */}
-      {lightboxIndex !== null && images.length > 0 && (
+      {lightboxIndex !== null && filteredImages.length > 0 && (
         <div className="fixed inset-0 z-[100] bg-[#2C2623]/95 backdrop-blur-md flex items-center justify-center transition-all duration-300">
           {/* Close Lightbox */}
           <button
@@ -481,7 +541,7 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
 
           {/* Left Navigation */}
           <button
-            onClick={() => setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : images.length - 1))}
+            onClick={() => setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : filteredImages.length - 1))}
             className="absolute left-4 sm:left-8 text-stone-400 hover:text-white transition-colors bg-black/20 p-2.5 rounded-full cursor-pointer"
             aria-label="Prev Image"
           >
@@ -491,12 +551,12 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
           {/* Core Image Frame */}
           <div className="max-w-[90vw] max-h-[80vh] flex flex-col items-center justify-center">
             <img
-              src={images[lightboxIndex].image.optimized_url || images[lightboxIndex].image.original_url}
-              alt={images[lightboxIndex].image.alt_text}
+              src={getImageUrl(filteredImages[lightboxIndex].image.optimized_url || filteredImages[lightboxIndex].image.original_url)}
+              alt={filteredImages[lightboxIndex].image.alt_text}
               onDoubleClick={(e) => {
                 e.stopPropagation();
                 if (meta.can_submit_selections && !meta.selections_submitted) {
-                  toggleSelection(images[lightboxIndex].image_id, images[lightboxIndex].selected);
+                  toggleSelection(filteredImages[lightboxIndex].image_id, filteredImages[lightboxIndex].selected);
                 }
               }}
               className="max-w-full max-h-[72vh] object-contain shadow-2xl animate-fade-in cursor-pointer"
@@ -511,29 +571,29 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
             {/* Control Panel Below Lightbox */}
             <div className="mt-4 text-center space-y-2">
               <h4 className="text-sm font-serif font-light text-white tracking-wider">
-                {images[lightboxIndex].image.title}
+                {filteredImages[lightboxIndex].image.title}
               </h4>
               <div className="flex items-center justify-center space-x-4 pt-1">
                 {/* Selection Toggle in Lightbox */}
                 {meta.can_submit_selections && (
                   <button
-                    onClick={() => toggleSelection(images[lightboxIndex].image_id, images[lightboxIndex].selected)}
+                    onClick={() => toggleSelection(filteredImages[lightboxIndex].image_id, filteredImages[lightboxIndex].selected)}
                     disabled={meta.selections_submitted}
                     className={`inline-flex items-center space-x-1.5 text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-sm border cursor-pointer ${
-                      images[lightboxIndex].selected
+                      filteredImages[lightboxIndex].selected
                         ? "bg-[#C4A484] border-[#C4A484] text-white"
                         : "border-stone-500 text-stone-300 hover:border-white hover:text-white"
                     } disabled:opacity-50`}
                   >
                     <Check className="w-3.5 h-3.5" />
-                    <span>{images[lightboxIndex].selected ? "Selected" : "Select Frame"}</span>
+                    <span>{filteredImages[lightboxIndex].selected ? "Selected" : "Select Frame"}</span>
                   </button>
                 )}
 
                 {/* Individual Download inside Lightbox */}
                 {meta.can_download && (
                   <button
-                    onClick={() => handleDownloadImage(images[lightboxIndex].image.optimized_url || images[lightboxIndex].image.original_url, `${images[lightboxIndex].image.title || 'proof'}.webp`)}
+                    onClick={() => handleDownloadImage(getImageUrl(filteredImages[lightboxIndex].image.optimized_url || filteredImages[lightboxIndex].image.original_url), `${filteredImages[lightboxIndex].image.title || 'proof'}.webp`)}
                     className="inline-flex items-center space-x-1.5 text-[10px] uppercase tracking-widest border border-stone-500 text-stone-300 hover:border-white hover:text-white px-3 py-1.5 rounded-sm cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -542,14 +602,14 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
                 )}
               </div>
               <span className="inline-block text-[9px] text-stone-500 font-light">
-                {lightboxIndex + 1} / {images.length}
+                {lightboxIndex + 1} / {filteredImages.length}
               </span>
             </div>
           </div>
 
           {/* Right Navigation */}
           <button
-            onClick={() => setLightboxIndex((prev) => (prev !== null && prev < images.length - 1 ? prev + 1 : 0))}
+            onClick={() => setLightboxIndex((prev) => (prev !== null && prev < filteredImages.length - 1 ? prev + 1 : 0))}
             className="absolute right-4 sm:right-8 text-stone-400 hover:text-white transition-colors bg-black/20 p-2.5 rounded-full cursor-pointer"
             aria-label="Next Image"
           >

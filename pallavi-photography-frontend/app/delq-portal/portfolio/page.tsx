@@ -42,6 +42,17 @@ const CATEGORIES = [
   { key: "nature", label: "Nature" }
 ];
 
+const getFallbackCover = (slug: string) => {
+  const s = (slug || "").toLowerCase().replace("_", "-");
+  if (s.includes("newborn")) return "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200";
+  if (s.includes("children")) return "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=600&auto=format&fit=crop&q=60";
+  if (s.includes("family")) return "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=1200";
+  if (s.includes("maternity")) return "https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=600&auto=format&fit=crop&q=60";
+  if (s.includes("fine-art") || s.includes("fine_art")) return "https://images.unsplash.com/photo-1637511844674-d2c52d5f29b5?w=600&auto=format&fit=crop&q=60";
+  if (s.includes("nature")) return "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=1200";
+  return "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200";
+};
+
 export default function PortfolioAdmin() {
   const { data: session } = useSession();
   const token = (session as any)?.accessToken;
@@ -107,7 +118,17 @@ export default function PortfolioAdmin() {
     setLoading(true);
     try {
       const data = await fetchAPI("/api/galleries", { token });
-      setGalleries(data || []);
+      const REQUIRED_ORDER = ["newborn", "children", "family", "maternity", "fine-art", "fine_art", "nature"];
+      const sorted = (data || []).sort((a: any, b: any) => {
+        const slugA = (a.slug || "").toLowerCase().replace("_", "-");
+        const slugB = (b.slug || "").toLowerCase().replace("_", "-");
+        const idxA = REQUIRED_ORDER.findIndex(p => slugA.includes(p));
+        const idxB = REQUIRED_ORDER.findIndex(p => slugB.includes(p));
+        const valA = idxA === -1 ? 999 : idxA;
+        const valB = idxB === -1 ? 999 : idxB;
+        return valA - valB;
+      });
+      setGalleries(sorted);
     } catch (err) {
       console.error("Failed to load galleries list", err);
     } finally {
@@ -671,7 +692,7 @@ export default function PortfolioAdmin() {
                 </thead>
                 <tbody>
                   {galleries.map((g) => {
-                    const fallbackCover = "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200";
+                    const fallbackCover = getFallbackCover(g.slug);
                     const isDeleting = updatingId === g.id;
                     return (
                       <tr key={g.id} className="border-b border-[#DCD0C0]/15 hover:bg-[#FAF8F5]/30 transition-all duration-200">

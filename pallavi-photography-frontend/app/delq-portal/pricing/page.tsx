@@ -13,7 +13,7 @@ interface PricingPlan {
   button_type: "solid" | "outline";
 }
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   { id: "newborn", label: "Newborn" },
   { id: "children", label: "Children" },
   { id: "family", label: "Family" },
@@ -26,7 +26,8 @@ export default function AdminPricing() {
   const { data: session } = useSession();
   const token = (session as any)?.accessToken;
 
-  const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].id);
+  const [categories, setCategories] = useState<{ id: string; label: string }[]>(DEFAULT_CATEGORIES);
+  const [activeCategory, setActiveCategory] = useState(DEFAULT_CATEGORIES[0].id);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -39,9 +40,44 @@ export default function AdminPricing() {
   const [notesText, setNotesText] = useState("");
   const [plans, setPlans] = useState<PricingPlan[]>([]);
 
-  // Load pricing details for category
+  // Load categories dynamically from galleries list
   useEffect(() => {
     if (!token) return;
+    async function loadCategories() {
+      try {
+        const data = await api.get<any[]>("/galleries", { token });
+        if (data && data.length > 0) {
+          const REQUIRED_ORDER = ["newborn", "children", "family", "maternity", "fine-art", "fine_art", "nature"];
+          
+          // Sort galleries in the desired order
+          const sorted = [...data].sort((a: any, b: any) => {
+            const slugA = (a.slug || "").toLowerCase().replace("_", "-");
+            const slugB = (b.slug || "").toLowerCase().replace("_", "-");
+            const idxA = REQUIRED_ORDER.findIndex(p => slugA.includes(p));
+            const idxB = REQUIRED_ORDER.findIndex(p => slugB.includes(p));
+            const valA = idxA === -1 ? 999 : idxA;
+            const valB = idxB === -1 ? 999 : idxB;
+            return valA - valB;
+          });
+
+          const mapped = sorted.map((g: any) => ({
+            id: g.slug,
+            label: g.name
+          }));
+          
+          setCategories(mapped);
+          setActiveCategory(mapped[0].id);
+        }
+      } catch (err) {
+        console.error("Failed to load dynamic categories", err);
+      }
+    }
+    loadCategories();
+  }, [token]);
+
+  // Load pricing details for category
+  useEffect(() => {
+    if (!token || !activeCategory) return;
 
     async function loadPricing() {
       setLoading(true);
@@ -169,7 +205,7 @@ export default function AdminPricing() {
 
       {/* Categories Tabs Bar */}
       <div className="flex border-b border-[#DCD0C0]/30 overflow-x-auto whitespace-nowrap">
-        {CATEGORIES.map((cat) => (
+        {categories.map((cat) => (
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}

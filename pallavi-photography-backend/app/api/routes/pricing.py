@@ -17,12 +17,21 @@ def get_all_pricing_sections(db: Session = Depends(get_db)):
 # Public: get pricing section details for a category
 @router.get("/{category}", response_model=PricingSectionResponse)
 def get_pricing_section(category: str, db: Session = Depends(get_db)):
-    pricing = db.query(PricingSection).filter(PricingSection.category == category.lower()).first()
+    category_lower = category.lower()
+    pricing = db.query(PricingSection).filter(PricingSection.category == category_lower).first()
     if not pricing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Pricing details for category '{category}' not found."
+        pricing = PricingSection(
+            category=category_lower,
+            title=category.upper(),
+            subtitle="",
+            description="",
+            intro_text="",
+            notes_text="",
+            plans_json="[]"
         )
+        db.add(pricing)
+        db.commit()
+        db.refresh(pricing)
     return pricing
 
 # Admin only: update or create pricing section details for a category

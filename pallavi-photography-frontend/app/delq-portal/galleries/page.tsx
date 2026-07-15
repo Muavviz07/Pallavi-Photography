@@ -90,7 +90,14 @@ export default function AdminGalleries() {
   // Photos Management Pane States
   const [selectedGalleryForPhotos, setSelectedGalleryForPhotos] = useState<ClientGalleryResponse | null>(null);
   const [galleryImages, setGalleryImages] = useState<ImageItem[]>([]);
+  const [filterMode, setFilterMode] = useState<"all" | "selected" | "unselected">("all");
   const [loadingImages, setLoadingImages] = useState(false);
+
+  const filteredGalleryImages = galleryImages.filter((item) => {
+    if (filterMode === "selected") return item.selected;
+    if (filterMode === "unselected") return !item.selected;
+    return true;
+  });
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const [showMediaPicker, setShowMediaPicker] = useState(false);
@@ -144,6 +151,7 @@ export default function AdminGalleries() {
 
   const loadGalleryImages = async (galId: string) => {
     setLoadingImages(true);
+    setFilterMode("all");
     try {
       const data = await fetchAPI(`/api/client-galleries/${galId}/images`, { token });
       setGalleryImages(data);
@@ -985,81 +993,120 @@ export default function AdminGalleries() {
             <p className="text-xs text-[#6E635F] font-light">This gallery is currently empty. Upload photos to get started.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {galleryImages.map((item) => (
-              <div
-                key={item.image_id}
-                className={`relative group bg-[#FAF8F5] border border-[#DCD0C0]/25 rounded-sm overflow-hidden shadow-xs flex flex-col justify-between ${
-                  item.selected ? "ring-2 ring-[#C4A484]/65 border-transparent" : ""
+          <div className="space-y-6">
+            {/* Filter Tabs */}
+            <div className="flex border-b border-[#DCD0C0]/20 pb-3 space-x-6 text-xs font-semibold uppercase tracking-wider">
+              <button
+                type="button"
+                onClick={() => setFilterMode("all")}
+                className={`pb-2 border-b-2 transition-all cursor-pointer ${
+                  filterMode === "all" ? "border-[#C4A484] text-[#2C2623] font-semibold" : "border-transparent text-[#6E635F] hover:text-[#2C2623]"
                 }`}
               >
-                {/* Thumbnail container */}
-                <div className="aspect-square w-full bg-stone-100 overflow-hidden relative">
-                  <img
-                    src={item.image.thumbnail_url || item.image.optimized_url || item.image.original_url}
-                    alt={item.image.alt_text}
-                    className="w-full h-full object-cover"
-                  />
-                  
-                  {/* Selection Overlay Badge */}
-                  {item.selected && (
-                    <div className="absolute top-2 left-2 bg-[#C4A484] text-white p-1 rounded-full shadow-xs" title="Selected by client">
-                      <UserCheck className="w-3.5 h-3.5" />
-                    </div>
-                  )}
+                All ({galleryImages.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode("selected")}
+                className={`pb-2 border-b-2 transition-all cursor-pointer ${
+                  filterMode === "selected" ? "border-[#C4A484] text-[#2C2623] font-semibold" : "border-transparent text-[#6E635F] hover:text-[#2C2623]"
+                }`}
+              >
+                Selected ({galleryImages.filter(i => i.selected).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode("unselected")}
+                className={`pb-2 border-b-2 transition-all cursor-pointer ${
+                  filterMode === "unselected" ? "border-[#C4A484] text-[#2C2623] font-semibold" : "border-transparent text-[#6E635F] hover:text-[#2C2623]"
+                }`}
+              >
+                Unselected ({galleryImages.filter(i => !i.selected).length})
+              </button>
+            </div>
 
-                  {/* Cover image indicator badge */}
-                  {selectedGalleryForPhotos.cover_image_id === item.image.id && (
-                    <div className="absolute top-2 right-2 bg-[#2C2623] text-[#C4A484] p-1.5 rounded-full shadow-xs" title="Gallery Thumbnail / Cover Image">
-                      <Star className="w-3.5 h-3.5 fill-[#C4A484]" />
-                    </div>
-                  )}
-
-                  {/* Actions cover overlay */}
-                  <div className="absolute inset-0 bg-[#2C2623]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-3">
-                    <button
-                      onClick={() => handleSetCoverImage(item.image.id)}
-                      className={`p-2 rounded-full transition-colors cursor-pointer ${
-                        selectedGalleryForPhotos.cover_image_id === item.image.id
-                          ? "bg-[#C4A484] text-white hover:bg-[#C4A484]/90"
-                          : "bg-white/95 text-stone-700 hover:bg-white hover:text-[#C4A484]"
-                      }`}
-                      title="Set as gallery cover/thumbnail"
-                    >
-                      <Star className={`w-4 h-4 ${selectedGalleryForPhotos.cover_image_id === item.image.id ? 'fill-white' : ''}`} />
-                    </button>
-                    <button
-                      onClick={() => handleCropExistingImage(item.image)}
-                      className="p-2 bg-white/95 text-stone-700 hover:bg-white hover:text-[#C4A484] rounded-full transition-colors cursor-pointer"
-                      title="Crop / Edit photo"
-                    >
-                      <Crop className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteImage(item.image.id)}
-                      className="p-2 bg-white/95 rounded-full text-red-600 hover:bg-white transition-colors cursor-pointer"
-                      title="Delete photo"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Meta details */}
-                <div className="p-3 space-y-1">
-                  <p className="text-[10px] text-[#2C2623] truncate font-medium">{item.image.title}</p>
-                  <p className="text-[9px] uppercase tracking-wider font-semibold flex items-center gap-1">
-                    {item.selected ? (
-                      <span className="text-[#C4A484] flex items-center gap-0.5">
-                        <CheckCircle2 className="w-3 h-3" /> Selected
-                      </span>
-                    ) : (
-                      <span className="text-stone-400">Unselected</span>
-                    )}
-                  </p>
-                </div>
+            {filteredGalleryImages.length === 0 ? (
+              <div className="text-center py-20 border border-dashed border-[#DCD0C0]/25 rounded-md bg-white text-stone-400 text-xs font-light">
+                No images match the '{filterMode}' filter.
               </div>
-            ))}
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {filteredGalleryImages.map((item) => (
+                  <div
+                    key={item.image_id}
+                    className={`relative group bg-[#FAF8F5] border border-[#DCD0C0]/25 rounded-sm overflow-hidden shadow-xs flex flex-col justify-between ${
+                      item.selected ? "ring-2 ring-[#C4A484]/65 border-transparent" : ""
+                    }`}
+                  >
+                    {/* Thumbnail container */}
+                    <div className="aspect-square w-full bg-stone-100 overflow-hidden relative">
+                      <img
+                        src={item.image.thumbnail_url || item.image.optimized_url || item.image.original_url}
+                        alt={item.image.alt_text}
+                        className="w-full h-full object-cover"
+                      />
+                      
+                      {/* Selection Overlay Badge */}
+                      {item.selected && (
+                        <div className="absolute top-2 left-2 bg-[#C4A484] text-white p-1 rounded-full shadow-xs" title="Selected by client">
+                          <UserCheck className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+
+                      {/* Cover image indicator badge */}
+                      {selectedGalleryForPhotos.cover_image_id === item.image.id && (
+                        <div className="absolute top-2 right-2 bg-[#2C2623] text-[#C4A484] p-1.5 rounded-full shadow-xs" title="Gallery Thumbnail / Cover Image">
+                          <Star className="w-3.5 h-3.5 fill-[#C4A484]" />
+                        </div>
+                      )}
+
+                      {/* Actions cover overlay */}
+                      <div className="absolute inset-0 bg-[#2C2623]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-3">
+                        <button
+                          onClick={() => handleSetCoverImage(item.image.id)}
+                          className={`p-2 rounded-full transition-colors cursor-pointer ${
+                            selectedGalleryForPhotos.cover_image_id === item.image.id
+                              ? "bg-[#C4A484] text-white hover:bg-[#C4A484]/90"
+                              : "bg-white/95 text-stone-700 hover:bg-white hover:text-[#C4A484]"
+                          }`}
+                          title="Set as Gallery Cover"
+                        >
+                          <Star className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleCropExistingImage(item.image)}
+                          className="p-2 bg-white/95 text-stone-700 hover:bg-white hover:text-[#C4A484] rounded-full transition-colors cursor-pointer"
+                          title="Crop / Edit photo"
+                        >
+                          <Crop className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteImage(item.image.id)}
+                          className="p-2 bg-white/95 rounded-full text-red-600 hover:bg-white transition-colors cursor-pointer"
+                          title="Delete photo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Meta details */}
+                    <div className="p-3 space-y-1">
+                      <p className="text-[10px] text-[#2C2623] truncate font-medium">{item.image.title}</p>
+                      <p className="text-[9px] uppercase tracking-wider font-semibold flex items-center gap-1">
+                        {item.selected ? (
+                          <span className="text-[#C4A484] flex items-center gap-0.5">
+                            <CheckCircle2 className="w-3 h-3" /> Selected
+                          </span>
+                        ) : (
+                          <span className="text-stone-400">Unselected</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
