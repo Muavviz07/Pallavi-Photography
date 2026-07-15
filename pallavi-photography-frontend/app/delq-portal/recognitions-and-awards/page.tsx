@@ -125,19 +125,41 @@ export default function AdminRecognitionsAndAwards() {
 
     setSubmitting(true);
     try {
+      let savedAward;
       if (formMode === "create") {
-        await fetchAPI("/api/admin/recognitions-and-awards", {
+        savedAward = await fetchAPI("/api/admin/recognitions-and-awards", {
           method: "POST",
           token,
           body: JSON.stringify(formData),
         });
       } else {
-        await fetchAPI(`/api/admin/recognitions-and-awards/${selectedAwardId}`, {
+        savedAward = await fetchAPI(`/api/admin/recognitions-and-awards/${selectedAwardId}`, {
           method: "PUT",
           token,
           body: JSON.stringify(formData),
         });
       }
+
+      // Automatically update translation files on the frontend
+      if (savedAward && savedAward.id) {
+        try {
+          await fetch("/api/admin/update-translation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              namespace: "recognitions",
+              bulk: true,
+              updates: {
+                [`award_title_${savedAward.id}`]: formData.title,
+                [`award_desc_${savedAward.id}`]: formData.description || "",
+              }
+            })
+          });
+        } catch (err) {
+          console.error("Failed to automatically update awards translations", err);
+        }
+      }
+
       setShowFormModal(false);
       loadAwards();
     } catch (err: any) {

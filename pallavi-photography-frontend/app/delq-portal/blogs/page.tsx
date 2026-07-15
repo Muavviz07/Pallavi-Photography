@@ -198,6 +198,28 @@ export default function AdminBlogs() {
           body: JSON.stringify(payload),
         });
       }
+
+      // Automatically update locales JSON files on the frontend
+      try {
+        await fetch("/api/admin/update-translation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            namespace: "blogs",
+            bulk: true,
+            updates: {
+              [`title_${formData.slug}`]: formData.title,
+              [`excerpt_${formData.slug}`]: formData.excerpt || "",
+              [`content_${formData.slug}`]: formData.body_content,
+              [`meta_title_${formData.slug}`]: formData.meta_title || "",
+              [`meta_description_${formData.slug}`]: formData.meta_description || "",
+            }
+          })
+        });
+      } catch (err) {
+        console.error("Failed to automatically update blogs translation files", err);
+      }
+
       setShowFormModal(false);
       loadBlogs();
     } catch (err: any) {

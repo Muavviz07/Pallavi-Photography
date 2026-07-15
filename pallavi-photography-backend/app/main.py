@@ -31,6 +31,14 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    exc_name = exc.__class__.__name__
+    if exc_name in ("ClientDisconnected", "ConnectionStateError"):
+        logger.info(f"Client disconnected before response could be fully transmitted: {exc}")
+        return JSONResponse(
+            status_code=499,
+            content={"detail": "Client Closed Request"}
+        )
+
     logger.error(f"Global unhandled exception: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,

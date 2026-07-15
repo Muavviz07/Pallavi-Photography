@@ -112,38 +112,47 @@ const navTranslations: Record<string, Record<string, string>> = {
   }
 };
 
+import { useTranslation } from "@/components/LanguageProvider";
+
 export default function Header() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [language, setLanguage] = useState("EN");
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const storedLang = localStorage.getItem("lang") || "EN";
-    setLanguage(storedLang);
-
-    const handleLangChange = () => {
-      setLanguage(localStorage.getItem("lang") || "EN");
-    };
-
-    window.addEventListener("languagechange", handleLangChange);
-    return () => window.removeEventListener("languagechange", handleLangChange);
-  }, []);
+  const { t: translate, lang: language, setLang } = useTranslation("header");
 
   const toggleLanguage = () => {
-    const nextLang = language === "EN" ? "FR" : "EN";
-    setLanguage(nextLang);
-    localStorage.setItem("lang", nextLang);
-    window.dispatchEvent(new Event("languagechange"));
+    setLang(language === "EN" ? "FR" : "EN");
   };
 
-  const t = navTranslations[language] || navTranslations.EN;
+  const t = {
+    home: translate("home", "HOME"),
+    about: translate("about", "ABOUT"),
+    aboutMe: translate("aboutMe", "About Me"),
+    awards: translate("awards", "Recognitions & Awards"),
+    pricing: translate("pricing", "PRICING"),
+    gallery: translate("gallery", "OUR GALLERY"),
+    clientGallery: translate("clientGallery", "CLIENT GALLERY"),
+    blogs: translate("blogs", "BLOGS"),
+    contact: translate("contact", "CONTACT"),
+    info: translate("info", "INFO"),
+    newborn: translate("newborn", "NewBorn"),
+    children: translate("children", "Children"),
+    family: translate("family", "Family"),
+    maternity: translate("maternity", "Maternity"),
+    fineArt: translate("fineArt", "Fine Art"),
+    nature: translate("nature", "Nature"),
+    naturePhotostock: translate("naturePhotostock", "Nature Photostock"),
+    faqs: translate("faqs", "FAQs"),
+    sidebarBio: translate("sidebarBio", "In the gentle rustle of leaves and the golden glow of light, nature whispers its timeless story. Our photography captures these quiet, breathtaking moments, celebrating the wild beauty of the outdoors and the intimate elegance of beautiful indoor portraits. Whether bathed in sunlight or softly lit indoors, each image tells a story worth remembering."),
+    close: translate("close", "CLOSE")
+  };
 
   const ABOUT_ITEMS = [
     { name: t.aboutMe, href: "/about-me" },
-    { name: t.awards, href: "/about-me?section=awards" }
+    { name: t.awards, href: "/recognitions-and-awards" }
   ];
 
   const PRICING_ITEMS = [
@@ -234,7 +243,7 @@ export default function Header() {
     // Set static defaults first as localizations update
     setDynamicGalleryItems(GALLERY_ITEMS_STATIC);
     fetchDynamicGalleries();
-  }, [t]);
+  }, [language, t.newborn, t.children, t.family, t.maternity, t.fineArt, t.nature]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -308,7 +317,7 @@ export default function Header() {
                           href={item.href}
                           className="block px-3 py-1.5 text-[11px] tracking-wider font-serif italic text-brand-dark hover:text-brand-sage hover:bg-brand-bg transition-colors duration-150 rounded-sm cursor-pointer"
                         >
-                          {item.name === "About Me" ? t.aboutMe : t.awards}
+                          {item.name}
                         </Link>
                       ))}
                     </div>
@@ -452,7 +461,7 @@ export default function Header() {
                 <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
                   {ABOUT_ITEMS.map((item) => (
                     <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
-                      {item.name === "About Me" ? t.aboutMe : t.awards}
+                      {item.name}
                     </Link>
                   ))}
                 </div>

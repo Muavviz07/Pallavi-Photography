@@ -152,16 +152,14 @@ function renderBlogContent(text: string) {
   });
 }
 
+import { useTranslation } from "@/components/LanguageProvider";
+
 export default function BlogDetailPage() {
   const { slug } = useParams();
   const router = useRouter();
   const [post, setPost] = useState<BlogData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lang, setLang] = useState("en");
-
-  useEffect(() => {
-    setLang((localStorage.getItem("lang") || "EN").toLowerCase());
-  }, []);
+  const { t, lang } = useTranslation("blogs");
 
   useEffect(() => {
     if (!slug) return;
@@ -201,6 +199,12 @@ export default function BlogDetailPage() {
 
   if (!post) return null;
 
+  // Retrieve translation values dynamically matching our admin updates
+  const translatedTitle = t(`title_${slug}`, post.title);
+  const translatedContent = t(`content_${slug}`, post.body_content);
+  const translatedMetaTitle = t(`meta_title_${slug}`, post.meta_title || `${translatedTitle} | Pallavi Photography`);
+  const translatedMetaDesc = t(`meta_description_${slug}`, post.meta_description || "");
+
   // Use a reliable fallback if no thumbnail is provided
   const bannerImageUrl =
     post.thumbnail_url ||
@@ -209,18 +213,18 @@ export default function BlogDetailPage() {
   return (
     <>
       {/* Set page meta metadata dynamically */}
-      <title>{post.meta_title || `${post.title} | Pallavi Photography`}</title>
-      {post.meta_description && <meta name="description" content={post.meta_description} />}
+      <title>{translatedMetaTitle}</title>
+      {translatedMetaDesc && <meta name="description" content={translatedMetaDesc} />}
 
       <Header />
 
       {/* Standardized Breadcrumbs Banner */}
       <BreadcrumbsBanner
-        title="Our Blogs"
+        title={lang === "FR" ? "Notre Blog" : "Our Blogs"}
         paths={[
-          { label: "Home", href: "/" },
-          { label: "Our Blogs", href: "/our-blogs" },
-          { label: post.title }
+          { label: lang === "FR" ? "Accueil" : "Home", href: "/" },
+          { label: lang === "FR" ? "Notre Blog" : "Our Blogs", href: "/our-blogs" },
+          { label: translatedTitle }
         ]}
       />
 
@@ -235,11 +239,11 @@ export default function BlogDetailPage() {
               className="text-2xl sm:text-4xl md:text-5xl font-light tracking-[0.2em] font-serif text-[#2C2623] uppercase leading-tight"
               style={{ fontWeight: 200 }}
             >
-              {post.title}
+              {translatedTitle}
             </h1>
             {post.published_date && (
               <span className="text-[10px] md:text-xs uppercase tracking-[0.3em] text-[#C4A484] block mt-5 font-light">
-                {formatDate(post.published_date, lang)}
+                {formatDate(post.published_date, lang.toLowerCase())}
               </span>
             )}
           </div>
@@ -248,14 +252,14 @@ export default function BlogDetailPage() {
           <div className="w-full max-w-4xl mx-auto overflow-hidden bg-stone-100 rounded-sm shadow-md aspect-[3/4] relative">
             <img
               src={bannerImageUrl}
-              alt={post.title}
+              alt={translatedTitle}
               className="w-full h-full object-cover"
             />
           </div>
 
           {/* 4. Blog Body Content */}
           <div className="max-w-5xl mx-auto py-8">
-            {renderBlogContent(post.body_content)}
+            {renderBlogContent(translatedContent)}
           </div>
 
         </div>
@@ -267,7 +271,7 @@ export default function BlogDetailPage() {
               className="text-2xl sm:text-3xl md:text-4xl tracking-[0.3em] font-serif text-brand-dark uppercase" 
               style={{ fontWeight: 300 }}
             >
-              FOLLOW ME ON INSTAGRAM
+              {lang === "FR" ? "SUIVEZ-MOI SUR INSTAGRAM" : "FOLLOW ME ON INSTAGRAM"}
             </h3>
             <a 
               href="https://instagram.com/Pallavivishk" 

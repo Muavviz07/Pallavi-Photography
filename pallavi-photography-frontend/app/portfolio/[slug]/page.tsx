@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
+import { useTranslation } from "@/components/LanguageProvider";
 
 const FALLBACK_IMAGES: Record<string, Array<{ id: string; url: string; title: string; altText: string; aspect?: string }>> = {
   newborn: [
@@ -60,29 +62,16 @@ interface GalleryImage {
   aspect?: string;
 }
 
-export default function DynamicPortfolioPage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = React.use(params);
-  const slug = resolvedParams.slug;
+export default function PortfolioGalleryPage() {
+  const { slug } = useParams() as { slug: string };
   const categoryKey = slug.toLowerCase();
-
+  
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
-  const [lang, setLang] = useState("EN");
+  const { t, lang } = useTranslation("portfolio");
   const [galleryTitle, setGalleryTitle] = useState("");
   const [galleryDescription, setGalleryDescription] = useState("");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("lang") || "EN";
-    setLang(stored);
-
-    const handleLangChange = () => {
-      setLang(localStorage.getItem("lang") || "EN");
-    };
-
-    window.addEventListener("languagechange", handleLangChange);
-    return () => window.removeEventListener("languagechange", handleLangChange);
-  }, []);
 
   useEffect(() => {
     async function fetchGalleryDetails() {
@@ -181,7 +170,9 @@ export default function DynamicPortfolioPage({ params }: { params: Promise<{ slu
     setActiveImageIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : images.length - 1));
   };
 
-  const bannerTitle = galleryTitle ? galleryTitle.toUpperCase() : "PORTFOLIO";
+  const displayTitle = t(`gallery_${slug}`, galleryTitle);
+  const displayDesc = t(`gallery_desc_${slug}`, galleryDescription);
+  const bannerTitle = displayTitle ? displayTitle.toUpperCase() : "PORTFOLIO";
 
   return (
     <>
@@ -199,13 +190,13 @@ export default function DynamicPortfolioPage({ params }: { params: Promise<{ slu
       <main className="flex-1 pt-14 pb-24 bg-[#FCFAF7]">
         <div className="max-w-7xl mx-auto px-6 md:px-10 mb-16 text-left space-y-6 animate-fade-in">
           <h2 className="text-xl sm:text-2xl md:text-[28px] tracking-[0.2em] font-serif text-brand-dark uppercase font-light leading-snug">
-            {galleryTitle.toUpperCase()}
+            {displayTitle.toUpperCase()}
           </h2>
           
           <div className="w-12 h-[1.5px] bg-[#A3A69C] opacity-60"></div>
           
           <div className="space-y-5 text-sm text-stone-500 font-sans font-light leading-relaxed tracking-wide text-justify">
-            {galleryDescription.split("\n\n").map((para, idx) => {
+            {displayDesc.split("\n\n").map((para, idx) => {
               const isLead = idx === 0;
               return (
                 <p key={idx} className={isLead ? "text-stone-600 font-normal text-base leading-relaxed" : ""}>

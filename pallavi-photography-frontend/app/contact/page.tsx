@@ -7,66 +7,10 @@ import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
 import { CheckCircle, Loader2, ChevronLeft, ChevronRight, Calendar, Lock } from "lucide-react";
 import { api } from "@/lib/api";
 import { formatToYYYYMMDD } from "@/lib/date";
-
-const contactTranslations = {
-  EN: {
-    bannerTitle: "CONTACT",
-    emailLabel: "EMAIL",
-    callLabel: "CALL ME",
-    whatsappLabel: "WHATSAPP",
-    followLabel: "FOLLOW",
-    nameFormLabel: "NAME",
-    emailFormLabel: "E-MAIL",
-    dateFormLabel: "TENTATIVE DATE",
-    messageFormLabel: "TELL US MORE",
-    sendBtn: "SEND",
-    successTitle: "Message Sent!",
-    successDesc: "Thank you for reaching out. We have received your inquiry and will respond within 24–48 hours to discuss your photography details.",
-    
-    // Calendar translation keys
-    calendarSubtitle: "RESERVATION CALENDAR",
-    calendarTitle: "BOOK A PHOTOSHOOT SLOT",
-    calendarDesc: "Select an available date and time below to submit your photoshoot session request. The studio will reach out to approve details.",
-    calendarSuccessTitle: "Request Submitted!",
-    calendarSuccessDesc: "Thank you! Your photoshoot slot request has been sent successfully. We will check availability and send you an email confirmation shortly.",
-    calendarResetBtn: "BOOK ANOTHER SLOT",
-    calendarDateLabel: "Date",
-    calendarTimeSlotsLabel: "Available Time Slots",
-    calendarMsgLabel: "Add Message (Optional)",
-    calendarCtaBtn: "Request Session Slot",
-    calendarPlaceholder: "Please select an available date from the calendar to proceed."
-  },
-  FR: {
-    bannerTitle: "CONTACT",
-    emailLabel: "E-MAIL",
-    callLabel: "APPELEZ-MOI",
-    whatsappLabel: "WHATSAPP",
-    followLabel: "SUIVRE",
-    nameFormLabel: "NOM",
-    emailFormLabel: "E-MAIL",
-    dateFormLabel: "DATE PRÉVUE",
-    messageFormLabel: "DITES-EN PLUS",
-    sendBtn: "ENVOYER",
-    successTitle: "Message Envoyé !",
-    successDesc: "Merci pour votre message. Nous avons bien reçu votre demande et nous vous répondrons dans les 24 à 48 heures pour discuter des détails de votre séance.",
-    
-    // Calendar translation keys
-    calendarSubtitle: "CALENDRIER DE RÉSERVATION",
-    calendarTitle: "RÉSERVER UN CRÉNEAU",
-    calendarDesc: "Sélectionnez une date et un horaire disponibles ci-dessous pour soumettre votre demande de séance photo. Le studio vous contactera pour valider les détails.",
-    calendarSuccessTitle: "Demande Envoyée !",
-    calendarSuccessDesc: "Merci ! Votre demande de créneau a bien été envoyée. Nous allons vérifier la disponibilité et vous envoyer un e-mail de confirmation très vite.",
-    calendarResetBtn: "RÉSERVER UN AUTRE CRÉNEAU",
-    calendarDateLabel: "Date",
-    calendarTimeSlotsLabel: "Créneaux Horaires Disponibles",
-    calendarMsgLabel: "Message (Optionnel)",
-    calendarCtaBtn: "Demander ce Créneau",
-    calendarPlaceholder: "Veuillez sélectionner une date disponible sur le calendrier pour continuer."
-  }
-};
+import { useTranslation } from "@/components/LanguageProvider";
 
 export default function ContactPage() {
-  const [lang, setLang] = useState("EN");
+  const { t: translate, lang } = useTranslation("contact");
   const [contactData, setContactData] = useState({
     title: "LET'S CONNECT",
     title_fr: "CONTACTONS-NOUS",
@@ -108,18 +52,6 @@ export default function ContactPage() {
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("lang") || "EN";
-    setLang(stored);
-
-    const handleLangChange = () => {
-      setLang(localStorage.getItem("lang") || "EN");
-    };
-
-    window.addEventListener("languagechange", handleLangChange);
-    return () => window.removeEventListener("languagechange", handleLangChange);
-  }, []);
-
   // Fetch dynamic contact details on mount
   useEffect(() => {
     async function loadContactSection() {
@@ -158,10 +90,35 @@ export default function ContactPage() {
     fetchAvailability();
   }, [currentDate, year, month]);
 
-  const t = contactTranslations[lang as "EN" | "FR"] || contactTranslations.EN;
-  const displayTitle = lang === "FR" ? (contactData.title_fr || contactData.title) : contactData.title;
-  const displayP1 = lang === "FR" ? (contactData.p1_fr || contactData.p1) : contactData.p1;
-  const displayP2 = lang === "FR" ? (contactData.p2_fr || contactData.p2) : contactData.p2;
+  const t = {
+    bannerTitle: translate("bannerTitle", "CONTACT"),
+    emailLabel: translate("emailLabel", "EMAIL"),
+    callLabel: translate("callLabel", "CALL ME"),
+    whatsappLabel: translate("whatsappLabel", "WHATSAPP"),
+    followLabel: translate("followLabel", "FOLLOW"),
+    nameFormLabel: translate("nameFormLabel", "NAME"),
+    emailFormLabel: translate("emailFormLabel", "E-MAIL"),
+    dateFormLabel: translate("dateFormLabel", "TENTATIVE DATE"),
+    messageFormLabel: translate("messageFormLabel", "TELL US MORE"),
+    sendBtn: translate("sendBtn", "SEND"),
+    successTitle: translate("successTitle", "Message Sent!"),
+    successDesc: translate("successDesc", "Thank you for reaching out. We have received your inquiry and will respond within 24–48 hours to discuss your photography details."),
+    calendarSubtitle: translate("calendarSubtitle", "RESERVATION CALENDAR"),
+    calendarTitle: translate("calendarTitle", "BOOK A PHOTOSHOOT SLOT"),
+    calendarDesc: translate("calendarDesc", "Select an available date and time below to submit your photoshoot session request. The studio will reach out to approve details."),
+    calendarSuccessTitle: translate("calendarSuccessTitle", "Request Submitted!"),
+    calendarSuccessDesc: translate("calendarSuccessDesc", "Thank you! Your photoshoot slot request has been sent successfully. We will check availability and send you an email confirmation shortly."),
+    calendarResetBtn: translate("calendarResetBtn", "BOOK ANOTHER SLOT"),
+    calendarDateLabel: translate("calendarDateLabel", "Date"),
+    calendarTimeSlotsLabel: translate("calendarTimeSlotsLabel", "Available Time Slots"),
+    calendarMsgLabel: translate("calendarMsgLabel", "Add Message (Optional)"),
+    calendarCtaBtn: translate("calendarCtaBtn", "Request Session Slot"),
+    calendarPlaceholder: translate("calendarPlaceholder", "Please select an available date from the calendar to proceed.")
+  };
+
+  const displayTitle = translate("letsConnect", lang === "FR" ? (contactData.title_fr || contactData.title) : contactData.title);
+  const displayP1 = translate("connectDesc1", lang === "FR" ? (contactData.p1_fr || contactData.p1) : contactData.p1);
+  const displayP2 = translate("connectDesc2", lang === "FR" ? (contactData.p2_fr || contactData.p2) : contactData.p2);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

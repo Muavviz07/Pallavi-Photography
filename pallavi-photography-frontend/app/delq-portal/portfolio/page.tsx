@@ -179,6 +179,25 @@ export default function PortfolioAdmin() {
           body: JSON.stringify(body),
         });
       }
+
+      // Automatically update translation files on the frontend
+      try {
+        await fetch("/api/admin/update-translation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            namespace: "portfolio",
+            bulk: true,
+            updates: {
+              [`gallery_${galleryForm.slug}`]: galleryForm.name,
+              [`gallery_desc_${galleryForm.slug}`]: galleryForm.description || "",
+            }
+          })
+        });
+      } catch (err) {
+        console.error("Failed to automatically update portfolio translations", err);
+      }
+
       setShowGalleryModal(false);
       await loadAllGalleries();
     } catch (err: any) {
@@ -224,6 +243,25 @@ export default function PortfolioAdmin() {
           is_active: galleryStatus === "published"
         })
       });
+
+      // Automatically update translation files on the frontend
+      try {
+        await fetch("/api/admin/update-translation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            namespace: "portfolio",
+            bulk: true,
+            updates: {
+              [`gallery_${gallery.slug}`]: galleryTitle,
+              [`gallery_desc_${gallery.slug}`]: galleryDesc || "",
+            }
+          })
+        });
+      } catch (err) {
+        console.error("Failed to automatically update portfolio translations", err);
+      }
+
       setGallery(updated);
       setEditingGallery(false);
       await loadAllGalleries();

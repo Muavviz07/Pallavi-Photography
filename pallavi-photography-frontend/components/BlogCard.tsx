@@ -10,6 +10,8 @@ interface BlogCardProps {
   published_date?: string;
 }
 
+import { useTranslation } from "@/components/LanguageProvider";
+
 export default function BlogCard({
   title,
   slug,
@@ -17,11 +19,10 @@ export default function BlogCard({
   thumbnail_url,
   published_date,
 }: BlogCardProps) {
-  const [lang, setLang] = useState("en");
+  const { t, lang } = useTranslation("blogs");
 
-  useEffect(() => {
-    setLang((localStorage.getItem("lang") || "EN").toLowerCase());
-  }, []);
+  const translatedTitle = t(`title_${slug}`, title);
+  const translatedExcerpt = t(`excerpt_${slug}`, excerpt || "No description available.");
 
   const imageUrl =
     thumbnail_url ||
@@ -37,7 +38,7 @@ export default function BlogCard({
         >
           <img
             src={imageUrl}
-            alt={title}
+            alt={translatedTitle}
             className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-102"
             loading="lazy"
           />
@@ -48,20 +49,20 @@ export default function BlogCard({
           {/* Metadata */}
           {published_date && (
             <span className="text-[9px] uppercase tracking-[0.2em] text-stone-400 block">
-              {formatDate(published_date, lang)}
+              {formatDate(published_date, lang.toLowerCase())}
             </span>
           )}
 
           {/* Title - serif, uppercase, wide letter spacing */}
           <Link href={`/our-blogs/${slug}`} className="block">
             <h4 className="text-lg md:text-xl font-light tracking-[0.16em] font-serif text-[#2C2623] hover:text-[#C4A484] transition-colors duration-300 leading-snug uppercase">
-              {title}
+              {translatedTitle}
             </h4>
           </Link>
 
           {/* Excerpt */}
           <p className="text-xs text-[#6E635F] leading-relaxed font-light font-sans line-clamp-3">
-            {excerpt || "No description available."}
+            {translatedExcerpt}
           </p>
         </div>
       </div>

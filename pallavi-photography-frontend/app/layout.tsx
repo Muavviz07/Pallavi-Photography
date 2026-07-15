@@ -14,9 +14,8 @@ const inter = Inter({
   display: "swap",
 });
 
-import { SessionProvider } from "next-auth/react";
 import WhatsAppButton from "@/components/common/WhatsAppButton";
-import LanguageSwitcher from "@/components/common/LanguageSwitcher";
+import LanguageToggle from "@/components/LanguageToggle";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
@@ -35,13 +34,11 @@ export default function RootLayout({
       className={`${playfair.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#FCFAF7] text-[#2C2623] font-sans selection:bg-[#EAE4DC] selection:text-[#352F2C]">
-        <SessionProvider>
-          <Providers>
-            {children}
-            <WhatsAppButton />
-            <LanguageSwitcher />
-          </Providers>
-        </SessionProvider>
+        <Providers>
+          {children}
+          <WhatsAppButton />
+          <LanguageToggle />
+        </Providers>
       </body>
     </html>
   );

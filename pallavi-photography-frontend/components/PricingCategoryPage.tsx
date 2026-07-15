@@ -7,6 +7,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
 import { api } from "@/lib/api";
+import { useTranslation } from "@/components/LanguageProvider";
 
 interface PricingPlan {
   name: string;
@@ -252,19 +253,7 @@ export default function PricingCategoryPage() {
 
   const [pricing, setPricing] = useState<PricingData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lang, setLang] = useState("EN");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("lang") || "EN";
-    setLang(stored);
-
-    const handleLangChange = () => {
-      setLang(localStorage.getItem("lang") || "EN");
-    };
-
-    window.addEventListener("languagechange", handleLangChange);
-    return () => window.removeEventListener("languagechange", handleLangChange);
-  }, []);
+  const { t, lang } = useTranslation("portfolio");
 
   useEffect(() => {
     async function loadPricing() {
@@ -302,6 +291,24 @@ export default function PricingCategoryPage() {
     );
   }
 
+  // Retrieve translation values dynamically matching our admin updates
+  const displayTitle = t(`pricing_title_${category}`, pricing.title);
+  const displaySubtitle = t(`pricing_subtitle_${category}`, pricing.subtitle);
+  const displayDesc = t(`pricing_desc_${category}`, pricing.description || "");
+  const displayIntro = t(`pricing_intro_${category}`, pricing.intro_text || "");
+  const displayNotes = t(`pricing_notes_${category}`, pricing.notes_text || "");
+
+  // Map and translate plans & features dynamically
+  const displayPlans = (pricing.plans || []).map((plan, planIdx) => {
+    return {
+      ...plan,
+      name: t(`pricing_plan_name_${category}_${planIdx}`, plan.name),
+      features: (plan.features || []).map((feature, featIdx) => 
+        t(`pricing_plan_feature_${category}_${planIdx}_${featIdx}`, feature)
+      )
+    };
+  });
+
   // Parse price label details helper
   const parsePrice = (priceStr: string) => {
     const parts = priceStr.split(" ");
@@ -317,10 +324,10 @@ export default function PricingCategoryPage() {
 
       {/* Standardized Breadcrumbs Banner */}
       <BreadcrumbsBanner
-        title={pricing.subtitle}
+        title={displaySubtitle}
         paths={[
-          { label: "Home", href: "/" },
-          { label: pricing.subtitle.charAt(0) + pricing.subtitle.slice(1).toLowerCase() }
+          { label: lang === "FR" ? "Accueil" : "Home", href: "/" },
+          { label: displaySubtitle.charAt(0) + displaySubtitle.slice(1).toLowerCase() }
         ]}
       />
 
@@ -331,14 +338,14 @@ export default function PricingCategoryPage() {
           {/* Top Intro Section (Clean Full-Width Text Layout matching Grid width) */}
           <div className="w-full text-left space-y-6">
             <h2 className="text-xl sm:text-2xl md:text-[28px] tracking-[0.2em] font-serif text-brand-dark uppercase font-light leading-snug">
-              {pricing.title}
+              {displayTitle}
             </h2>
             
             <div className="w-12 h-[1.5px] bg-[#A3A69C] opacity-60"></div>
             
             {/* Split description block by paragraphs */}
             <div className="space-y-5 text-sm text-stone-500 font-sans font-light leading-relaxed tracking-wide text-justify">
-              {pricing.intro_text.split("\n\n").map((para, idx) => {
+              {displayIntro.split("\n\n").map((para, idx) => {
                 const isLead = idx === 0;
                 return (
                   <p key={idx} className={isLead ? "text-stone-600 font-normal text-base leading-relaxed" : ""}>
@@ -361,12 +368,12 @@ export default function PricingCategoryPage() {
 
             {/* Note text below button */}
             <p className="text-xs text-stone-400 font-serif italic pt-1">
-              {pricing.description}
+              {displayDesc}
             </p>
           </div>
 
           {/* Package Lists Section (Rendered only if category has plans) */}
-          {pricing.plans && pricing.plans.length > 0 && (
+          {displayPlans && displayPlans.length > 0 && (
             <div className="space-y-20 pt-6">
               
               {/* Standard Session Packages */}
@@ -374,7 +381,7 @@ export default function PricingCategoryPage() {
                 {/* Pricing Grid Title */}
                 <div className="text-center space-y-2">
                   <h3 className="text-2xl sm:text-3xl tracking-[0.25em] font-serif text-brand-dark uppercase" style={{ fontWeight: 300 }}>
-                    {pricing.subtitle}
+                    {displaySubtitle}
                   </h3>
                   <p className="text-xs sm:text-sm font-serif italic text-stone-500">
                     {lang === "FR" 
@@ -385,7 +392,7 @@ export default function PricingCategoryPage() {
 
                 {/* Packages Grid (Flex wrap to align 1, 2, or 3 packages to the middle/center horizontally) */}
                 <div className="flex flex-wrap justify-center gap-8 items-stretch">
-                  {pricing.plans.slice(0, 3).map((plan, index) => {
+                  {displayPlans.slice(0, 3).map((plan, index) => {
                     const priceData = parsePrice(plan.price);
 
                     return (
@@ -446,7 +453,7 @@ export default function PricingCategoryPage() {
               </div>
 
               {/* Maternity & Newborn Combo Section (Rendered only if additional combo plans exist) */}
-              {pricing.plans.length > 3 && (
+              {displayPlans.length > 3 && (
                 <div className="space-y-12 pt-8 border-t border-stone-100">
                   <div className="text-center space-y-2">
                     <h3 className="text-2xl sm:text-3xl tracking-[0.25em] font-serif text-brand-dark uppercase" style={{ fontWeight: 300 }}>
@@ -459,7 +466,7 @@ export default function PricingCategoryPage() {
 
                   {/* Combo Packages Grid (Centered Flex Container for less than 3 packages) */}
                   <div className="flex flex-wrap justify-center gap-8 items-stretch">
-                    {pricing.plans.slice(3).map((plan) => {
+                    {displayPlans.slice(3).map((plan) => {
                       const priceData = parsePrice(plan.price);
 
                       return (
@@ -521,9 +528,9 @@ export default function PricingCategoryPage() {
               )}
 
               {/* Bottom Notes Block */}
-              {pricing.notes_text && (
+              {displayNotes && (
                 <div className="bg-[#FAF8F5] border border-stone-200/60 p-8 md:p-12 rounded-none space-y-6 text-center max-w-4xl mx-auto">
-                  {pricing.notes_text.split("\n\n").map((note, idx) => {
+                  {displayNotes.split("\n\n").map((note, idx) => {
                     const isTitle = note.startsWith("NOTE:") || note.startsWith("Note:");
                     return (
                       <p

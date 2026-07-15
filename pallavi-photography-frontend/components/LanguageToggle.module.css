@@ -1,0 +1,98 @@
+.languageToggle {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.toggleContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 110px;
+  height: 46px;
+  background: #e1dfdb;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 
+    inset 2px 3px 6px rgba(44, 38, 35, 0.16), 
+    inset -2px -3px 6px rgba(255, 255, 255, 0.8),
+    0 1px 2px rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  outline: none;
+  padding: 0;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.toggleContainer:hover {
+  background: #d8d6d2;
+}
+
+.labelText {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #554e4a;
+  letter-spacing: 0.04em;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  user-select: none;
+}
+
+.labelLeft {
+  left: 20px;
+}
+
+.labelRight {
+  right: 20px;
+}
+
+.flagKnob {
+  position: absolute;
+  top: 3px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 
+    0 4px 8px rgba(44, 38, 35, 0.22), 
+    0 1px 3px rgba(44, 38, 35, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.flagSvg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+}
+
+/* Glassy overlay to match the 3D bubble look of the flags in the reference design */
+.glassOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg, 
+    rgba(255, 255, 255, 0.5) 0%, 
+    rgba(255, 255, 255, 0) 50%, 
+    rgba(0, 0, 0, 0.06) 60%, 
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .languageToggle {
+    bottom: 16px;
+    left: 16px;
+  }
+}

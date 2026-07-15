@@ -21,23 +21,13 @@ interface FAQGroup {
   items: FAQItem[];
 }
 
+import { useTranslation } from "@/components/LanguageProvider";
+
 export default function FAQsPage() {
-  const [lang, setLang] = useState("EN");
+  const { lang } = useTranslation("common");
   const [faqGroups, setFaqGroups] = useState<FAQGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    const stored = localStorage.getItem("lang") || "EN";
-    setLang(stored);
-
-    const handleLangChange = () => {
-      setLang(localStorage.getItem("lang") || "EN");
-    };
-
-    window.addEventListener("languagechange", handleLangChange);
-    return () => window.removeEventListener("languagechange", handleLangChange);
-  }, []);
 
   const fallbackDataEN: FAQGroup[] = [
     {

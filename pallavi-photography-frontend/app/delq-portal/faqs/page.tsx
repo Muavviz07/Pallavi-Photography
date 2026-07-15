@@ -128,13 +128,58 @@ export default function AdminFAQsPage() {
       return;
     }
 
+    let finalQuestionFr = questionFr;
+    let finalAnswerFr = answerFr;
+    let finalCategoryFr = categoryFr;
+
+    // Automatically translate empty French fields on save
+    if (!finalQuestionFr || !finalAnswerFr || !finalCategoryFr) {
+      try {
+        if (!finalQuestionFr) {
+          const res = await fetch("/api/admin/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: question }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            finalQuestionFr = data.translatedText;
+          }
+        }
+        if (!finalAnswerFr) {
+          const res = await fetch("/api/admin/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: answer, isMarkdown: true }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            finalAnswerFr = data.translatedText;
+          }
+        }
+        if (!finalCategoryFr) {
+          const res = await fetch("/api/admin/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: finalCategory }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            finalCategoryFr = data.translatedText;
+          }
+        }
+      } catch (err) {
+        console.error("Auto-translation for FAQ failed", err);
+      }
+    }
+
     const payload = {
       question,
       answer,
-      question_fr: questionFr || null,
-      answer_fr: answerFr || null,
+      question_fr: finalQuestionFr || null,
+      answer_fr: finalAnswerFr || null,
       category: finalCategory,
-      category_fr: categoryFr || null,
+      category_fr: finalCategoryFr || null,
       order: Number(orderVal)
     };
 

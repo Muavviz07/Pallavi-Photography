@@ -17,37 +17,19 @@ interface BlogData {
   is_published: boolean;
 }
 
-const translations = {
-  EN: {
-    title: "READ OUR BLOG",
-    desc: "Create memories to treasure for generations",
-    loading: "Loading journals...",
-    noPosts: "No journal articles published yet.",
-  },
-  FR: {
-    title: "LIRE NOTRE BLOG",
-    desc: "Créer des souvenirs à chérir pour des générations",
-    loading: "Chargement des articles...",
-    noPosts: "Aucun article de blog publié pour le moment.",
-  },
-};
+import { useTranslation } from "@/components/LanguageProvider";
 
 export default function BlogsListPage() {
   const [posts, setPosts] = useState<BlogData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lang, setLang] = useState("EN");
+  const { t: translate, lang } = useTranslation("blogs");
 
-  useEffect(() => {
-    const stored = localStorage.getItem("lang") || "EN";
-    setLang(stored);
-
-    const handleLangChange = () => {
-      setLang(localStorage.getItem("lang") || "EN");
-    };
-
-    window.addEventListener("languagechange", handleLangChange);
-    return () => window.removeEventListener("languagechange", handleLangChange);
-  }, []);
+  const t = {
+    title: translate("title", "READ OUR BLOG"),
+    desc: translate("desc", "Create memories to treasure for generations"),
+    loading: translate("loading", "Loading journals..."),
+    noPosts: translate("noPosts", "No journal articles published yet."),
+  };
 
   useEffect(() => {
     async function fetchPosts() {
@@ -68,8 +50,6 @@ export default function BlogsListPage() {
     }
     fetchPosts();
   }, []);
-
-  const t = translations[lang as "EN" | "FR"] || translations.EN;
 
   return (
     <>

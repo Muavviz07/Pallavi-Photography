@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -40,7 +40,17 @@ export default function AdminLayout({
     return `${baseClass} border-transparent text-stone-300 hover:bg-white/5 hover:text-white`;
   };
 
-  if (status === "loading") {
+  const userRole = (session?.user as any)?.role;
+  const hasSessionError = (session as any)?.error === "RefreshAccessTokenError";
+  const shouldRedirect = status === "unauthenticated" || !session?.user || hasSessionError || (userRole !== "admin" && userRole !== "super_admin" && userRole !== "client");
+
+  useEffect(() => {
+    if (shouldRedirect && status !== "loading") {
+      router.replace("/login");
+    }
+  }, [shouldRedirect, status, router]);
+
+  if (status === "loading" || shouldRedirect) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FCFAF7]">
         <div className="text-center space-y-4">
@@ -49,14 +59,6 @@ export default function AdminLayout({
         </div>
       </div>
     );
-  }
-
-  const userRole = (session?.user as any)?.role;
-  const hasSessionError = (session as any)?.error === "RefreshAccessTokenError";
-
-  if (status === "unauthenticated" || !session?.user || hasSessionError || (userRole !== "admin" && userRole !== "super_admin" && userRole !== "client")) {
-    router.replace("/login");
-    return null;
   }
 
   const isSuperAdmin = userRole === "super_admin";

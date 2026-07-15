@@ -41,37 +41,17 @@ const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-const footerTranslations = {
-  EN: {
-    followUs: "FOLLOW US",
-    newsletter: "NEWSLETTER",
-    followLatest: "Follow our latest stories.",
-    privacy: "Privacy Policy"
-  },
-  FR: {
-    followUs: "SUIVEZ-NOUS",
-    newsletter: "NEWSLETTER",
-    followLatest: "Suivez nos dernières histoires.",
-    privacy: "Politique de Confidentialité"
-  }
-};
+import { useTranslation } from "@/components/LanguageProvider";
 
 export default function Footer() {
-  const [lang, setLang] = React.useState("EN");
+  const { t: translate, lang } = useTranslation("footer");
 
-  React.useEffect(() => {
-    const stored = localStorage.getItem("lang") || "EN";
-    setLang(stored);
-
-    const handleLangChange = () => {
-      setLang(localStorage.getItem("lang") || "EN");
-    };
-
-    window.addEventListener("languagechange", handleLangChange);
-    return () => window.removeEventListener("languagechange", handleLangChange);
-  }, []);
-
-  const t = footerTranslations[lang as "EN" | "FR"] || footerTranslations.EN;
+  const t = {
+    followUs: translate("followUs", "FOLLOW US"),
+    newsletter: translate("newsletter", "NEWSLETTER"),
+    followLatest: translate("followLatest", "Follow our latest stories."),
+    privacy: translate("privacy", "Privacy Policy")
+  };
 
   return (
     <footer className="bg-white text-brand-dark pt-20 border-t border-brand-border/60">

@@ -11,35 +11,16 @@ import BlogSection from "@/components/BlogSection";
 import ContactForm from "@/components/forms/ContactForm";
 import Footer from "@/components/layout/Footer";
 
-const pageTranslations = {
-  EN: {
-    getInTouch: "GET IN TOUCH",
-    followLatest: "Follow our latest stories.",
-    followInsta: "FOLLOW ME ON INSTAGRAM",
-  },
-  FR: {
-    getInTouch: "CONTACTEZ-NOUS",
-    followLatest: "Suivez nos dernières histoires.",
-    followInsta: "SUIVEZ-MOI SUR INSTAGRAM",
-  }
-};
+import { useTranslation } from "@/components/LanguageProvider";
 
 export default function Home() {
-  const [lang, setLang] = useState("EN");
+  const { t: translate, lang } = useTranslation("common");
 
-  useEffect(() => {
-    const stored = localStorage.getItem("lang") || "EN";
-    setLang(stored);
-
-    const handleLangChange = () => {
-      setLang(localStorage.getItem("lang") || "EN");
-    };
-
-    window.addEventListener("languagechange", handleLangChange);
-    return () => window.removeEventListener("languagechange", handleLangChange);
-  }, []);
-
-  const t = pageTranslations[lang as "EN" | "FR"] || pageTranslations.EN;
+  const t = {
+    getInTouch: translate("getInTouchUppercase", "GET IN TOUCH"),
+    followLatest: translate("followLatest", "Follow our latest stories."),
+    followInsta: translate("followInsta", "FOLLOW ME ON INSTAGRAM"),
+  };
 
   return (
     <>

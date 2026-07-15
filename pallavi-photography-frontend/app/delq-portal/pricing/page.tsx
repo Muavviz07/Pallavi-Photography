@@ -110,6 +110,37 @@ export default function AdminPricing() {
       };
 
       await api.patch(`/pricing/${activeCategory}`, payload, { token });
+
+      // Automatically update translation files on the frontend (saved in portfolio.json namespace)
+      try {
+        const planUpdates: Record<string, string> = {};
+        plans.forEach((plan, planIdx) => {
+          planUpdates[`pricing_plan_name_${activeCategory}_${planIdx}`] = plan.name;
+          plan.features.forEach((feature, featIdx) => {
+            planUpdates[`pricing_plan_feature_${activeCategory}_${planIdx}_${featIdx}`] = feature;
+          });
+        });
+
+        await fetch("/api/admin/update-translation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            namespace: "portfolio",
+            bulk: true,
+            updates: {
+              [`pricing_title_${activeCategory}`]: title,
+              [`pricing_subtitle_${activeCategory}`]: subtitle || "",
+              [`pricing_desc_${activeCategory}`]: description || "",
+              [`pricing_intro_${activeCategory}`]: introText || "",
+              [`pricing_notes_${activeCategory}`]: notesText || "",
+              ...planUpdates
+            }
+          })
+        });
+      } catch (err) {
+        console.error("Failed to automatically update pricing translations", err);
+      }
+
       setStatus("success");
     } catch (err: any) {
       console.error("Failed to update pricing plans", err);
