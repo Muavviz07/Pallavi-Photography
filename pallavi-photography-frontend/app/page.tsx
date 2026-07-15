@@ -61,7 +61,7 @@ export default function Home() {
           </div>
 
           {/* Form wrapper (styled with white background and thin border matching screenshot) */}
-          <div className="max-w-3xl mx-auto bg-white border border-stone-200/80 p-8 md:p-16 rounded-xs">
+          <div className="max-w-4xl mx-auto bg-white border border-stone-200/80 p-8 md:p-16 rounded-xs">
             <ContactForm />
           </div>
         </div>

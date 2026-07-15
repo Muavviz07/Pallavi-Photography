@@ -117,6 +117,9 @@ import { useTranslation } from "@/components/LanguageProvider";
 export default function Header() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileAboutOpen, setIsMobileAboutOpen] = useState(false);
+  const [isMobilePricingOpen, setIsMobilePricingOpen] = useState(false);
+  const [isMobileGalleryOpen, setIsMobileGalleryOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -247,6 +250,9 @@ export default function Header() {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsMobileAboutOpen(false);
+    setIsMobilePricingOpen(false);
+    setIsMobileGalleryOpen(false);
     setActiveDropdown(null);
   }, [pathname]);
 
@@ -284,7 +290,7 @@ export default function Header() {
           </div>
 
           {/* Center Column: Navigation Menu (Centering layout with flex-1/flex-initial boundary) */}
-          <div className="hidden lg:flex flex-shrink-0 justify-center">
+          <div className="hidden xl:flex flex-shrink-0 justify-center">
             <nav className="flex items-center space-x-9 xl:space-x-13 text-[11px] font-medium tracking-[0.25em] text-brand-dark whitespace-nowrap">
               <Link
                 href="/"
@@ -413,7 +419,7 @@ export default function Header() {
           <div className="flex-1 flex justify-end">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="hidden lg:flex items-center space-x-3 text-brand-muted hover:text-brand-dark transition-colors duration-250 cursor-pointer pb-2 border-b-2 border-transparent text-[11px] uppercase tracking-[0.25em]"
+              className="hidden xl:flex items-center space-x-3 text-brand-muted hover:text-brand-dark transition-colors duration-250 cursor-pointer pb-2 border-b-2 border-transparent text-[11px] uppercase tracking-[0.25em]"
             >
               <span className="font-semibold">{t.info}</span>
               <div className="flex flex-col space-y-[4.5px]">
@@ -423,7 +429,7 @@ export default function Header() {
             </button>
 
             {/* Mobile Menu & Sidebar Buttons */}
-            <div className="flex items-center space-x-3 lg:hidden z-50">
+            <div className="flex items-center space-x-3 xl:hidden z-50">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="text-brand-dark hover:text-brand-sage p-2 cursor-pointer"
@@ -435,65 +441,175 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile Full-Screen Overlay */}
+        {/* Mobile Full-Screen Overlay (Accordion Menu with split link targets & premium aesthetics) */}
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-40 bg-[#1A1A1A]/95 text-white flex flex-col justify-center px-8 py-16 space-y-6 animate-fade-in lg:hidden">
+          <div className="fixed inset-0 z-40 bg-[#1C1816]/98 backdrop-blur-md text-white flex flex-col justify-between px-8 pt-20 pb-10 animate-fade-in overflow-y-auto xl:hidden">
+            {/* Top Close Button */}
             <button
               onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute top-6 right-6 text-white hover:text-brand-sage cursor-pointer"
+              className="absolute top-6 right-6 text-white/80 hover:text-white transition-colors cursor-pointer p-2"
+              aria-label="Close Menu"
             >
-              <X className="w-7 h-7" />
+              <X className="w-6 h-6" />
             </button>
             
-            <div className="flex flex-col space-y-4 text-center font-serif text-xl tracking-wider">
-              <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
-                {t.home}
+            <div className="flex flex-col items-center w-full max-w-sm mx-auto select-none pt-4">
+              {/* Branding Logo inside menu */}
+              <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="mb-10 block">
+                <img
+                  src="/Pallavi-Logo-V1.webp"
+                  alt="Pallavi Photography Logo"
+                  className="h-32 w-auto object-contain brightness-0 invert opacity-90"
+                />
               </Link>
-              
-              <div className="space-y-1">
-                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">{t.about}</span>
-                <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
-                  {ABOUT_ITEMS.map((item) => (
-                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
-                      {item.name}
+
+              <div className="flex flex-col space-y-5 text-left w-full font-serif text-lg tracking-widest">
+                
+                {/* HOME */}
+                <Link 
+                  href="/" 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="text-white/90 hover:text-[#C4A484] transition-colors cursor-pointer border-b border-white/5 pb-2 text-[12px] tracking-[0.25em] font-sans font-medium uppercase"
+                >
+                  {t.home}
+                </Link>
+                
+                {/* ABOUT - Split Link & Toggle */}
+                <div className="border-b border-white/5 pb-2">
+                  <div className="w-full flex items-center justify-between">
+                    <Link
+                      href="/about-me"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-white/90 hover:text-[#C4A484] transition-colors text-[12px] tracking-[0.25em] font-sans font-medium uppercase py-1 flex-1"
+                    >
+                      {t.about}
                     </Link>
-                  ))}
+                    <button
+                      onClick={() => setIsMobileAboutOpen(!isMobileAboutOpen)}
+                      className="pl-4 py-1 flex items-center justify-center text-white/50 hover:text-[#C4A484] transition-colors border-l border-white/10 outline-hidden cursor-pointer"
+                      aria-label="Toggle About Submenu"
+                    >
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isMobileAboutOpen ? "rotate-180 text-[#C4A484]" : ""}`} />
+                    </button>
+                  </div>
+                  {isMobileAboutOpen && (
+                    <div className="mt-2.5 p-3.5 bg-white/[0.03] border border-white/5 rounded-xs flex flex-col space-y-3 animate-fade-in">
+                      {ABOUT_ITEMS.map((item) => (
+                        <Link 
+                          key={item.name} 
+                          href={item.href} 
+                          onClick={() => setIsMobileMenuOpen(false)} 
+                          className="text-[11px] font-sans tracking-[0.15em] text-white/70 hover:text-[#C4A484] uppercase transition-colors"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">{t.pricing}</span>
-                <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
-                  {PRICING_ITEMS.map((item) => (
-                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
-                      {item.name}
+                {/* PRICING - Full Toggle (since no main landing page) */}
+                <div className="border-b border-white/5 pb-2">
+                  <button
+                    onClick={() => setIsMobilePricingOpen(!isMobilePricingOpen)}
+                    className="w-full flex items-center justify-between text-white/90 hover:text-[#C4A484] transition-colors text-[12px] tracking-[0.25em] font-sans font-medium uppercase py-1 text-left outline-hidden cursor-pointer"
+                  >
+                    <span>{t.pricing}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isMobilePricingOpen ? "rotate-180 text-[#C4A484]" : "text-white/40"}`} />
+                  </button>
+                  {isMobilePricingOpen && (
+                    <div className="mt-2.5 p-3.5 bg-white/[0.03] border border-white/5 rounded-xs flex flex-col space-y-3 animate-fade-in">
+                      {PRICING_ITEMS.map((item) => (
+                        <Link 
+                          key={item.name} 
+                          href={item.href} 
+                          onClick={() => setIsMobileMenuOpen(false)} 
+                          className="text-[11px] font-sans tracking-[0.15em] text-white/70 hover:text-[#C4A484] uppercase transition-colors"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* OUR GALLERY - Split Link & Toggle */}
+                <div className="border-b border-white/5 pb-2">
+                  <div className="w-full flex items-center justify-between">
+                    <Link
+                      href="/our-gallery"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-white/90 hover:text-[#C4A484] transition-colors text-[12px] tracking-[0.25em] font-sans font-medium uppercase py-1 flex-1"
+                    >
+                      {t.gallery}
                     </Link>
-                  ))}
+                    <button
+                      onClick={() => setIsMobileGalleryOpen(!isMobileGalleryOpen)}
+                      className="pl-4 py-1 flex items-center justify-center text-white/50 hover:text-[#C4A484] transition-colors border-l border-white/10 outline-hidden cursor-pointer"
+                      aria-label="Toggle Gallery Submenu"
+                    >
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isMobileGalleryOpen ? "rotate-180 text-[#C4A484]" : ""}`} />
+                    </button>
+                  </div>
+                  {isMobileGalleryOpen && (
+                    <div className="mt-2.5 p-3.5 bg-white/[0.03] border border-white/5 rounded-xs flex flex-col space-y-3 animate-fade-in">
+                      {dynamicGalleryItems.map((item) => (
+                        <Link 
+                          key={item.name} 
+                          href={item.href} 
+                          onClick={() => setIsMobileMenuOpen(false)} 
+                          className="text-[11px] font-sans tracking-[0.15em] text-white/70 hover:text-[#C4A484] uppercase transition-colors"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
+                {/* CLIENT GALLERY */}
+                <Link 
+                  href="/client-galleries" 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="text-white/90 hover:text-[#C4A484] transition-colors cursor-pointer border-b border-white/5 pb-2 text-[12px] tracking-[0.25em] font-sans font-medium uppercase"
+                >
+                  {t.clientGallery}
+                </Link>
+
+                {/* BLOGS */}
+                <Link 
+                  href="/our-blogs" 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="text-white/90 hover:text-[#C4A484] transition-colors cursor-pointer border-b border-white/5 pb-2 text-[12px] tracking-[0.25em] font-sans font-medium uppercase"
+                >
+                  {t.blogs}
+                </Link>
+
+                {/* CONTACT */}
+                <Link 
+                  href="/contact" 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="text-white/90 hover:text-[#C4A484] transition-colors cursor-pointer border-b border-white/5 pb-2 text-[12px] tracking-[0.25em] font-sans font-medium uppercase"
+                >
+                  {t.contact}
+                </Link>
               </div>
+            </div>
 
-              <div className="space-y-1">
-                <span className="text-brand-sage text-[10px] tracking-widest block uppercase font-sans font-semibold">{t.gallery}</span>
-                <div className="flex flex-col space-y-2 text-sm font-sans tracking-wide">
-                  {dynamicGalleryItems.map((item) => (
-                    <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-coral cursor-pointer">
-                      {item.name}
-                    </Link>
-                  ))}
-                </div>
+            {/* Bottom Footer (Social links & branding details) */}
+            <div className="text-center space-y-3 pt-8 border-t border-white/5 w-full max-w-sm mx-auto">
+              <div className="flex justify-center space-x-6 text-[10px] uppercase tracking-widest text-white/40">
+                <a href="https://instagram.com/Pallavivishk" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+                  Instagram
+                </a>
+                <span>•</span>
+                <Link href="/contact" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-white transition-colors">
+                  Contact
+                </Link>
               </div>
-
-              <Link href="/client-galleries" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
-                {t.clientGallery}
-              </Link>
-
-              <Link href="/our-blogs" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
-                {t.blogs}
-              </Link>
-
-              <Link href="/contact" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-brand-sage transition-colors cursor-pointer">
-                {t.contact}
-              </Link>
+              <p className="text-[9px] uppercase tracking-[0.2em] text-white/30">
+                © {new Date().getFullYear()} PALLAVI PHOTOGRAPHY
+              </p>
             </div>
           </div>
         )}

@@ -69,7 +69,7 @@ export default function BlogSection() {
 
   return (
     <section className="py-24 bg-[#FCFAF7] border-b border-brand-border">
-      <div className="max-w-[1250px] mx-auto px-6 md:px-12">
+      <div className="max-w-[1360px] mx-auto px-6 md:px-8">
         
         {/* Section Header matching screenshot 2 */}
         <div className="text-center mb-16 space-y-4">
@@ -95,7 +95,7 @@ export default function BlogSection() {
           </div>
         ) : (
           /* Grid of exactly 3 cards (3 cols on desktop, 1 col on mobile) */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
             {posts.map((post) => {
               const cardImage =
                 post.thumbnail_url ||
@@ -131,13 +131,13 @@ export default function BlogSection() {
 
                       {/* Header in all-caps serif */}
                       <Link href={`/our-blogs/${post.slug}`} className="block">
-                        <h4 className="text-lg md:text-xl font-light tracking-[0.16em] font-serif text-[#2C2623] hover:text-[#C4A484] transition-colors duration-300 leading-snug uppercase">
+                        <h4 className="text-lg md:text-xl font-light tracking-[0.16em] font-serif text-[#2C2623] hover:text-[#C4A484] transition-colors duration-300 leading-snug uppercase" style={{ fontWeight: 300 }}>
                           {post.title}
                         </h4>
                       </Link>
 
                       {/* Paragraph body excerpt */}
-                      <p className="text-xs text-[#6E635F] leading-relaxed font-light font-sans line-clamp-3">
+                      <p className="text-sm text-[#6E635F] leading-relaxed font-light font-sans line-clamp-3">
                         {post.excerpt || "No description available."}
                       </p>
                     </div>

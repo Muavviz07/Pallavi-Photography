@@ -55,13 +55,13 @@ export default function BlogCard({
 
           {/* Title - serif, uppercase, wide letter spacing */}
           <Link href={`/our-blogs/${slug}`} className="block">
-            <h4 className="text-lg md:text-xl font-light tracking-[0.16em] font-serif text-[#2C2623] hover:text-[#C4A484] transition-colors duration-300 leading-snug uppercase">
+            <h4 className="text-lg md:text-xl font-light tracking-[0.16em] font-serif text-[#2C2623] hover:text-[#C4A484] transition-colors duration-300 leading-snug uppercase" style={{ fontWeight: 300 }}>
               {translatedTitle}
             </h4>
           </Link>
 
           {/* Excerpt */}
-          <p className="text-xs text-[#6E635F] leading-relaxed font-light font-sans line-clamp-3">
+          <p className="text-sm text-[#6E635F] leading-relaxed font-light font-sans line-clamp-3">
             {translatedExcerpt}
           </p>
         </div>
