@@ -425,12 +425,6 @@ export default function Header() {
             {/* Mobile Menu & Sidebar Buttons */}
             <div className="flex items-center space-x-3 lg:hidden z-50">
               <button
-                onClick={toggleLanguage}
-                className="text-xs text-brand-dark hover:text-brand-sage px-2 py-1 cursor-pointer"
-              >
-                {language}
-              </button>
-              <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="text-brand-dark hover:text-brand-sage p-2 cursor-pointer"
                 aria-label="Toggle Mobile Menu"

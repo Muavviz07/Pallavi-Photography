@@ -26,7 +26,7 @@ const FALLBACK_SLIDES: Slide[] = [
   {
     id: "fb-2",
     title: "Timeless Childhood",
-    image_url: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fENoaWxkcmVuJTIwcGhvdG9zaG9vdHxlbnwwfHwwfHx8MA%3D%3D",
+    image_url: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?auto=format&fit=crop&q=80&w=1200",
     order: 2,
     is_active: true
   },
@@ -40,14 +40,14 @@ const FALLBACK_SLIDES: Slide[] = [
   {
     id: "fb-4",
     title: "Maternity Grace",
-    image_url: "https://images.unsplash.com/photo-1615766553246-9147b6d50e90?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8TWF0ZXJuaXR5JTIwcGhvdG9zaG9vdHxlbnwwfHwwfHx8MA%3D%3D",
+    image_url: "https://images.unsplash.com/photo-1615766553246-9147b6d50e90?auto=format&fit=crop&q=80&w=1200",
     order: 4,
     is_active: true
   },
   {
     id: "fb-5",
     title: "Fine Art Portraits",
-    image_url: "https://images.unsplash.com/photo-1637511844674-d2c52d5f29b5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8RmluZWFydCUyMHBob3Rvc2hvb3R8ZW58MHx8MHx8fDA%3D",
+    image_url: "https://images.unsplash.com/photo-1637511844674-d2c52d5f29b5?auto=format&fit=crop&q=80&w=1200",
     order: 5,
     is_active: true
   },
@@ -60,29 +60,72 @@ const FALLBACK_SLIDES: Slide[] = [
   },
   {
     id: "fb-7",
-    title: "Newborn Details",
-    image_url: "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200",
+    title: "Newborn Dreams",
+    image_url: "https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&q=80&w=1200",
     order: 7,
     is_active: true
   },
   {
     id: "fb-8",
-    title: "Milestone Moments",
-    image_url: "https://images.unsplash.com/photo-1624029769501-5a6cfec0d9e0?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fENoaWxkcmVuJTIwcGhvdG9zaG9vdHxlbnwwfHwwfHx8MA%3D%3D",
+    title: "Sibling Joy",
+    image_url: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=1200",
     order: 8,
     is_active: true
   },
   {
     id: "fb-9",
-    title: "Maternity Elegance",
-    image_url: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=1200",
+    title: "Parents Bond",
+    image_url: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=1200",
     order: 9,
+    is_active: true
+  },
+  {
+    id: "fb-10",
+    title: "Maternity Expectation",
+    image_url: "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&q=80&w=1200",
+    order: 10,
+    is_active: true
+  },
+  {
+    id: "fb-11",
+    title: "Classic Fine Art",
+    image_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=1200",
+    order: 11,
+    is_active: true
+  },
+  {
+    id: "fb-12",
+    title: "Forest Pathways",
+    image_url: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1200",
+    order: 12,
+    is_active: true
+  },
+  {
+    id: "fb-13",
+    title: "Baby Feet",
+    image_url: "https://images.unsplash.com/photo-1555252333-9f8e92e67de9?auto=format&fit=crop&q=80&w=1200",
+    order: 13,
+    is_active: true
+  },
+  {
+    id: "fb-14",
+    title: "Cozy Family Time",
+    image_url: "https://images.unsplash.com/photo-1484712401471-05c7215a64eb?auto=format&fit=crop&q=80&w=1200",
+    order: 14,
+    is_active: true
+  },
+  {
+    id: "fb-15",
+    title: "Scenic Hills",
+    image_url: "https://images.unsplash.com/photo-1472214222541-d510753a4907?auto=format&fit=crop&q=80&w=1200",
+    order: 15,
     is_active: true
   }
 ];
 
 export default function HeroSlider() {
-  const [slides, setSlides] = useState<Slide[]>(FALLBACK_SLIDES);
+  const [slides, setSlides] = useState<Slide[]>([]);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
 
   useEffect(() => {
@@ -94,22 +137,23 @@ export default function HeroSlider() {
         }
       } catch (err) {
         console.error("Failed to load hero slides", err);
+      } finally {
+        setHasLoaded(true);
       }
     }
     fetchSlides();
   }, []);
 
-  // Merge database slides with fallbacks and sort by order_position ascending
-  const activeSlides = (slides.length >= 9 ? slides.slice(0, 9) : [
-    ...slides,
-    ...FALLBACK_SLIDES.slice(0, 9 - slides.length)
-  ])
+  const displaySlides = hasLoaded && slides.length > 0 ? slides : FALLBACK_SLIDES;
+
+  const activeSlides = displaySlides
     .filter(slide => slide.is_active !== false)
     .sort((a, b) => {
       const posA = a.order_position !== undefined ? a.order_position : (a.order || 0);
       const posB = b.order_position !== undefined ? b.order_position : (b.order || 0);
       return posA - posB;
-    });
+    })
+    .slice(0, 15);
 
   // Background Prefetching of all slides to ensure lag-free image rendering
   useEffect(() => {

@@ -68,6 +68,7 @@ export default function PortfolioGalleryPage() {
   
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
   const { t, lang } = useTranslation("portfolio");
   const [galleryTitle, setGalleryTitle] = useState("");
@@ -76,6 +77,7 @@ export default function PortfolioGalleryPage() {
   useEffect(() => {
     async function fetchGalleryDetails() {
       setLoading(true);
+      setNotFound(false);
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       
       try {
@@ -98,6 +100,17 @@ export default function PortfolioGalleryPage() {
               };
             });
             setImages(formatted);
+            setLoading(false);
+            return;
+          } else {
+            setImages([]);
+            setLoading(false);
+            return;
+          }
+        } else if (res.status === 404) {
+          const DEFAULT_SLUGS = ["newborn", "children", "maternity", "family", "fine-art", "nature"];
+          if (!DEFAULT_SLUGS.includes(categoryKey)) {
+            setNotFound(true);
             setLoading(false);
             return;
           }
@@ -173,6 +186,42 @@ export default function PortfolioGalleryPage() {
   const displayTitle = t(`gallery_${slug}`, galleryTitle);
   const displayDesc = t(`gallery_desc_${slug}`, galleryDescription);
   const bannerTitle = displayTitle ? displayTitle.toUpperCase() : "PORTFOLIO";
+
+  if (notFound) {
+    return (
+      <>
+        <Header />
+        <BreadcrumbsBanner
+          title="NOT FOUND"
+          paths={[
+            { label: lang === "FR" ? "Accueil" : "Home", href: "/" },
+            { label: lang === "FR" ? "Galerie" : "Our Gallery", href: "/our-gallery" },
+            { label: "404" }
+          ]}
+        />
+        <main className="flex-1 min-h-[50vh] flex flex-col items-center justify-center bg-[#FCFAF7] px-6 py-20 text-center">
+          <div className="space-y-4 max-w-md">
+            <h2 className="text-xl sm:text-2xl tracking-[0.2em] font-serif text-[#2C2623] uppercase font-light leading-snug">
+              Gallery Not Found
+            </h2>
+            <div className="w-12 h-[1.5px] bg-[#A3A69C] opacity-60 mx-auto"></div>
+            <p className="text-xs sm:text-sm text-stone-500 font-sans font-light leading-relaxed tracking-wide">
+              The portfolio gallery you are looking for does not exist or has been deleted by the administrator.
+            </p>
+            <div className="pt-6">
+              <Link
+                href="/our-gallery"
+                className="inline-flex items-center space-x-2 text-[10px] font-sans uppercase tracking-[0.25em] bg-[#2C2623] text-white hover:bg-[#C4A484] px-8 py-3.5 transition-colors duration-300 rounded-sm cursor-pointer"
+              >
+                <span>Back to Galleries</span>
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>

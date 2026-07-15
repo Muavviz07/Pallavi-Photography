@@ -411,9 +411,9 @@ export default function AdminGalleries() {
       }
 
       // 2. Remove the old image link from this gallery
-      await fetch(`${apiUrl}/api/client-galleries/${selectedGalleryForPhotos.id}/images/${croppingExistingImage.id}`, {
+      await fetchAPI(`/api/client-galleries/${selectedGalleryForPhotos.id}/images/${croppingExistingImage.id}`, {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
+        token
       });
 
       setShowCropper(false);
