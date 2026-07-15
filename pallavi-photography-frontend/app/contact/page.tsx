@@ -259,6 +259,8 @@ export default function ContactPage() {
     const isSelected = selectedDate && selectedDate.getDate() === d && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
 
     let dayClass = "bg-white text-[#6E635F] hover:bg-[#FAF8F5]/85 hover:border-[#C4A484]/45 border-stone-100 shadow-2xs";
+    let inlineStyle: React.CSSProperties = {};
+
     if (isPast) {
       dayClass = "text-stone-300 cursor-not-allowed line-through bg-stone-50/10";
     } else if (isFullyLocked) {
@@ -268,13 +270,13 @@ export default function ContactPage() {
     } else if (isSelected) {
       dayClass = "bg-[#2C2623] text-white font-medium border-[#2C2623] shadow-xs";
     } else if (daySummary && daySummary.booked > 0) {
-      if (daySummary.booked === 1) {
-        dayClass = "bg-amber-50/40 border-amber-200 text-stone-700 font-medium";
-      } else if (daySummary.booked === 2) {
-        dayClass = "bg-orange-50/50 border-orange-200 text-stone-700 font-medium";
-      } else if (daySummary.booked === 3) {
-        dayClass = "bg-orange-100/40 border-orange-300 text-stone-850 font-semibold";
-      }
+      // Clean, premium linear gradient covering booked fraction (n/4th of the slot background from left to right)
+      const totalSlots = daySummary.total || 4;
+      const fillPercent = Math.min(100, Math.round((daySummary.booked / totalSlots) * 100));
+      dayClass = "border-[#E8E8E8] text-stone-850 font-medium hover:border-[#C4A484]/45";
+      inlineStyle = {
+        background: `linear-gradient(to right, rgba(212, 165, 165, 0.42) ${fillPercent}%, #FFFFFF ${fillPercent}%)`
+      };
     }
 
     daysGrid.push(
@@ -284,6 +286,7 @@ export default function ContactPage() {
         disabled={isPast || isFullyLocked || isFullyBooked}
         onClick={() => handleDateClick(d)}
         className={`p-2.5 text-center text-xs rounded-sm border transition-all cursor-pointer flex flex-col items-center justify-between min-h-[50px] ${dayClass}`}
+        style={inlineStyle}
       >
         <span>{d}</span>
         {isFullyLocked ? (
@@ -295,12 +298,8 @@ export default function ContactPage() {
             <Lock className="w-2.5 h-2.5 text-amber-500/80" />
           </span>
         ) : daySummary && daySummary.booked > 0 ? (
-          <span className={`text-[8px] px-1 py-0.5 rounded-full scale-90 ${
-            isFullyBooked 
-              ? "bg-red-100 text-red-750" 
-              : "bg-[#C4A484]/20 text-[#2C2623] font-medium"
-          }`}>
-            {daySummary.booked} book{daySummary.booked > 1 ? "s" : ""}
+          <span className="text-[8px] px-1.5 py-0.5 rounded-sm bg-white/70 text-stone-500 border border-stone-200/40 font-light tracking-wide scale-90 mb-0.5 whitespace-nowrap">
+            {daySummary.booked}/{daySummary.total || 4} {lang === "FR" ? "rés." : "booked"}
           </span>
         ) : null}
       </button>
