@@ -8,6 +8,7 @@ class Image(Base):
     """
     Centralized media library. All uploaded images are stored here.
     Portfolio galleries link via gallery_id; client galleries via ClientGalleryImage junction.
+    Supports S3/Garage storage with presigned URLs & dual expiration policies.
     """
 
     __tablename__ = "images"
@@ -24,12 +25,27 @@ class Image(Base):
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     category: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
 
+    # File naming & URLs
+    file_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    original_url: Mapped[str] = mapped_column(
-        String(500), nullable=False, unique=True, index=True
+    original_url: Mapped[str | None] = mapped_column(
+        String(2000), nullable=True, index=True
     )
-    optimized_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    thumbnail_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    optimized_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    thumbnail_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+
+    # S3 Storage & Presigned URL details
+    s3_key: Mapped[str | None] = mapped_column(String(500), nullable=True, index=True)
+    s3_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    url_expiration_time: Mapped[DateTime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    image_type: Mapped[str | None] = mapped_column(
+        String(50), default="public", nullable=True
+    )  # 'public', 'client_gallery'
+    client_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    local_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    content_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
     dimensions: Mapped[dict | None] = mapped_column(

@@ -28,13 +28,13 @@ docker-compose up -d
 
 Terminal 2:
 
-cd pallavi-photography-backend
+cd backend
 venv\Scripts\activate
 python main.py
 
 Terminal 3:
 
-cd pallavi-photography-frontend
+cd frontend
 npm run dev
 
 

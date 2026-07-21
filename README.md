@@ -45,7 +45,7 @@ This will launch:
 
 1.  Navigate to the backend directory:
     ```bash
-    cd pallavi-photography-backend
+    cd backend
     ```
 
 2.  Create and activate a Python virtual environment:
@@ -82,7 +82,7 @@ This will launch:
 
 1.  Open a new terminal session and navigate to the frontend directory:
     ```bash
-    cd pallavi-photography-frontend
+    cd frontend
     ```
 
 2.  Install dependencies:

@@ -3,6 +3,9 @@ export interface MediaItem {
   filename: string;
   file_url: string;
   original_url: string;
+  s3_key?: string;
+  image_type?: string;
+  client_id?: string;
   original_filename?: string;
   optimized_url?: string;
   thumbnail_url?: string;
@@ -32,14 +35,25 @@ export const MEDIA_CATEGORIES = [
   { value: "nature", label: "Nature" },
 ];
 
+export function resolveMediaUrl(url?: string): string {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
+  return `${apiUrl}${cleanPath}`;
+}
+
 export function getMediaPreviewUrl(media: Pick<MediaItem, "thumbnail_url" | "optimized_url" | "file_url" | "original_url">) {
-  return media.thumbnail_url || media.optimized_url || media.file_url || media.original_url;
+  const rawUrl = media.file_url || media.original_url || media.thumbnail_url || media.optimized_url || "";
+  return resolveMediaUrl(rawUrl);
 }
 
 export async function uploadMediaFile(
   file: File,
   token: string,
-  metadata?: { title?: string; description?: string; alt_text?: string }
+  metadata?: { title?: string; description?: string; alt_text?: string; image_type?: string; client_id?: string }
 ): Promise<MediaItem> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   const formData = new FormData();
@@ -47,6 +61,8 @@ export async function uploadMediaFile(
   if (metadata?.title) formData.append("title", metadata.title);
   if (metadata?.description) formData.append("description", metadata.description);
   if (metadata?.alt_text) formData.append("alt_text", metadata.alt_text);
+  if (metadata?.image_type) formData.append("image_type", metadata.image_type);
+  if (metadata?.client_id) formData.append("client_id", metadata.client_id);
 
   const response = await fetch(`${apiUrl}/api/media`, {
     method: "POST",

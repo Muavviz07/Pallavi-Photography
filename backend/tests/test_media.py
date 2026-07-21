@@ -20,9 +20,13 @@ def _dummy_png() -> bytes:
     return img_byte_arr.getvalue()
 
 
-@patch("app.services.s3_service.s3_service.upload_file")
+@patch("app.services.s3_service.s3_service.upload_object")
 def test_upload_media_to_library(mock_upload, client, db):
-    mock_upload.return_value = "http://fake-minio/pallavi-photography/original/test.png"
+    mock_upload.return_value = {
+        "s3_key": "site-media/library.png",
+        "file_size": 70,
+        "content_type": "image/png",
+    }
 
     token = get_admin_token(client, db, email="media_upload@example.com")
     response = client.post(
@@ -42,7 +46,7 @@ def test_upload_media_to_library(mock_upload, client, db):
     assert data["title"] == "Library Photo"
     assert data["category"] == "family"
     assert data["usage_count"] == 0
-    assert data["file_url"] == data["optimized_url"] or data["file_url"] == data["original_url"]
+    assert data["file_url"].startswith("/api/media/public/site-media/")
 
 
 def test_list_media_requires_admin(client):
@@ -50,9 +54,13 @@ def test_list_media_requires_admin(client):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-@patch("app.services.s3_service.s3_service.upload_file")
+@patch("app.services.s3_service.s3_service.upload_object")
 def test_list_and_get_media(mock_upload, client, db):
-    mock_upload.return_value = "http://fake-minio/pallavi-photography/original/list.png"
+    mock_upload.return_value = {
+        "s3_key": "site-media/list.png",
+        "file_size": 70,
+        "content_type": "image/png",
+    }
     token = get_admin_token(client, db, email="media_list@example.com")
 
     upload_resp = client.post(
@@ -73,9 +81,13 @@ def test_list_and_get_media(mock_upload, client, db):
     assert get_resp.json()["id"] == media_id
 
 
-@patch("app.services.s3_service.s3_service.upload_file")
+@patch("app.services.s3_service.s3_service.upload_object")
 def test_update_media_metadata(mock_upload, client, db):
-    mock_upload.return_value = "http://fake-minio/pallavi-photography/original/update.png"
+    mock_upload.return_value = {
+        "s3_key": "site-media/update.png",
+        "file_size": 70,
+        "content_type": "image/png",
+    }
     token = get_admin_token(client, db, email="media_update@example.com")
 
     upload_resp = client.post(
@@ -95,10 +107,15 @@ def test_update_media_metadata(mock_upload, client, db):
     assert patch_resp.json()["category"] == "newborn"
 
 
-@patch("app.services.s3_service.s3_service.upload_file")
-@patch("app.services.image_service.ImageService.delete_image")
+@patch("app.services.s3_service.s3_service.upload_object")
+@patch("app.services.s3_service.s3_service.delete_object")
 def test_delete_unused_media(mock_delete, mock_upload, client, db):
-    mock_upload.return_value = "http://fake-minio/pallavi-photography/original/delete.png"
+    mock_upload.return_value = {
+        "s3_key": "site-media/delete.png",
+        "file_size": 70,
+        "content_type": "image/png",
+    }
+    mock_delete.return_value = True
     token = get_admin_token(client, db, email="media_delete@example.com")
 
     upload_resp = client.post(
@@ -116,9 +133,13 @@ def test_delete_unused_media(mock_delete, mock_upload, client, db):
     mock_delete.assert_called()
 
 
-@patch("app.services.s3_service.s3_service.upload_file")
+@patch("app.services.s3_service.s3_service.upload_object")
 def test_cannot_delete_media_in_use(mock_upload, client, db):
-    mock_upload.return_value = "http://fake-minio/pallavi-photography/original/inuse.png"
+    mock_upload.return_value = {
+        "s3_key": "site-media/inuse.png",
+        "file_size": 70,
+        "content_type": "image/png",
+    }
     token = get_admin_token(client, db, email="media_inuse@example.com")
 
     upload_resp = client.post(
@@ -150,9 +171,13 @@ def test_cannot_delete_media_in_use(mock_upload, client, db):
     assert "Cannot delete" in delete_resp.json()["detail"]
 
 
-@patch("app.services.s3_service.s3_service.upload_file")
+@patch("app.services.s3_service.s3_service.upload_object")
 def test_add_media_to_portfolio_gallery(mock_upload, client, db):
-    mock_upload.return_value = "http://fake-minio/pallavi-photography/original/portfolio.png"
+    mock_upload.return_value = {
+        "s3_key": "site-media/portfolio.png",
+        "file_size": 70,
+        "content_type": "image/png",
+    }
     token = get_admin_token(client, db, email="media_portfolio@example.com")
 
     media_resp = client.post(
@@ -179,9 +204,13 @@ def test_add_media_to_portfolio_gallery(mock_upload, client, db):
     assert len(images_resp.json()) == 1
 
 
-@patch("app.services.s3_service.s3_service.upload_file")
+@patch("app.services.s3_service.s3_service.upload_object")
 def test_add_media_to_client_gallery(mock_upload, client, db):
-    mock_upload.return_value = "http://fake-minio/pallavi-photography/original/client.png"
+    mock_upload.return_value = {
+        "s3_key": "site-media/client.png",
+        "file_size": 70,
+        "content_type": "image/png",
+    }
     token = get_admin_token(client, db, email="media_client@example.com")
 
     admin = db.query(User).filter(User.email == "media_client@example.com").first()

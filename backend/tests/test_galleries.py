@@ -104,9 +104,13 @@ def test_update_gallery(client, db):
     assert data["name"] == "Nature Updated"
     assert data["is_active"] is True
 
-@patch("app.services.s3_service.s3_service.upload_file")
+@patch("app.services.s3_service.s3_service.upload_object")
 def test_upload_gallery_image(mock_upload, client, db):
-    mock_upload.return_value = "http://fake-minio/pallavi-photography/image.webp"
+    mock_upload.return_value = {
+        "s3_key": "site-media/gallery_test.png",
+        "file_size": 70,
+        "content_type": "image/png",
+    }
     
     token = get_admin_token(client, db, email="admin_upload@example.com")
     # Create gallery
@@ -136,7 +140,7 @@ def test_upload_gallery_image(mock_upload, client, db):
     assert data["title"] == "Test Photo"
     assert data["alt_text"] == "Alt Text"
     assert data["description"] == "Desc"
-    assert data["original_url"].startswith("/static/media/")
+    assert data["original_url"].startswith("/api/media/public/")
 
     # Verify that cover image ID was auto-updated on the gallery
     gallery_get = client.get(f"/api/galleries/{gallery_id}")
