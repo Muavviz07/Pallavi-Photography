@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { api } from "@/lib/api";
+import { getMediaPreviewUrl } from "@/lib/media";
 
 interface Slide {
   id: string;
@@ -196,7 +196,7 @@ export default function HeroSlider() {
           }`}
         >
           <img
-            src={slide.image_url}
+            src={getMediaPreviewUrl(slide.image_url)}
             alt={slide.title}
             className="w-full h-full object-cover object-center scale-102 transition-transform duration-[4500ms] ease-out filter contrast-[1.05] saturate-[1.12]"
             loading={index === 0 ? "eager" : "lazy"}

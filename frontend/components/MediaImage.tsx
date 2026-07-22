@@ -1,38 +1,40 @@
 "use client";
 
 import React, { useState } from "react";
-import { usePresignedUrl } from "@/lib/hooks/usePresignedUrl";
-import { resolveMediaUrl } from "@/lib/media";
+import { getMediaPreviewUrl, resolveMediaUrl } from "@/lib/media";
 
-export interface MediaImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface MediaImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   id?: string;
-  src: string;
-  expiresAt?: string | null;
+  media?: any;
+  src?: string;
   alt: string;
-  refreshThreshold?: number;
-  showRefreshingBadge?: boolean;
+  className?: string;
+  fill?: boolean;
+  width?: number;
+  height?: number;
 }
 
 export const MediaImage: React.FC<MediaImageProps> = ({
   id,
+  media,
   src,
-  expiresAt,
   alt,
   className = "",
-  refreshThreshold = 60,
-  showRefreshingBadge = false,
+  fill = false,
+  width,
+  height,
   onError,
   ...props
 }) => {
-  const { url, isRefreshing } = usePresignedUrl({
-    imageId: id,
-    initialUrl: src,
-    expiresAt,
-    refreshThreshold,
-  });
-
   const [hasError, setHasError] = useState(false);
-  const resolvedSrc = resolveMediaUrl(url);
+
+  let imageUrl = src ? resolveMediaUrl(src) : "";
+
+  if (media) {
+    imageUrl = getMediaPreviewUrl(media);
+  } else if (id) {
+    imageUrl = resolveMediaUrl(`/api/media/proxy/${id}`);
+  }
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     setHasError(true);
@@ -41,25 +43,23 @@ export const MediaImage: React.FC<MediaImageProps> = ({
     }
   };
 
+  if (hasError || !imageUrl) {
+    return (
+      <div className={`bg-gray-200 flex items-center justify-center text-gray-400 text-xs ${className}`}>
+        <span>Image not available</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative inline-block overflow-hidden">
-      <img
-        src={resolvedSrc}
-        alt={alt}
-        className={`${className} ${isRefreshing ? "opacity-75 transition-opacity" : ""}`}
-        onError={handleError}
-        {...props}
-      />
-      {showRefreshingBadge && isRefreshing && (
-        <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded shadow">
-          Refreshing...
-        </span>
-      )}
-      {hasError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400 text-xs p-2 text-center">
-          Failed to load image
-        </div>
-      )}
-    </div>
+    <img
+      src={imageUrl}
+      alt={alt}
+      className={className}
+      width={width}
+      height={height}
+      onError={handleError}
+      {...props}
+    />
   );
 };

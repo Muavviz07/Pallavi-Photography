@@ -34,8 +34,12 @@ const isZip = (media: MediaItem) =>
   (media.filename || "").toLowerCase().endsWith(".zip");
 
 const getFullUrl = (media: MediaItem) => {
-  const path = media.original_url || "";
-  return path.startsWith("http") ? path : `${API_URL}${path}`;
+  if (media.id) {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    return `${apiUrl}/api/media/proxy/${media.id}`;
+  }
+  const path = media.file_url || media.s3_url || media.original_url || "";
+  return path.startsWith("http") ? path : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}${path.startsWith("/") ? path : `/${path}`}`;
 };
 
 export default function MediaManagementPage() {
@@ -236,7 +240,7 @@ export default function MediaManagementPage() {
   };
 
   const handleCopyLink = (media: MediaItem) => {
-    const url = `${window.location.origin}/static/media/${(media.original_url || "").split("/").pop()}`;
+    const url = getFullUrl(media);
     navigator.clipboard.writeText(url).then(() => {
       setCopiedId(media.id);
       setTimeout(() => setCopiedId(null), 2000);

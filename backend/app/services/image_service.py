@@ -1,7 +1,7 @@
 """
 Single Authoritative Image Storage Service.
 Handles image uploads to Garage S3 storage, record deletions,
-and centralized runtime URL resolution for public assets and client galleries.
+and proxy URL resolution for public assets and client galleries.
 """
 
 import uuid
@@ -28,29 +28,37 @@ class ImageService:
 
     def get_image_url(self, image: Any) -> str:
         """
-        Single authoritative backend URL resolver.
-        Determines the appropriate URL to return based on image_type:
-        - 'client_gallery': Short-lived runtime presigned URL.
-        - 'public' / site media: Application proxy endpoint (/api/media/public/{s3_key}).
+        Get the correct URL for displaying an image.
+        Always returns proxy URL to ensure consistency across the application.
         """
-        if not image:
+        try:
+            if not image:
+                return ""
+
+            if isinstance(image, str):
+                return f"/api/media/proxy/{image}"
+
+            img_id = getattr(image, "id", None)
+            if img_id:
+                return f"/api/media/proxy/{img_id}"
+
+            s3_key = getattr(image, "s3_key", None)
+            if s3_key:
+                return f"/api/media/proxy/{s3_key}"
+
+            if hasattr(image, "__dict__") and "original_url" in image.__dict__:
+                orig = image.__dict__["original_url"]
+                if orig:
+                    return orig
+
+            s3_url = getattr(image, "s3_url", None)
+            if s3_url and isinstance(s3_url, str):
+                return s3_url
+
             return ""
-
-        s3_key = getattr(image, "s3_key", None)
-        image_type = getattr(image, "image_type", "public") or "public"
-
-        if image_type == "client_gallery" and s3_key:
-            print(f"[ImageService] URL GENERATION (Presigned): Resolving runtime URL for private key '{s3_key}'")
-            logger.info(f"[ImageService] URL GENERATION (Presigned): Resolving runtime URL for private key '{s3_key}'")
-            return s3_service.get_presigned_url(s3_key)
-
-        if s3_key:
-            print(f"[ImageService] URL GENERATION (Public Proxy): Resolving proxy URL for key '{s3_key}'")
-            logger.info(f"[ImageService] URL GENERATION (Public Proxy): Resolving proxy URL for key '{s3_key}'")
-            return f"/api/media/public/{s3_key}"
-
-        original_url = getattr(image, "original_url", None)
-        return original_url or ""
+        except Exception as e:
+            logger.error(f"Error getting image URL: {e}")
+            return ""
 
     async def upload_image(
         self,
@@ -61,7 +69,6 @@ class ImageService:
     ) -> dict:
         """
         Single authoritative method to upload file to S3 and return metadata.
-        Stores immutable metadata in DB (zero presigned URLs persisted).
         """
         try:
             content = await file.read()
@@ -97,12 +104,15 @@ class ImageService:
                 content_type=content_type,
             )
 
+            proxy_url = f"/api/media/proxy/{s3_key}"
+
             print(f"[ImageService] UPLOAD SUCCESS: s3_key='{s3_key}', size={len(content)} bytes")
             logger.info(f"[ImageService] UPLOAD SUCCESS: s3_key='{s3_key}', size={len(content)} bytes")
 
             return {
                 "filename": original_filename,
                 "s3_key": s3_key,
+                "s3_url": proxy_url,
                 "image_type": image_type,
                 "client_id": str(client_id) if client_id else None,
                 "file_size": len(content),
@@ -133,7 +143,7 @@ class ImageService:
         s3_key = f"site-media/{unique_filename}"
         s3_service.upload_object(s3_key=s3_key, file_content=file_data)
 
-        proxy_url = f"/api/media/public/{s3_key}"
+        proxy_url = f"/api/media/proxy/{s3_key}"
         db_image = Image(
             id=uuid.uuid4(),
             file_name=unique_filename,

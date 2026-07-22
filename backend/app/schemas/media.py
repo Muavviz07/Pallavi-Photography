@@ -2,7 +2,6 @@ import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from app.services.image_service import image_service
 
 
 class MediaUpdate(BaseModel):
@@ -13,7 +12,7 @@ class MediaUpdate(BaseModel):
 
 
 class MediaResponse(BaseModel):
-    """Media library view of a centralized Image record with runtime URL resolution."""
+    """Media library view of an Image record with direct presigned & local URL attributes."""
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
@@ -23,6 +22,8 @@ class MediaResponse(BaseModel):
     category: Optional[str] = None
     original_filename: Optional[str] = None
     s3_key: Optional[str] = None
+    s3_url: Optional[str] = None
+    original_url: Optional[str] = None
     image_type: Optional[str] = "public"
     client_id: Optional[str] = None
     optimized_url: Optional[str] = None
@@ -38,12 +39,7 @@ class MediaResponse(BaseModel):
     @computed_field
     @property
     def file_url(self) -> str:
-        return image_service.get_image_url(self)
-
-    @computed_field
-    @property
-    def original_url(self) -> str:
-        return image_service.get_image_url(self)
+        return self.s3_url or self.original_url or ""
 
     @computed_field
     @property

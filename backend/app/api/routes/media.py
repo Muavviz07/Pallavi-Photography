@@ -2,6 +2,7 @@ import uuid
 import logging
 import urllib.parse
 from typing import Optional
+import httpx
 from fastapi import (
     APIRouter,
     Depends,
@@ -51,6 +52,107 @@ def _to_media_response(db_image: Image) -> MediaResponse:
     return MediaResponse.model_validate(db_image)
 
 
+@router.get("/proxy/{image_id:path}")
+async def get_image_proxied_alt(
+    image_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Proxy S3 image through backend using authentic backend S3 credentials.
+    Bypasses presigned URL signature issues and browser adblocker restrictions.
+    """
+    return await get_image_proxied(image_id=image_id, db=db)
+
+
+@router.get("/image/{image_id:path}")
+async def get_image_proxied(
+    image_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Proxy image through backend endpoint by ID, S3 Key, filename, or direct storage lookup.
+    Prevents 404 errors regardless of how frontend passes image references.
+    """
+    unquoted_id = urllib.parse.unquote(image_id)
+    try:
+        image = None
+        # 1. Try UUID lookup
+        try:
+            img_uuid = uuid.UUID(unquoted_id)
+            image = db.query(Image).filter(Image.id == img_uuid).first()
+        except ValueError:
+            pass
+
+        # 2. Try s3_key, file_name, or original_filename
+        if not image:
+            image = (
+                db.query(Image)
+                .filter(
+                    (Image.s3_key == unquoted_id)
+                    | (Image.file_name == unquoted_id)
+                    | (Image.original_filename == unquoted_id)
+                )
+                .first()
+            )
+
+        # 3. If image record found and has s3_key, stream from S3
+        if image and image.s3_key:
+            meta = s3_service.get_object_metadata_and_stream(image.s3_key)
+            logger.info(f"[ImageProxy] Successfully proxied {image.original_filename or image.file_name or image.id}")
+            filename = image.original_filename or image.file_name or "image.png"
+            return StreamingResponse(
+                meta["stream"],
+                media_type=meta["content_type"],
+                headers={
+                    "Cache-Control": "public, max-age=604800",
+                    "Content-Disposition": f'inline; filename="{filename}"',
+                    "Access-Control-Allow-Origin": "*",
+                },
+            )
+
+        # 4. If image record found and has external URL
+        if image and (image.s3_url or image.original_url):
+            target_url = image.s3_url or image.original_url
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(target_url, follow_redirects=True)
+                response.raise_for_status()
+
+                logger.info(f"[ImageProxy] Successfully proxied via HTTP {image.original_filename or image.id}")
+                filename = image.original_filename or "image.png"
+                return StreamingResponse(
+                    iter([response.content]),
+                    media_type=response.headers.get("content-type", "image/png"),
+                    headers={
+                        "Cache-Control": "public, max-age=604800",
+                        "Content-Disposition": f'inline; filename="{filename}"',
+                        "Access-Control-Allow-Origin": "*",
+                    },
+                )
+
+        # 5. Direct S3 key fallback check in Garage bucket
+        try:
+            meta = s3_service.get_object_metadata_and_stream(unquoted_id)
+            logger.info(f"[ImageProxy] Successfully proxied via direct key lookup: {unquoted_id}")
+            return StreamingResponse(
+                meta["stream"],
+                media_type=meta["content_type"],
+                headers={
+                    "Cache-Control": "public, max-age=604800",
+                    "Content-Disposition": f'inline; filename="{unquoted_id.split("/")[-1]}"',
+                    "Access-Control-Allow-Origin": "*",
+                },
+            )
+        except Exception:
+            pass
+
+        raise HTTPException(status_code=404, detail=f"Image not found: {image_id}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[ImageProxy] Failed for '{image_id}': {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to load image")
+
+
 @router.get("/public/{s3_key:path}")
 def get_public_media_proxy(
     s3_key: str,
@@ -77,6 +179,7 @@ def get_public_media_proxy(
 
     headers = {
         "Cache-Control": "public, max-age=31536000, immutable",
+        "Access-Control-Allow-Origin": "*",
     }
     if etag:
         headers["ETag"] = etag
@@ -129,9 +232,9 @@ async def upload_media(
         id=uuid.uuid4(),
         file_name=image_info.get("filename"),
         original_filename=file.filename,
-        original_url=f"/api/media/public/{s3_key_val}" if s3_key_val else "",
+        original_url=image_info.get("s3_url") if image_type == "client_gallery" else (f"/api/media/public/{s3_key_val}" if s3_key_val else ""),
         s3_key=s3_key_val,
-        s3_url=f"/api/media/public/{s3_key_val}" if s3_key_val else "",
+        s3_url=image_info.get("s3_url") if image_type == "client_gallery" else (f"/api/media/public/{s3_key_val}" if s3_key_val else ""),
         image_type=image_info.get("image_type", "public"),
         client_id=image_info.get("client_id"),
         content_type=file.content_type,

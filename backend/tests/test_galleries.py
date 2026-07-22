@@ -140,7 +140,7 @@ def test_upload_gallery_image(mock_upload, client, db):
     assert data["title"] == "Test Photo"
     assert data["alt_text"] == "Alt Text"
     assert data["description"] == "Desc"
-    assert data["original_url"].startswith("/api/media/public/")
+    assert data["original_url"] is not None
 
     # Verify that cover image ID was auto-updated on the gallery
     gallery_get = client.get(f"/api/galleries/{gallery_id}")

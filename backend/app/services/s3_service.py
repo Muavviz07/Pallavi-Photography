@@ -13,7 +13,7 @@ class S3Service:
     """
     Single authoritative S3/Garage storage service.
     Handles object uploads, deletions, presigned URLs (for private media),
-    and object streaming metadata (for public media proxy).
+    CORS configuration, and object streaming metadata.
     """
 
     def __init__(self):
@@ -31,6 +31,35 @@ class S3Service:
         )
         self.bucket = settings.S3_BUCKET
         self.bucket_name = settings.S3_BUCKET
+        self.setup_cors()
+
+    def setup_cors(self):
+        """Configure CORS for S3/Garage bucket."""
+        cors_config = {
+            "CORSRules": [
+                {
+                    "AllowedOrigins": [
+                        "http://localhost:3000",
+                        "http://localhost:8000",
+                        "https://pallaviphotography.com",
+                        "*",
+                    ],
+                    "AllowedMethods": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+                    "AllowedHeaders": ["*"],
+                    "MaxAgeSeconds": 3000,
+                }
+            ]
+        }
+        try:
+            self.client.put_bucket_cors(
+                Bucket=self.bucket_name, CORSConfiguration=cors_config
+            )
+            print(f"[S3Service] CORS configuration applied to bucket '{self.bucket_name}'")
+            logger.info(f"[S3Service] CORS configuration applied to bucket '{self.bucket_name}'")
+        except Exception as e:
+            logger.warning(
+                f"[S3Service WARNING] Could not set CORS on bucket '{self.bucket_name}': {e}"
+            )
 
     def is_configured(self) -> bool:
         """Check if S3 credentials are set."""
@@ -86,7 +115,7 @@ class S3Service:
 
     def get_object_metadata_and_stream(self, s3_key: str) -> Dict[str, Any]:
         """
-        Retrieve object stream and metadata for public image proxying.
+        Retrieve object stream and metadata for image proxying.
         Returns dict with stream, content_type, content_length, etag, and last_modified.
         """
         try:
@@ -104,7 +133,7 @@ class S3Service:
 
     def get_presigned_url(self, s3_key: str, expiration: int = 604800) -> str:
         """
-        Generate short-lived presigned URL at runtime for private client gallery media.
+        Generate short-lived presigned URL at runtime for private media.
         Default expiration: 7 days (604800 seconds).
         """
         try:
@@ -135,7 +164,7 @@ class S3Service:
             logger.error(f"[S3Service ERROR] Failed to list objects: {e}")
             raise Exception(f"S3 list failed: {str(e)}")
 
-    # Backwards compatibility helpers for existing tests
+    # Backwards compatibility helpers
     def upload_file(self, file_obj: BinaryIO, object_name: str, content_type: str = "image/webp") -> str:
         content = file_obj.read() if hasattr(file_obj, "read") else file_obj
         res = self.upload_object(s3_key=object_name, file_content=content, content_type=content_type)
