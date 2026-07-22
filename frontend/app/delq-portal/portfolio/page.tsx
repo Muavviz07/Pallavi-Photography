@@ -6,7 +6,8 @@ import { fetchAPI } from "@/lib/api";
 import { Loader2, Plus, Edit2, Trash2, Check, X, ShieldAlert, Image as ImageIcon, Library, Crop, ArrowLeft } from "lucide-react";
 import MediaPicker from "@/components/media/MediaPicker";
 import ImageCropper from "@/components/cropper/ImageCropper";
-import { MediaItem } from "@/lib/media";
+import { MediaItem, getMediaPreviewUrl } from "@/lib/media";
+
 import UploadProgressOverlay from "@/components/media/UploadProgressOverlay";
 
 interface GalleryResponse {
@@ -699,10 +700,11 @@ export default function PortfolioAdmin() {
                         <td className="py-4 px-6">
                           <div className="w-12 h-12 rounded-xs overflow-hidden bg-stone-100 border border-stone-200/50 flex items-center justify-center shadow-3xs group cursor-pointer">
                             <img
-                              src={g.cover_url || fallbackCover}
+                              src={g.cover_url ? getMediaPreviewUrl(g.cover_url) : fallbackCover}
                               alt={g.name}
                               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
                             />
+
                           </div>
                         </td>
                         <td className="py-4 px-6 space-y-1">
@@ -917,10 +919,11 @@ export default function PortfolioAdmin() {
                         <td className="py-4 px-6">
                           <div className="w-16 h-16 rounded-xs overflow-hidden bg-stone-100 border border-stone-200/50 flex items-center justify-center shadow-3xs group cursor-pointer">
                             <img
-                              src={img.optimized_url || img.original_url}
+                              src={getMediaPreviewUrl(img)}
                               alt={img.alt_text || ""}
                               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
                             />
+
                           </div>
                         </td>
                         <td className="py-4 px-6 space-y-1">

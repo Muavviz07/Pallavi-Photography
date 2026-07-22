@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { getMediaPreviewUrl } from "@/lib/media";
+
 
 interface ImageRes {
   url: string;
@@ -196,11 +198,11 @@ export default function ExplorePortfolioSection() {
     return gal.name.toUpperCase();
   };
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   const rawImage = currentDbGallery?.cover_url || currentDbGallery?.cover_image?.url;
   const featuredImage = rawImage
-    ? (rawImage.startsWith("http") ? rawImage : `${apiUrl}${rawImage}`)
+    ? getMediaPreviewUrl(rawImage)
     : currentMeta.fallbackImg;
+
 
   const linkHref = currentDbGallery ? `/portfolio/${currentDbGallery.slug}` : "#";
   const sectionText = sectionTranslations[lang as "EN" | "FR"] || sectionTranslations.EN;

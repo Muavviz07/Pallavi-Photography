@@ -8,6 +8,8 @@ import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
 import { Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/date";
+import { getMediaPreviewUrl } from "@/lib/media";
+
 
 interface BlogData {
   id: string;
@@ -206,9 +208,10 @@ export default function BlogDetailPage() {
   const translatedMetaDesc = t(`meta_description_${slug}`, post.meta_description || "");
 
   // Use a reliable fallback if no thumbnail is provided
-  const bannerImageUrl =
-    post.thumbnail_url ||
-    "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=1200";
+  const bannerImageUrl = post.thumbnail_url
+    ? getMediaPreviewUrl(post.thumbnail_url)
+    : "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=1200";
+
 
   return (
     <>

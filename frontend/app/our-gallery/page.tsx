@@ -5,6 +5,7 @@ import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
+import { getMediaPreviewUrl } from "@/lib/media";
 
 const pageTranslations = {
   EN: {
@@ -146,7 +147,7 @@ export default function OurGalleryIndex() {
             <div className="space-y-20 md:space-y-28">
               {galleries.map((item, idx) => {
                 const isEven = idx % 2 === 0;
-                const coverImage = item.cover_url || "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200";
+                const coverImage = getMediaPreviewUrl(item.cover_url || "https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200");
                 
                 return (
                   <div

@@ -5,7 +5,8 @@ import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
 import { Loader2, Plus, Edit2, Trash2, X, Image as ImageIcon } from "lucide-react";
 import MediaPicker from "@/components/media/MediaPicker";
-import { MediaItem } from "@/lib/media";
+import { MediaItem, getMediaPreviewUrl } from "@/lib/media";
+
 
 interface SlideResponse {
   id: string;
@@ -245,10 +246,11 @@ export default function AdminHeroSlider() {
                     <td className="py-4 px-6">
                       <div className="aspect-16/9 w-20 overflow-hidden rounded-xs bg-stone-100 border border-stone-200">
                         <img
-                          src={slide.image_url}
+                          src={getMediaPreviewUrl(slide.image_url)}
                           alt={slide.title}
                           className="w-full h-full object-cover"
                         />
+
                       </div>
                     </td>
                     <td className="py-4 px-6 font-medium text-stone-800 uppercase tracking-wide font-serif max-w-[200px] truncate">
@@ -372,10 +374,11 @@ export default function AdminHeroSlider() {
                     {formData.image_media_id ? (
                       <div className="relative aspect-16/9 w-full bg-stone-100 border border-stone-300/60 rounded-xs overflow-hidden group shadow-xs">
                         <img
-                          src={previewUrl}
+                          src={getMediaPreviewUrl(previewUrl)}
                           alt="Background preview"
                           className="w-full h-full object-cover"
                         />
+
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity gap-2">
                           <button
                             type="button"

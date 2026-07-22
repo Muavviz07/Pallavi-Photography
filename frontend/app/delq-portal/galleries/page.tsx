@@ -10,7 +10,8 @@ import {
 import MediaPicker from "@/components/media/MediaPicker";
 import ImageCropper from "@/components/cropper/ImageCropper";
 import UploadProgressOverlay from "@/components/media/UploadProgressOverlay";
-import { MediaItem } from "@/lib/media";
+import { MediaItem, getMediaPreviewUrl } from "@/lib/media";
+
 
 interface UserResponse {
   id: string;
@@ -855,8 +856,9 @@ export default function AdminGalleries() {
         {/* Cover / Thumbnail Section */}
         {(() => {
           const selectedCoverUrl = selectedGalleryForPhotos.cover_image 
-            ? (selectedGalleryForPhotos.cover_image.thumbnail_url || selectedGalleryForPhotos.cover_image.optimized_url || selectedGalleryForPhotos.cover_image.original_url)
+            ? getMediaPreviewUrl(selectedGalleryForPhotos.cover_image)
             : "";
+
           
           return (
             <div className="bg-white border border-[#DCD0C0]/25 rounded-md p-6 space-y-4">
@@ -896,10 +898,11 @@ export default function AdminGalleries() {
                 <div className="w-48 aspect-video rounded-sm bg-stone-100 border border-[#DCD0C0]/20 overflow-hidden relative flex items-center justify-center">
                   {selectedCoverUrl ? (
                     <img
-                      src={selectedCoverUrl}
+                      src={getMediaPreviewUrl(selectedCoverUrl)}
                       alt="Gallery cover thumbnail"
                       className="w-full h-full object-cover"
                     />
+
                   ) : (
                     <div className="text-center p-4">
                       <ImageIcon className="w-6 h-6 text-stone-300 mx-auto mb-1.5" />
@@ -1041,10 +1044,11 @@ export default function AdminGalleries() {
                     {/* Thumbnail container */}
                     <div className="aspect-square w-full bg-stone-100 overflow-hidden relative">
                       <img
-                        src={item.image.thumbnail_url || item.image.optimized_url || item.image.original_url}
+                        src={getMediaPreviewUrl(item.image)}
                         alt={item.image.alt_text}
                         className="w-full h-full object-cover"
                       />
+
                       
                       {/* Selection Overlay Badge */}
                       {item.selected && (

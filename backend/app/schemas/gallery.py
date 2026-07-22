@@ -34,6 +34,11 @@ class GalleryResponse(GalleryBase):
 class GalleryDetailImageResponse(BaseModel):
     id: uuid.UUID
     url: str
+    thumbnail_url: Optional[str] = None
+    original_url: Optional[str] = None
+    title: Optional[str] = None
+    alt_text: Optional[str] = None
+    aspect: Optional[str] = None
     order_position: int
 
 class GalleryDetailResponse(BaseModel):

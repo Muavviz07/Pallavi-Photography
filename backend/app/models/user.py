@@ -1,7 +1,7 @@
 import uuid
 from enum import Enum
 from sqlalchemy import String, DateTime, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
 
 class UserRole(str, Enum):
@@ -25,3 +25,7 @@ class User(Base):
     
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    client_medias = relationship("ClientMedia", foreign_keys="[ClientMedia.client_id]", back_populates="client", cascade="all, delete-orphan")
+

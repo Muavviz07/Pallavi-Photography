@@ -86,3 +86,6 @@ export const api = {
     return fetchAPI(endpoint, { ...options, method: "DELETE" });
   },
 };
+
+export default api;
+

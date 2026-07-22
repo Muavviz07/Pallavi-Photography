@@ -88,9 +88,16 @@ def get_gallery(id_or_slug: str, db: Session = Depends(get_db)):
     # Sort by order_position ascending
     sorted_gi = sorted(gallery.gallery_images, key=lambda x: x.order_position)
     for gi in sorted_gi:
+        img_obj = gi.image
+        dims = img_obj.dimensions if isinstance(img_obj.dimensions, dict) else {}
         images_list.append({
-            "id": gi.image.id,
-            "url": gi.image.optimized_url or gi.image.original_url,
+            "id": img_obj.id,
+            "url": img_obj.optimized_url or img_obj.original_url or f"/api/media/proxy/{img_obj.id}",
+            "thumbnail_url": img_obj.thumbnail_url or img_obj.optimized_url or img_obj.original_url or f"/api/media/proxy/{img_obj.id}",
+            "original_url": img_obj.original_url or img_obj.optimized_url or f"/api/media/proxy/{img_obj.id}",
+            "title": img_obj.title,
+            "alt_text": img_obj.alt_text,
+            "aspect": dims.get("aspect") if dims else None,
             "order_position": gi.order_position
         })
         

@@ -5,7 +5,8 @@ import { useSession } from "next-auth/react";
 import { fetchAPI } from "@/lib/api";
 import { Loader2, Plus, Edit2, Trash2, X, Image as ImageIcon } from "lucide-react";
 import MediaPicker from "@/components/media/MediaPicker";
-import { MediaItem } from "@/lib/media";
+import { MediaItem, getMediaPreviewUrl } from "@/lib/media";
+
 
 interface AwardResponse {
   id: string;
@@ -266,10 +267,11 @@ export default function AdminRecognitionsAndAwards() {
                     <td className="py-4 px-6">
                       <div className="w-12 h-12 overflow-hidden rounded-xs bg-stone-100 border border-stone-200">
                         <img
-                          src={award.image_url}
+                          src={getMediaPreviewUrl(award.image_url)}
                           alt={award.title}
                           className="w-full h-full object-cover"
                         />
+
                       </div>
                     </td>
                     <td className="py-4 px-6 font-medium text-stone-800 uppercase tracking-wide font-serif max-w-[200px] truncate">
@@ -393,8 +395,8 @@ export default function AdminRecognitionsAndAwards() {
                     {formData.image_media_id ? (
                       <div className="relative aspect-3/4 w-full bg-stone-100 border border-stone-300/60 rounded-xs overflow-hidden group shadow-xs">
                         <img
-                          src={previewUrl}
-                          alt="Award Preview"
+                          src={getMediaPreviewUrl(previewUrl)}
+                          alt="Badge preview"
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity gap-2">

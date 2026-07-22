@@ -20,3 +20,5 @@ from app.models.gallery_image import GalleryImage
 from app.models.system_setting import SystemSetting
 from app.models.admin_permission import AdminFeature, AdminRolePermission
 from app.models.audit_log import AuditLog
+from app.models.client_media import ClientMedia
+

@@ -8,6 +8,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
 import { useTranslation } from "@/components/LanguageProvider";
+import { getMediaPreviewUrl } from "@/lib/media";
 
 const FALLBACK_IMAGES: Record<string, Array<{ id: string; url: string; title: string; altText: string; aspect?: string }>> = {
   newborn: [
@@ -57,6 +58,7 @@ const FALLBACK_IMAGES: Record<string, Array<{ id: string; url: string; title: st
 interface GalleryImage {
   id: string;
   url: string;
+  thumbnailUrl?: string;
   title: string;
   altText: string;
   aspect?: string;
@@ -90,12 +92,15 @@ export default function PortfolioGalleryPage() {
           if (data.images && data.images.length > 0) {
             const formatted = data.images.map((img: any, idx: number) => {
               const aspectPatterns = ["square", "portrait", "landscape", "square", "large_portrait", "wide_landscape"];
-              const aspect = aspectPatterns[idx % aspectPatterns.length];
+              const aspect = img.aspect || aspectPatterns[idx % aspectPatterns.length];
+              const rawThumb = img.thumbnail_url || img.url || img;
+              const rawFull = img.original_url || img.url || img;
               return {
                 id: img.id,
-                url: img.url,
-                title: `${data.name} - Frame ${idx + 1}`,
-                altText: `${data.name} portfolio showcase image`,
+                url: getMediaPreviewUrl(rawFull),
+                thumbnailUrl: getMediaPreviewUrl(rawThumb),
+                title: img.title || `${data.name} - Frame ${idx + 1}`,
+                altText: img.alt_text || `${data.name} portfolio showcase image`,
                 aspect: aspect
               };
             });
@@ -153,7 +158,13 @@ export default function PortfolioGalleryPage() {
 
       setGalleryTitle(meta.title);
       setGalleryDescription(meta.description);
-      setImages(FALLBACK_IMAGES[categoryKey] || []);
+      const rawFallbacks = FALLBACK_IMAGES[categoryKey] || [];
+      const formattedFallbacks = rawFallbacks.map((img) => ({
+        ...img,
+        url: getMediaPreviewUrl(img.url),
+        thumbnailUrl: getMediaPreviewUrl(img.url)
+      }));
+      setImages(formattedFallbacks);
       setLoading(false);
     }
 
@@ -309,7 +320,7 @@ export default function PortfolioGalleryPage() {
                     className={`relative rounded-xs overflow-hidden cursor-pointer shadow-xs group bg-white border border-brand-border/40 transition-all duration-300 hover:shadow-md animate-fade-in block w-full ${aspectClass}`}
                   >
                     <img
-                      src={img.url}
+                      src={img.thumbnailUrl || img.url}
                       alt={img.altText}
                       className="w-full h-full object-cover transition-transform duration-1000 ease-out scale-100 group-hover:scale-102"
                       loading="lazy"
@@ -331,7 +342,7 @@ export default function PortfolioGalleryPage() {
       </main>
 
       {activeImageIndex !== null && images.length > 0 && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-between p-4 sm:p-8 animate-fade-in">
+        <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-between p-4 sm:p-8 animate-fade-in">
           <div className="w-full flex items-center justify-between text-white/70 text-xs tracking-widest font-sans font-light">
             <span>
               {activeImageIndex + 1} / {images.length}

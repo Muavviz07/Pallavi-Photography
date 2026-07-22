@@ -141,28 +141,37 @@ export default function ImageCropper({
 
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
-    const initialAspect = ASPECT_PRESETS.find((p) => p.key === selectedAspect)?.value;
-    const fullCrop = centerCrop(
-      makeAspectCrop({ unit: "%", width: 90 }, initialAspect || width / height, width, height),
-      width,
-      height
-    );
-    setCrop(fullCrop);
+    if (selectedAspect === "free") {
+      setCrop({ unit: "%", x: 0, y: 0, width: 100, height: 100 });
+    } else {
+      const aspect = ASPECT_PRESETS.find((p) => p.key === selectedAspect)?.value;
+      const initialCrop = centerCrop(
+        makeAspectCrop({ unit: "%", width: 100 }, aspect || width / height, width, height),
+        width,
+        height
+      );
+      setCrop(initialCrop);
+    }
   }, [selectedAspect]);
 
   // Adjust crop bounds when aspect ratio selection changes
   useEffect(() => {
     if (imgRef.current) {
       const { width, height } = imgRef.current;
-      const aspect = ASPECT_PRESETS.find((p) => p.key === selectedAspect)?.value;
-      const newCrop = centerCrop(
-        makeAspectCrop({ unit: "%", width: 90 }, aspect || width / height, width, height),
-        width,
-        height
-      );
-      setCrop(newCrop);
+      if (selectedAspect === "free") {
+        setCrop({ unit: "%", x: 0, y: 0, width: 100, height: 100 });
+      } else {
+        const aspect = ASPECT_PRESETS.find((p) => p.key === selectedAspect)?.value;
+        const newCrop = centerCrop(
+          makeAspectCrop({ unit: "%", width: 100 }, aspect || width / height, width, height),
+          width,
+          height
+        );
+        setCrop(newCrop);
+      }
     }
   }, [selectedAspect]);
+
 
   /** Returns true when the current crop+rotation has NOT actually modified the image. */
   const isUnchanged = (): boolean => {
@@ -370,6 +379,17 @@ export default function ImageCropper({
               >
                 Cancel
               </button>
+
+              {onUseOriginal && (
+                <button
+                  type="button"
+                  onClick={onUseOriginal}
+                  className="px-4 py-2 border border-[#C4A484] text-[#C4A484] hover:bg-[#C4A484]/10 text-xs rounded-sm font-semibold transition-all cursor-pointer"
+                >
+                  Use Original
+                </button>
+              )}
+
               <button
                 onClick={handleConfirm}
                 disabled={processing || (!onUseOriginal && (!completedCrop || completedCrop.width === 0))}
@@ -386,6 +406,7 @@ export default function ImageCropper({
                   confirmLabel
                 )}
               </button>
+
             </div>
           </div>
         </div>

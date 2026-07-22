@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { Check, Download, Package, Send, CheckSquare, Square, ChevronLeft, ChevronRight, X, Lock } from "lucide-react";
 import Image from "next/image";
 import ImageUpload from "@/components/gallery/ImageUpload";
+import { getMediaPreviewUrl } from "@/lib/media";
+
 
 interface ImageItem {
   image_id: string;
@@ -57,11 +59,9 @@ export default function ClientGalleryView({ slug, token, meta: initialMeta }: Cl
 
   const getImageUrl = (url: string) => {
     if (!url) return "";
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
-      return url;
-    }
-    return `${apiUrl}${url}`;
+    return getMediaPreviewUrl(url);
   };
+
 
   const fetchImages = async () => {
     try {

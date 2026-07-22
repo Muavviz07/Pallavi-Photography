@@ -6,6 +6,8 @@ import { FolderOpen, Calendar, ArrowRight, Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
+import { getMediaPreviewUrl } from "@/lib/media";
+
 
 interface PublicGallery {
   id: string;
@@ -101,7 +103,10 @@ export default function PublicClientGalleriesPage() {
             /* Premium Grid - matching reference layout */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {galleries.map((gallery) => {
-                const coverImage = gallery.cover_image_url || "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=800";
+                const coverImage = gallery.cover_image_url
+                  ? getMediaPreviewUrl(gallery.cover_image_url)
+                  : "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=800";
+
                 return (
                   <Link
                     key={gallery.id}

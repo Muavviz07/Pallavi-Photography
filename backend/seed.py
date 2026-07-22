@@ -104,7 +104,7 @@ def seed_db():
         slides = [
             HeroSlide(
                 title="New Beginnings",
-                image_url="https://images.unsplash.com/photo-1610901137736-d7cc46657b11?auto=format&fit=crop&q=80&w=1200",
+                image_url="https://images.unsplash.com/photo-1610901137736-d7cc46657b11?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8bmV3Ym9ybiUyMGJhYnklMjBwaG90b3Nob290fGVufDB8fDB8fHww",
                 order=1,
                 is_active=True
             ),

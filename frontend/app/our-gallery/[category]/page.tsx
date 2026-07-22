@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import BreadcrumbsBanner from "@/components/common/BreadcrumbsBanner";
+import { getMediaPreviewUrl } from "@/lib/media";
 
 // Curated high-res fallback imagery for visual showcase
 const FALLBACK_IMAGES: Record<string, Array<{ id: string; url: string; title: string; altText: string; aspect?: string }>> = {
@@ -89,6 +90,7 @@ const CATEGORIES_METADATA: Record<string, { title: string; subtitle: string; des
 interface GalleryImage {
   id: string;
   url: string;
+  thumbnailUrl?: string;
   title: string;
   altText: string;
   aspect?: string;
@@ -147,7 +149,8 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
               if (data && data.length > 0) {
                 const formattedImages = data.map((img: any) => ({
                   id: img.id,
-                  url: img.optimized_url || img.original_url,
+                  url: getMediaPreviewUrl(img.original_url || img.optimized_url || img.url || img),
+                  thumbnailUrl: getMediaPreviewUrl(img.thumbnail_url || img.optimized_url || img.url || img),
                   title: img.title || "Untitled",
                   altText: img.alt_text || "Portfolio Image",
                   aspect: img.dimensions?.aspect || "square" // Defaults to square aspect crop
@@ -164,7 +167,13 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
       }
 
       // If backend fails or is empty, use highly curated fallbacks
-      setImages(FALLBACK_IMAGES[categoryKey] || []);
+      const rawFallbacks = FALLBACK_IMAGES[categoryKey] || [];
+      const formattedFallbacks = rawFallbacks.map((img) => ({
+        ...img,
+        url: getMediaPreviewUrl(img.url),
+        thumbnailUrl: getMediaPreviewUrl(img.url)
+      }));
+      setImages(formattedFallbacks);
       setLoading(false);
     }
 
@@ -285,7 +294,7 @@ export default function CategoryGalleryPage({ params }: { params: Promise<{ cate
                     className={`relative rounded-xs overflow-hidden cursor-pointer shadow-xs group bg-[#FAF8F5] border border-[#DCD0C0]/20 transition-all duration-300 hover:shadow-md animate-fade-in block w-full ${aspectClass}`}
                   >
                     <img
-                      src={img.url}
+                      src={img.thumbnailUrl || img.url}
                       alt={img.altText}
                       className="w-full h-full object-cover transition-transform duration-1000 ease-out scale-100 group-hover:scale-102"
                       loading="lazy"

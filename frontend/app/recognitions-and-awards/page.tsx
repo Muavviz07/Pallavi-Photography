@@ -17,6 +17,8 @@ interface AwardItem {
 }
 
 import { useTranslation } from "@/components/LanguageProvider";
+import { getMediaPreviewUrl } from "@/lib/media";
+
 
 export default function RecognitionsAndAwardsPage() {
   const [awards, setAwards] = useState<AwardItem[]>([]);
@@ -118,11 +120,12 @@ export default function RecognitionsAndAwardsPage() {
                     className="break-inside-avoid mb-6 rounded-xs overflow-hidden cursor-pointer shadow-xs group bg-[#FAF8F5] border border-[#DCD0C0]/20 transition-all duration-300 hover:shadow-md block w-full relative"
                   >
                     <img
-                      src={award.image_url}
+                      src={getMediaPreviewUrl(award.image_url)}
                       alt={awardTitle}
                       className="w-full h-auto object-cover transition-transform duration-1000 ease-out scale-100 group-hover:scale-102"
                       loading="lazy"
                     />
+
                     {/* Hover Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#2C2623]/75 via-[#2C2623]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-6">
                       <span className="text-[9px] uppercase tracking-[0.25em] text-[#C4A484] font-semibold block mb-1 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500 delay-75">
@@ -178,10 +181,11 @@ export default function RecognitionsAndAwardsPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <img
-                src={currentAward.image_url}
+                src={getMediaPreviewUrl(currentAward.image_url)}
                 alt={awardTitle}
                 className="max-w-full max-h-[68vh] object-contain shadow-2xl animate-fade-in"
               />
+
               {/* Metadata underneath */}
               <div className="mt-5 text-center space-y-2 max-w-2xl px-4">
                 <h4 className="text-base font-serif font-light text-white tracking-wider uppercase">

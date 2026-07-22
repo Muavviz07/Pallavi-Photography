@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatDate } from "@/lib/date";
+import { getMediaPreviewUrl } from "@/lib/media";
+
 
 interface BlogData {
   id: string;
@@ -97,9 +99,10 @@ export default function BlogSection() {
           /* Grid of exactly 3 cards (3 cols on desktop, 1 col on mobile) */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
             {posts.map((post) => {
-              const cardImage =
-                post.thumbnail_url ||
-                "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=800";
+              const cardImage = post.thumbnail_url
+                ? getMediaPreviewUrl(post.thumbnail_url)
+                : "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=800";
+
 
               return (
                 <article

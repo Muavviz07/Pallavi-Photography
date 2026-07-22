@@ -11,6 +11,7 @@ interface BlogCardProps {
 }
 
 import { useTranslation } from "@/components/LanguageProvider";
+import { getMediaPreviewUrl } from "@/lib/media";
 
 export default function BlogCard({
   title,
@@ -24,9 +25,10 @@ export default function BlogCard({
   const translatedTitle = t(`title_${slug}`, title);
   const translatedExcerpt = t(`excerpt_${slug}`, excerpt || "No description available.");
 
-  const imageUrl =
-    thumbnail_url ||
-    "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=800";
+  const imageUrl = thumbnail_url
+    ? getMediaPreviewUrl(thumbnail_url)
+    : "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=800";
+
 
   return (
     <article className="group flex flex-col justify-between space-y-5 text-left">
